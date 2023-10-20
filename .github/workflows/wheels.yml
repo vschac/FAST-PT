@@ -15,15 +15,15 @@ jobs:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+#        with:
+#          python-version: 3.11
 
       - name: Install dependencies
         run: |
           python -m pip install -U pip
 
-          sudo -H apt-get -qq update
-          sudo -H apt-get install -y libfftw3-dev libeigen3-dev
+#          sudo -H apt-get -qq update
+#          sudo -H apt-get install -y libfftw3-dev libeigen3-dev
 
           pip install -U numpy setuptools wheel
           pip install -U -r requirements.txt
@@ -36,9 +36,9 @@ jobs:
       - name: Build sdist
         run: |
           python setup.py sdist
-          cp wheels/Piff* dist
+          cp wheels/fast-pt* dist
           ls -l dist
-          tar tvfz dist/Piff-*.tar.gz
+          tar tvfz dist/fast-pt-*.tar.gz
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
