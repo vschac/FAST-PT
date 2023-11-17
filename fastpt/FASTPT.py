@@ -49,6 +49,7 @@ from .initialize_params import scalar_stuff, tensor_stuff
 from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
+from .IA_tij import IA_tij_feG2, IA_tij_heG2
 from .OV import OV
 from .kPol import kPol
 from .RSD import RSDA, RSDB
@@ -172,6 +173,7 @@ class FASTPT:
         self.OV_do = False
         self.kPol_do = False
         self.RSD_do = False
+        self.IA_tij_do = False
 
         for entry in to_do:  # convert to_do list to instructions for FAST-PT initialization
             if entry == 'one_loop_dd':
@@ -212,6 +214,12 @@ class FASTPT:
             elif entry == 'IRres':
                 self.dd_do = True
                 continue
+            elif entry == 'tij':
+                self.IA_ta_do = True
+                self.IA_tt_do = True
+                self.IA_mix_do = True
+                self.IA_tij_do = True
+                continue
             elif entry == 'all' or entry == 'everything':
                 self.dd_do = True
                 self.dd_bias_do = True
@@ -222,6 +230,7 @@ class FASTPT:
                 self.kPol_do = True
                 self.RSD_do = True
                 self.cleft = True
+                self.IA_tij_do = True
                 continue
             else:
                 raise ValueError('FAST-PT does not recognize "' + entry + '" in the to_do list.')
@@ -275,6 +284,14 @@ class FASTPT:
             self.X_IA_deltaE1 = tensor_stuff(p_mat_deltaE1, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_0E0E = tensor_stuff(p_mat_0E0E, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_0B0B = tensor_stuff(p_mat_0B0B, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        
+        if self.IA_tij_do:
+            IA_tij_feG2_tab = IA_tij_feG2()
+            IA_tij_heG2_tab = IA_tij_heG2()
+            p_mat_tij_feG2 = IA_tij_feG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+            p_mat_tij_heG2 = IA_tij_heG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+            self.X_IA_tij_feG2 = tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_tij_heG2 = tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l)            
 
         if self.OV_do:
             # For OV, we can use two different values for
@@ -592,6 +609,22 @@ class FASTPT:
     def IA_der(self, P, P_window=None, C_window=None):
         P_der = (self.k_original**2)*P
         return P_der
+    
+    def IA_tij(self,P,P_window=None, C_window=None):
+        P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_feG2 = self.EK.PK_original(P_feG2)
+        P_heG2, A = self.J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_heG2 = self.EK.PK_original(P_heG2)
+        P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
+        P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
+        P_feG2sub = np.subtract(P_feG2,P_A00E)
+        P_heG2sub = np.subtract(P_heG2,P_A0E2)
+            
+        return 2*P_feG2sub, 2*P_heG2sub
+            
+
 
     def OV(self, P, P_window=None, C_window=None):
         P, A = self.J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
