@@ -44,12 +44,12 @@ from scipy.special import gamma
 from scipy.signal import fftconvolve
 import scipy.integrate as integrate
 from .fastpt_extr import p_window, c_window, pad_left, pad_right
-from .matter_power_spt import P_13_reg, Y1_reg_NL, Y2_reg_NL
+from .matter_power_spt import P_13_reg, Y1_reg_NL, Y2_reg_NL, P_22
 from .initialize_params import scalar_stuff, tensor_stuff
 from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
-from .IA_tij import IA_tij_feG2, IA_tij_heG2
+from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2
 from .OV import OV
 from .kPol import kPol
 from .RSD import RSDA, RSDB
@@ -192,6 +192,7 @@ class FASTPT:
                 self.IA_tt_do = True
                 self.IA_ta_do = True
                 self.IA_mix_do = True
+                self.IA_tij_do = True
                 continue
             elif entry == 'IA_tt':
                 self.IA_tt_do = True
@@ -288,10 +289,19 @@ class FASTPT:
         if self.IA_tij_do:
             IA_tij_feG2_tab = IA_tij_feG2()
             IA_tij_heG2_tab = IA_tij_heG2()
+            IA_tij_F2F2_tab = IA_tij_F2F2()
+            IA_tij_G2G2_tab = IA_tij_G2G2()
+            IA_tij_F2G2_tab = IA_tij_F2G2()
             p_mat_tij_feG2 = IA_tij_feG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_tij_heG2 = IA_tij_heG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+            p_mat_tij_F2F2 = IA_tij_F2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+            p_mat_tij_G2G2 = IA_tij_G2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+            p_mat_tij_F2G2 = IA_tij_F2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_IA_tij_feG2 = tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_tij_heG2 = tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l)            
+            self.X_IA_tij_heG2 = tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l) 
+            self.X_IA_tij_F2F2 = tensor_stuff(p_mat_tij_F2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_tij_G2G2 = tensor_stuff(p_mat_tij_G2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_tij_F2G2 = tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)            
 
         if self.OV_do:
             # For OV, we can use two different values for
@@ -617,12 +627,24 @@ class FASTPT:
         P_heG2, A = self.J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_heG2 = self.EK.PK_original(P_heG2)
+        P_F2F2, A = self.J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_F2F2 = self.EK.PK_original(P_F2F2)
+        P_G2G2, A = self.J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_G2G2 = self.EK.PK_original(P_G2G2)
+        P_F2G2, A = self.J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_F2G2 = self.EK.PK_original(P_F2G2)
         P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
         P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
-        P_feG2sub = np.subtract(P_feG2,P_A00E)
-        P_heG2sub = np.subtract(P_heG2,P_A0E2)
+        P_13 = P_13_reg(self.k_original, P)
+        P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
+        P_tijsij = P_G2G2-P_F2F2-(1/2)*P_13
+        P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
+        P_heG2sub = np.subtract(P_heG2,(1/2)*P_A0E2)
             
-        return 2*P_feG2sub, 2*P_heG2sub
+        return 2*P_feG2sub, 2*P_heG2sub, 2*P_tijtij, 2*P_tijsij
             
 
 
