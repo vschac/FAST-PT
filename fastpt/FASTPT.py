@@ -50,7 +50,7 @@ from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
 from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2
-from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he, IA_gb2_base
+from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he
 from .OV import OV
 from .kPol import kPol
 from .RSD import RSDA, RSDB
@@ -315,17 +315,15 @@ class FASTPT:
             IA_gb2_he_tab = IA_gb2_he()
             IA_gb2_F2_tab = IA_gb2_F2()
             IA_gb2_G2_tab = IA_gb2_G2()
-            IA_gb2_base_tab = IA_gb2_base()
             p_mat_gb2_fe = IA_gb2_fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_gb2_he = IA_gb2_he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_gb2_F2 = IA_gb2_F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_gb2_G2 = IA_gb2_G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_base = IA_gb2_base_tab[:, [0,1,5,6,7,8,9]]
             self.X_IA_gb2_fe = tensor_stuff(p_mat_gb2_fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_gb2_he = tensor_stuff(p_mat_gb2_he, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_gb2_F2 = tensor_stuff(p_mat_gb2_F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_gb2_G2 = tensor_stuff(p_mat_gb2_G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_base = tensor_stuff(p_mat_gb2_base, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
 
         if self.OV_do:
             # For OV, we can use two different values for
@@ -671,9 +669,6 @@ class FASTPT:
         return 2*P_feG2sub, 2*P_heG2sub, 2*P_tijtij, 2*P_tijsij
     
     def IA_gb2(self,P,P_window=None, C_window=None):
-        P_base, A = self.J_k_tensor(P,self.X_IA_gb2_base, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_base = self.EK.PK_original(P_base)
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_fe = self.EK.PK_original(P_fe)
@@ -686,7 +681,7 @@ class FASTPT:
         P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_G2 = self.EK.PK_original(P_G2)
-        P_gb2sij = P_base
+        P_gb2sij = P_F2
         P_gb2sij2 = P_he
         P_gb2tij = P_G2-P_F2
         P_gb2dsij = P_fe
