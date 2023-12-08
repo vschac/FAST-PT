@@ -695,6 +695,7 @@ class FASTPT:
         P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_G2 = self.EK.PK_original(P_G2)
+        sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
         P_gb2sij = P_F2
         P_gb2sij2 = P_he
         P_gb2tij = P_G2-P_F2
