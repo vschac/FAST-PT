@@ -49,7 +49,7 @@ from .initialize_params import scalar_stuff, tensor_stuff
 from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
-from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2
+from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F
 from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he
 from .IA_gb2 import IA_gb2_S2F2, IA_gb2_S2G2, IA_gb2_S2fe, IA_gb2_S2he
 from .OV import OV
@@ -674,13 +674,14 @@ class FASTPT:
             _, P_F2G2 = self.EK.PK_original(P_F2G2)
         P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
         P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
-        P_13 = P_13_reg(self.k_original, P)
+        P_13F = P_IA_13F(self.k_original, P)
+        P_13G = P_IA_13G(self.k_original,P)
         P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
-        P_tijsij = P_G2G2-P_F2F2-(1/2)*P_13
+        P_tijsij = P_G2G2+P_13G-P_F2F2-P_13F
         P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
         P_heG2sub = np.subtract(P_heG2,(1/2)*P_A0E2)
             
-        return 2*P_feG2sub, 2*P_heG2sub, 2*P_tijtij, 2*P_tijsij
+        return 2*P_feG2sub, 2*P_heG2sub, 2*P_13F, 2*P_13G
     
     def IA_gb2(self,P,P_window=None, C_window=None):
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
