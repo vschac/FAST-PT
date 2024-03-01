@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
-from .J_table import J_table 
+from .J_table import J_table
+from .J_k import J_k
 import sys
 from time import time
 from numpy import log, sqrt, exp, pi
@@ -96,22 +97,69 @@ def P_IA_13G(k,P):
     mid_low_s=s[ (s >= -cut) &  (s < 0)]
 
     # For Zbar
-    Z1=lambda r : -82. + 12/r**2 + 4*r**2 -6*r**4 +log((r+1.)/np.absolute(r-1.))*(-6/r**3+15/r-9*r-3*r**3+3*r**5)
-    Z1_high=lambda r : -108 + (72/5)*r**2+ (12/7)*r**4-(352/105)*r**6-(164/105)*r**8 + (58/35)*r**10-(4/21)*r**12-(2/3)*r**14
-    Z1_low=lambda r: -316/5+4/(35*r**8)+26/(21*r**6)+608/(105*r**4)-408/(35*r**2)+4/(3*r**12)-34/(21*r**10)
+    Z1=lambda r : (12/r**2-26+4*r**2-6*r**4+(3/r**3)*(r**2-1)**3*(r**2+2)*log((r+1.)/np.absolute(r-1.))) *r
+    Z1_low=lambda r : (-224/5+1248/(35*r**2)-608/(105*r**4)-26/(21*r**6)-4/(35*r**8)+34/(21*r**10) -4/(3*r**12)) *r
+    Z1_high=lambda r: ((-32*r**2)/5-(96*r**4)/7+(352*r**6)/105+(164*r**8)/105-(58*r**10)/35+(4*r**12)/21+(2*r**14)/3) *r
 
     f_mid_low=Z1(exp(-mid_low_s))
     f_mid_high=Z1(exp(-mid_high_s))
     f_high = Z1_high(exp(-high_s))
     f_low = Z1_low(exp(-low_s))
 
-    f=np.hstack((f_low,f_mid_low,-72.,f_mid_high,f_high))
+    f=np.hstack((f_low,f_mid_low,-16.,f_mid_high,f_high))
     # print(f)
 
     g= convolve(P, f) * dL
     g_k=g[N-1:2*N-1]
-    deltaE2= k**3/(336.*pi**2) * P*g_k
+    deltaE2= 1/84 * k**3/(2*pi)**2 * P*g_k
     return deltaE2
+
+def P_22F_reg(k,P, P_window, C_window, n_pad):
+    # P_22 Legendre components
+	# We calculate a regularized version of P_22
+	# by omitting the J_{2,-2,0} term so that the
+	# integral converges.  In the final power spectrum
+	# we add the asymptotic portions of P_22 and P_13 so
+	# that we get a convergent integral.  See section of XXX.
+
+	param_matrix=np.array([[0,0,0,0],[0,0,2,0],[0,0,4,0],[2,-2,2,0],\
+							[1,-1,1,0],[1,-1,3,0],[2,-2,0,1] ])
+
+
+	Power, mat=J_k(k,P,param_matrix, P_window=P_window, C_window=C_window, n_pad=n_pad)
+	A=1219/1470.*mat[0,:]
+	B=671/1029.*mat[1,:]
+	C=32/1715.*mat[2,:]
+	D=1/3.*mat[3,:]
+	E=62/35.*mat[4,:]
+	F=8/35.*mat[5,:]
+	reg=1/3.*mat[6,:]
+
+	return 2*(A+B+C+D+E+F)+ reg
+
+def P_22G_reg(k,P, P_window, C_window, n_pad):
+    # P_22 Legendre components
+	# We calculate a regularized version of P_22
+	# by omitting the J_{2,-2,0} term so that the
+	# integral converges.  In the final power spectrum
+	# we add the asymptotic portions of P_22 and P_13 so
+	# that we get a convergent integral.  See section of XXX.
+
+	param_matrix=np.array([[0,0,0,0],[0,0,2,0],[0,0,4,0],[2,-2,2,0],\
+							[1,-1,1,0],[1,-1,3,0],[2,-2,0,1], [2,-2,0,0]])
+
+
+	Power, mat=J_k(k,P,param_matrix, P_window=P_window, C_window=C_window, n_pad=n_pad)
+	A=1003/1470.*mat[0,:]
+	B=803/1029.*mat[1,:]
+	C=64/1715.*mat[2,:]
+	D=1/3.*mat[3,:]
+	E=58/35.*mat[4,:]
+	F=12/35.*mat[5,:]
+	reg=1/3*mat[6,:]
+	#G=1/6.*mat[7,:]
+
+	return 2*(A+B+C+D+E+F)+ reg
 
 def P_IA_13F(k,P):
 	N=k.size
@@ -125,10 +173,10 @@ def P_IA_13F(k,P):
 	mid_high_s=s[ (s <= cut) &  (s > 0)]
 	mid_low_s=s[ (s >= -cut) &  (s < 0)]
 
-	Z=lambda r : (12./r**2 -158. + 100.*r**2-42.*r**4 \
+	Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
 	+ 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/np.absolute(r-1.)) ) *r
-	Z_low=lambda r : (352./5.+96./.5/r**2 -160./21./r**4 - 526./105./r**6 +236./35./r**8) *r
-	Z_high=lambda r: (928./5.*r**2 - 4512./35.*r**4 +416./21.*r**6 +356./105.*r**8) *r
+	Z_low=lambda r : (352./5.+96./.5/r**2 -160./21./r**4 - 526./105./r**6 +236./35./r**8-50./21./r**10-4./3./r**12) *r
+	Z_high=lambda r: (928./5.*r**2 - 4512./35.*r**4 +416./21.*r**6 +356./105.*r**8+74./35.*r**10-20./3.*r**12+14./3.*r**14) *r
 
 	f_mid_low=Z(exp(-mid_low_s))
 	f_mid_high=Z(exp(-mid_high_s))

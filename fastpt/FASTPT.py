@@ -49,9 +49,10 @@ from .initialize_params import scalar_stuff, tensor_stuff
 from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
-from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F
+from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, P_22F_reg, P_22G_reg
 from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he
 from .IA_gb2 import IA_gb2_S2F2, IA_gb2_S2G2, IA_gb2_S2fe, IA_gb2_S2he
+from .J_k import J_k
 from .OV import OV
 from .kPol import kPol
 from .RSD import RSDA, RSDB
@@ -424,6 +425,44 @@ class FASTPT:
             _, P_1loop = self.EK.PK_original(P_1loop)
 
         return P_1loop, Ps
+    
+    def tester_function(self,P,P_window=None,C_window=None):
+        one_loop_coef = np.array(
+            [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
+
+        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
+        # get the matrix for each J_k component
+        nu = -2
+        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
+
+        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
+        P22 = np.sum(P22_mat, 1)
+        P13 = P_13_reg(self.k_old, Ps)
+        #All new terms
+        P_13F = P_IA_13F(self.k_original, P)
+        P_13G = P_IA_13G(self.k_original,P)
+        #P_F2F2, A = self.J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
+        #if (self.extrap):
+        #    _, P_F2F2 = self.EK.PK_original(P_F2F2)
+        #P_G2G2, A = self.J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
+        #if (self.extrap):
+        #    _, P_G2G2 = self.EK.PK_original(P_G2G2)
+        #param_matrix=np.array([[2,-2,0,1]])
+        #Power, mat=J_k(self.k_original,P,param_matrix,P_window=P_window, C_window=C_window, n_pad=n_pad)
+        #regF = 1/3*mat[0,:]
+        #regG = 1/9*mat[0,:]
+        #P_22F=P_F2F2+regF
+        #P_22G=P_G2G2+regG
+        P_22F = P_22F_reg(self.k_original,P, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
+        P_22G = P_22G_reg(self.k_original,P,P_window=P_window,C_window=C_window, n_pad=self.n_pad)
+        if (self.extrap):
+            _, P22 = self.EK.PK_original(P22)
+            _, P13 = self.EK.PK_original(P13)
+        return P22, P13, P_22F, P_13F, P_22G, P_13G
+
+
+
+
 
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
         nu = -2
@@ -675,13 +714,20 @@ class FASTPT:
         P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
         P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
         P_13F = P_IA_13F(self.k_original, P)
-        P_13G = P_IA_13G(self.k_original,P)
+        P_13G = P_IA_13G(self.k_original,P,)
+        P_22F = P_22F_reg(self.k_original,P, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
+        P_22G = P_22G_reg(self.k_original,P,P_window=P_window,C_window=C_window, n_pad=self.n_pad)
+
+        #param_matrix=np.array([[2,-2,0,1]])
+        #Power, mat=J_k(self.k_original,P,param_matrix,P_window=P_window, C_window=C_window, n_pad=n_pad)
+        #regF = 1/3*mat[0,:]
+        #regG = 1/9*mat[0,:]
         P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
-        P_tijsij = P_G2G2+P_13G-P_F2F2-P_13F
+        P_tijsij = P_22G-P_22F+P_13G-P_13F
         P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
         P_heG2sub = np.subtract(P_heG2,(1/2)*P_A0E2)
             
-        return 2*P_feG2sub, 2*P_heG2sub, 2*P_13F, 2*P_13G
+        return P_tijsij,P_feG2sub,P_heG2sub,P_tijtij
     
     def IA_gb2(self,P,P_window=None, C_window=None):
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
