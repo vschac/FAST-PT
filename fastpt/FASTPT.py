@@ -49,7 +49,7 @@ from .initialize_params import scalar_stuff, tensor_stuff
 from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
-from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, P_22F_reg, P_22G_reg
+from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, P_22F_reg, P_22G_reg, IA_tij_F2G2reg
 from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he
 from .IA_gb2 import IA_gb2_S2F2, IA_gb2_S2G2, IA_gb2_S2fe, IA_gb2_S2he
 from .J_k import J_k
@@ -301,16 +301,19 @@ class FASTPT:
             IA_tij_F2F2_tab = IA_tij_F2F2()
             IA_tij_G2G2_tab = IA_tij_G2G2()
             IA_tij_F2G2_tab = IA_tij_F2G2()
+            IA_tij_F2G2reg_tab =IA_tij_F2G2reg()
             p_mat_tij_feG2 = IA_tij_feG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_tij_heG2 = IA_tij_heG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_tij_F2F2 = IA_tij_F2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_tij_G2G2 = IA_tij_G2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_tij_F2G2 = IA_tij_F2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+            p_mat_tij_F2G2reg_tab = IA_tij_F2G2reg_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_IA_tij_feG2 = tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_tij_heG2 = tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l) 
             self.X_IA_tij_F2F2 = tensor_stuff(p_mat_tij_F2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_tij_G2G2 = tensor_stuff(p_mat_tij_G2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_tij_F2G2 = tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l) 
+            self.X_IA_tij_F2G2 = tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_tij_F2G2reg = tensor_stuff(p_mat_tij_F2G2reg_tab, self.N, self.m, self.eta_m, self.l, self.tau_l)
         
         if self.IA_gb2_do:
             IA_gb2_fe_tab = IA_gb2_fe()
@@ -455,9 +458,19 @@ class FASTPT:
         #P_22G=P_G2G2+regG
         P_22F = P_22F_reg(self.k_original,P, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
         P_22G = P_22G_reg(self.k_original,P,P_window=P_window,C_window=C_window, n_pad=self.n_pad)
+        #P_22Gnonreg, A = self.J_k_tensor(P,self.X_IA_tij_F2G2reg, P_window=P_window, C_window=C_window)
+        #param_matrix=np.array([[0,0,0,0],[0,0,2,0],[0,0,4,0],[2,-2,2,0],\
+                            #[1,-1,1,0],[1,-1,3,0],[2,-2,0,1]])
+
+
+        #Power, mat=J_k(self.k_original,P,param_matrix, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
+        #reg = 1/3*mat[6,:]
+
         if (self.extrap):
             _, P22 = self.EK.PK_original(P22)
             _, P13 = self.EK.PK_original(P13)
+            #_, P_22Gnonreg = self.EK.PK_original(P_22Gnonreg)
+        #P_22G=P_22Gnonreg+reg
         return P22, P13, P_22F, P_13F, P_22G, P_13G
 
 
@@ -718,10 +731,6 @@ class FASTPT:
         P_22F = P_22F_reg(self.k_original,P, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
         P_22G = P_22G_reg(self.k_original,P,P_window=P_window,C_window=C_window, n_pad=self.n_pad)
 
-        #param_matrix=np.array([[2,-2,0,1]])
-        #Power, mat=J_k(self.k_original,P,param_matrix,P_window=P_window, C_window=C_window, n_pad=n_pad)
-        #regF = 1/3*mat[0,:]
-        #regG = 1/9*mat[0,:]
         P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
         P_tijsij = P_22G-P_22F+P_13G-P_13F
         P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
