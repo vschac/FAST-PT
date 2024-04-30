@@ -736,7 +736,7 @@ class FASTPT:
         P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
         P_heG2sub = np.subtract(P_heG2,(1/2)*P_A0E2)
             
-        return P_tijsij,P_feG2sub,P_heG2sub,P_tijtij
+        return 2*P_tijsij,2*P_feG2sub,2*P_heG2sub,2*P_tijtij
     
     def IA_gb2(self,P,P_window=None, C_window=None):
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
