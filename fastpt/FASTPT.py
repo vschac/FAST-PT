@@ -221,6 +221,7 @@ class FASTPT:
                 self.dd_do = True
                 continue
             elif entry == 'tij':
+                self.IA_dd_do = True
                 self.IA_ta_do = True
                 self.IA_tt_do = True
                 self.IA_mix_do = True
@@ -257,6 +258,7 @@ class FASTPT:
 
             self.X_spt = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_lpt = scalar_stuff(p_mat_lpt, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_sptG = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
         if self.cleft:
             nu = -2
@@ -391,6 +393,8 @@ class FASTPT:
         P13 = P_13_reg(self.k_old, Ps)
         P_1loop = P22 + P13
 
+        
+
         if (self.dd_bias_do):
             # if dd_bias is in to_do, this function acts like one_loop_dd_bias
 
@@ -441,6 +445,7 @@ class FASTPT:
         P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
         P22 = np.sum(P22_mat, 1)
         P13 = P_13_reg(self.k_old, Ps)
+        
         #All new terms
         P_13F = P_IA_13F(self.k_original, P)
         P_13G = P_IA_13G(self.k_original,P)
@@ -458,6 +463,14 @@ class FASTPT:
         #P_22G=P_G2G2+regG
         P_22F = P_22F_reg(self.k_original,P, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
         P_22G = P_22G_reg(self.k_original,P,P_window=P_window,C_window=C_window, n_pad=self.n_pad)
+
+        #Test of different P_22G
+        one_loop_coefG= np.array(
+            [2*1003/1470, 2*803/1029, 2*64/1715, 2*1/3, 2*58/35, 2*12/35, 1/3])
+        
+        PsG, matG = self.J_k_scalar(P, self.X_sptG, nu, P_window=P_window, C_window=C_window)
+        P22G_mat = np.multiply(one_loop_coefG, np.transpose(matG))
+        P_22G2 = np.sum(P22G_mat, 1)
         #P_22Gnonreg, A = self.J_k_tensor(P,self.X_IA_tij_F2G2reg, P_window=P_window, C_window=C_window)
         #param_matrix=np.array([[0,0,0,0],[0,0,2,0],[0,0,4,0],[2,-2,2,0],\
                             #[1,-1,1,0],[1,-1,3,0],[2,-2,0,1]])
@@ -469,9 +482,10 @@ class FASTPT:
         if (self.extrap):
             _, P22 = self.EK.PK_original(P22)
             _, P13 = self.EK.PK_original(P13)
+            _, P_22G2 = self.EK.PK_original(P_22G2)
             #_, P_22Gnonreg = self.EK.PK_original(P_22Gnonreg)
         #P_22G=P_22Gnonreg+reg
-        return P22, P13, P_22F, P_13F, P_22G, P_13G
+        return P22, P13, P_22F, P_13F, P_22G, P_13G, P_22G2
 
 
 
@@ -728,9 +742,21 @@ class FASTPT:
         P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
         P_13F = P_IA_13F(self.k_original, P)
         P_13G = P_IA_13G(self.k_original,P,)
-        P_22F = P_22F_reg(self.k_original,P, P_window=P_window, C_window=C_window, n_pad=self.n_pad)
-        P_22G = P_22G_reg(self.k_original,P,P_window=P_window,C_window=C_window, n_pad=self.n_pad)
+        nu=-2
+        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
+        one_loop_coef = np.array(
+            [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
+        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
+        P_22F = np.sum(P22_mat, 1)
 
+        one_loop_coefG= np.array(
+            [2*1003/1470, 2*803/1029, 2*64/1715, 2*1/3, 2*58/35, 2*12/35, 1/3])
+        PsG, matG = self.J_k_scalar(P, self.X_sptG, nu, P_window=P_window, C_window=C_window)
+        P22G_mat = np.multiply(one_loop_coefG, np.transpose(matG))
+        P_22G = np.sum(P22G_mat, 1)
+        if (self.extrap):
+            _, P_22F=self.EK.PK_original(P_22F)
+            _, P_22G=self.EK.PK_original(P_22G)
         P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
         P_tijsij = P_22G-P_22F+P_13G-P_13F
         P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
