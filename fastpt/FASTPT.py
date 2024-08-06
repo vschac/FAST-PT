@@ -764,6 +764,29 @@ class FASTPT:
             
         return 2*P_tijsij,2*P_feG2sub,2*P_heG2sub,2*P_tijtij
     
+
+    def IA_gb2tij(self,P,P_window=None, C_window=None):
+        P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_F2 = self.EK.PK_original(P_F2)
+        P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_G2 = self.EK.PK_original(P_G2)
+        P_gb2tij = P_G2-P_F2
+        P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_S2F2 = self.EK.PK_original(P_S2F2)
+
+        P_13S2F2 = P_IA_13S2F2(self.k_original, P)
+
+        P_S2G2, A = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_S2G2 = self.EK.PK_original(P_S2G2)
+        P_s2tij=P_S2G2-P_S2F2
+
+        return 2*P_gb2tij,2*P_s2tij
+
+
     def IA_gb2(self,P,P_window=None, C_window=None):
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -774,15 +797,11 @@ class FASTPT:
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_F2 = self.EK.PK_original(P_F2)
-        P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_G2 = self.EK.PK_original(P_G2)
         sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
         P_gb2sij = P_F2
         P_gb2sij2 = P_he
-        P_gb2tij = P_G2-P_F2
         P_gb2dsij = P_fe
-        return 2*P_gb2sij, 2*P_gb2dsij, 2*P_gb2sij2, 2*P_gb2tij
+        return 2*P_gb2sij, 2*P_gb2dsij, 2*P_gb2sij2
     
     def IA_s2(self, P, P_window=None, C_window=None):
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
@@ -791,9 +810,6 @@ class FASTPT:
 
         P_13S2F2 = P_IA_13S2F2(self.k_original, P)
 
-        P_S2G2, A = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2G2 = self.EK.PK_original(P_S2G2)
         P_S2fe, A = self.J_k_tensor(P, self.X_IA_gb2_S2fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2fe = self.EK.PK_original(P_S2fe)
@@ -803,8 +819,7 @@ class FASTPT:
         P_s2sij=P_S2F2+2*P_13S2F2
         P_s2dsij=P_S2fe
         P_s2sij2=P_S2he
-        P_s2tij=P_S2G2-P_S2F2
-        return 2*P_s2sij, 2*P_s2dsij, 2*P_s2sij2, 2*P_s2tij
+        return 2*P_s2sij, 2*P_s2dsij, 2*P_s2sij2
 
 
     def OV(self, P, P_window=None, C_window=None):
