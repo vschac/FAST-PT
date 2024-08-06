@@ -50,7 +50,7 @@ from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
 from .IA_tij import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, P_22F_reg, P_22G_reg, IA_tij_F2G2reg
-from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he
+from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_G2, IA_gb2_he, P_IA_13S2F2
 from .IA_gb2 import IA_gb2_S2F2, IA_gb2_S2G2, IA_gb2_S2fe, IA_gb2_S2he
 from .J_k import J_k
 from .OV import OV
@@ -788,6 +788,9 @@ class FASTPT:
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2F2 = self.EK.PK_original(P_S2F2)
+
+        P_13S2F2 = P_IA_13S2F2(self.k_original, P)
+
         P_S2G2, A = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2G2 = self.EK.PK_original(P_S2G2)
@@ -797,7 +800,7 @@ class FASTPT:
         P_S2he, A = self.J_k_tensor(P, self.X_IA_gb2_S2he, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2he = self.EK.PK_original(P_S2he)
-        P_s2sij=P_S2F2
+        P_s2sij=P_S2F2+2*P_13S2F2
         P_s2dsij=P_S2fe
         P_s2sij2=P_S2he
         P_s2tij=P_S2G2-P_S2F2
