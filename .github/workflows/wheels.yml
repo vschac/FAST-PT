@@ -6,10 +6,15 @@ environment:
 # These lines are not necessary for simple build and publish workflow.
 
 on:
-  workflow_dispatch:
-  release:
-    types:
-      - published
+  push:
+    branches:
+      toml_setup_updates
+ 
+  # workflow_dispatch:
+  # release:
+    # types:
+    #  - published
+
 
 jobs:
   build_sdist:
