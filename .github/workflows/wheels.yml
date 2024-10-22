@@ -1,10 +1,21 @@
+<<<<<<< Updated upstream
 name: Build wheels and sdist and upload to PyPI
+=======
+name: Build wheels and sdist and upload to PyPi
+>>>>>>> Stashed changes
 
 on:
   workflow_dispatch:
   release:
     types:
       - published
+<<<<<<< Updated upstream
+=======
+  # push:
+    # branches:
+      # toml_setup_updates
+      # For debugging.
+>>>>>>> Stashed changes
 
 jobs:
   build_sdist:
@@ -18,9 +29,13 @@ jobs:
 
       - name: Install dependencies
         run: |
+<<<<<<< Updated upstream
           python -m pip install -U pip
 
           pip install -U numpy setuptools wheel
+=======
+          python -m pip install -U pip setuptools wheel build
+>>>>>>> Stashed changes
           pip install -U -r requirements.txt
 
       - name: Build wheel
@@ -35,9 +50,19 @@ jobs:
           ls -l dist
           tar tvfz dist/fast-pt-*.tar.gz
 
+<<<<<<< Updated upstream
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
             user: jablazek
             password: ${{ secrets.pypi_password }}
             verbose: true
+=======
+      - name: Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+          verbose: true
+>>>>>>> Stashed changes
