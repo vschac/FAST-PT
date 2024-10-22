@@ -1,4 +1,9 @@
-name: Build wheels and sdist and upload to PyPI
+name: Build wheels and sdist and upload to TestPyPI
+
+environment:
+  name: testpypi
+  url: https://testpypi.org/p/fast-pt-3.2  
+# These lines are not necessary for simple build and publish workflow.
 
 on:
   workflow_dispatch:
@@ -12,9 +17,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v2
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
       - name: Install dependencies
         run: |
@@ -23,21 +31,21 @@ jobs:
           pip install -U numpy setuptools wheel
           pip install -U -r requirements.txt
 
-      - name: Build wheel
+      - name: Build wheel and sdist
         run: |
-          pip wheel -w wheels .
+          python setup.py sdist bdist_wheel
           ls -l wheels
 
-      - name: Build sdist
-        run: |
-          python setup.py sdist
-          cp wheels/fast-pt* dist
-          ls -l dist
-          tar tvfz dist/fast-pt-*.tar.gz
+      - name: Upload distributions as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
-      - name: Publish to PyPI
+      - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-            user: jablazek
-            password: ${{ secrets.pypi_password }}
-            verbose: true
+          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_TOKEN }}
+          verbose: true
