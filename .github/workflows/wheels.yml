@@ -1,10 +1,5 @@
 name: Build wheels and sdist and upload to TestPyPI
 
-environment:
-  name: testpypi
-  url: https://testpypi.org/p/fast-pt-3.2  
-# These lines are not necessary for simple build and publish workflow.
-
 on:
   push:
     branches:
