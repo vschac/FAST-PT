@@ -34,7 +34,7 @@ jobs:
       - name: Build wheel and sdist
         run: |
           python setup.py sdist bdist_wheel
-          ls -l wheels
+          ls -l  */wheel/*
 
       - name: Upload distributions as artifact
         uses: actions/upload-artifact@v4
