@@ -1,21 +1,14 @@
-<<<<<<< Updated upstream
-name: Build wheels and sdist and upload to PyPI
-=======
 name: Build wheels and sdist and upload to PyPi
->>>>>>> Stashed changes
 
 on:
   workflow_dispatch:
   release:
     types:
       - published
-<<<<<<< Updated upstream
-=======
   # push:
     # branches:
       # toml_setup_updates
       # For debugging.
->>>>>>> Stashed changes
 
 jobs:
   build_sdist:
@@ -23,41 +16,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
 
       - name: Install dependencies
         run: |
-<<<<<<< Updated upstream
-          python -m pip install -U pip
-
-          pip install -U numpy setuptools wheel
-=======
           python -m pip install -U pip setuptools wheel build
->>>>>>> Stashed changes
           pip install -U -r requirements.txt
 
-      - name: Build wheel
+      - name: Build wheel and sdist
         run: |
-          pip wheel -w wheels .
-          ls -l wheels
+          python -m build
 
-      - name: Build sdist
-        run: |
-          python setup.py sdist
-          cp wheels/fast-pt* dist
-          ls -l dist
-          tar tvfz dist/fast-pt-*.tar.gz
-
-<<<<<<< Updated upstream
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Upload distributions as artifact
+        uses: actions/upload-artifact@v4
         with:
-            user: jablazek
-            password: ${{ secrets.pypi_password }}
-            verbose: true
-=======
+          name: python-package-distributions
+          path: dist/
+
       - name: Publish to PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -65,4 +42,3 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
           verbose: true
->>>>>>> Stashed changes
