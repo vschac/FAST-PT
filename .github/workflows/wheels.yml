@@ -1,14 +1,14 @@
-name: Build wheels and sdist and upload to TestPyPI
+name: Build wheels and sdist and upload to PyPi
 
 on:
-  push:
-    branches:
-      toml_setup_updates
-  # workflow_dispatch:
-  # release:
-    # types:
-    #  - published
-
+  workflow_dispatch:
+  release:
+    types:
+      - published
+  # push:
+    # branches:
+      # toml_setup_updates
+      # For debugging.
 
 jobs:
   build_sdist:
@@ -38,10 +38,10 @@ jobs:
           name: python-package-distributions
           path: dist/
 
-      - name: Publish to TestPyPI
+      - name: Publish to PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/
+          repository-url: https://upload.pypi.org/legacy/
           user: __token__
-          password: ${{ secrets.TEST_PYPI_TOKEN }}
+          password: ${{ secrets.PYPI_TOKEN }}
           verbose: true
