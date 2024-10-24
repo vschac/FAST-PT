@@ -13,7 +13,8 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Joseph E. McEwen" }, 
     { name = "Xiao Fang" }, 
-    { name = "Jonathan Blazek <blazek@berkeley.edu" }
+    { name = "Jonathan Blazek" },
+    { email = "blazek@berkeley.edu" }
     ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
