@@ -15,7 +15,9 @@ authors = [
     { name = "Xiao Fang" }, 
     { name = "Jonathan Blazek" }
     ]
-author-email = "blazek@berkeley.edu"
+author-emails = [
+    "blazek@berkeley.edu"
+]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Science/Research',
