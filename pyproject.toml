@@ -7,13 +7,13 @@ build-backend = "setuptools.build_meta"
 name = "fast-pt"
 dynamic = ["version"]
 requires-python = ">=3.5"
-description = "Code to calculate quantities in cosmological perturbation theory at 1-loop."
+description = "FAST-PT is a code to calculate quantities in cosmological perturbation theory at 1-loop (including, e.g., corrections to the matter power spectrum)."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
     { name = "Joseph E. McEwen" }, 
     { name = "Xiao Fang" }, 
-    { name = "Jonathan Blazek", email = "blazek@berkeley.edu" }
+    { name = "Jonathan Blazek <blazek@berkeley.edu>" }
     ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
