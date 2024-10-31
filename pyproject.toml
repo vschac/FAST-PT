@@ -40,10 +40,9 @@ dependencies = [
 [project.urls]
 homepage = "https://github.com/jablazek/FAST-PT"
 
-# Not sure if you need to be this explicit or not.
+# Explicitly define where package is (same directory as .toml).
+# Include matches full name of module how it would be imported in Python.
+# (Based on guide here: https://setuptools.pypa.io/en/latest/userguide/package_discovery.html)
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["fastpt*"]
-
-# [tool.setuptools.dynamic]
-# version = {attr = "fastpt.__version__"}
