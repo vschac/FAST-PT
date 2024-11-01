@@ -21,7 +21,7 @@ Full installation with examples:
 
 * Make sure you have current version of numpy, scipy, and matplotlib
 * download the latest FAST-PT release (or clone the repo)
-* install the repo: `python setup.py install`
+* install the repo: `python -m pip install .`
 * run the example: `cd examples && python fastpt_example.py`
 * hopefully you get a plot!
 
