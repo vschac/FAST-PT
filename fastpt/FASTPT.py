@@ -176,7 +176,6 @@ class FASTPT:
         self.kPol_do = False
         self.RSD_do = False
         self.IA_tij_do = False
-        self.IA_gb2_do = False
 
         for entry in to_do:  # convert to_do list to instructions for FAST-PT initialization
             if entry == 'one_loop_dd':
@@ -196,7 +195,6 @@ class FASTPT:
                 self.IA_ta_do = True
                 self.IA_mix_do = True
                 self.IA_tij_do = True
-                self.IA_gb2_do = True
                 continue
             elif entry == 'IA_tt':
                 self.IA_tt_do = True
@@ -683,12 +681,12 @@ class FASTPT:
         if (self.extrap):
             _, P_22F=self.EK.PK_original(P_22F)
             _, P_22G=self.EK.PK_original(P_22G)
-        P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
-        P_tijsij = P_22G-P_22F+P_13G-P_13F
-        P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
-        P_heG2sub = np.subtract(P_heG2,(1/2)*P_A0E2)
+        P_tEtE = P_F2F2+P_G2G2-2*P_F2G2
+        P_0tE = P_22G-P_22F+P_13G-P_13F
+        P_0EtE = np.subtract(P_feG2,(1/2)*P_A00E)
+        P_E2tE = np.subtract(P_heG2,(1/2)*P_A0E2)
             
-        return 2*P_0TE,2*P_0ETE,2*P_E2TE,2*P_TETE
+        return 2*P_0tE,2*P_0EtE,2*P_E2tE,2*P_tEtE
     
 
     def IA_ctbias(self,P,P_window=None, C_window=None):
@@ -698,19 +696,19 @@ class FASTPT:
         P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_G2 = self.EK.PK_original(P_G2)
-        P_gb2tij = P_G2-P_F2
+        P_d2tE = P_G2-P_F2
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2F2 = self.EK.PK_original(P_S2F2)
 
-        P_13S2F2 = P_IA_13S2F2(self.k_original, P)
+        #P_13S2F2 = P_IA_13S2F2(self.k_original, P)
 
         P_S2G2, A = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2G2 = self.EK.PK_original(P_S2G2)
-        P_s2tij=P_S2G2-P_S2F2
+        P_s2tE=P_S2G2-P_S2F2
 
-        return 2*P_d2TE,2*P_s2TE
+        return 2*P_d2tE,2*P_s2tE
 
 
 
