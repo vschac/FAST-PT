@@ -641,9 +641,9 @@ class FASTPT:
         if (self.extrap):
             _, P_F2 = self.EK.PK_original(P_F2)
         sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
-        P_gb2sij = P_F2
-        P_gb2sij2 = P_he
-        P_gb2dsij = P_fe
+        P_d2E = P_F2
+        P_d20E = P_he
+        P_d2E2 = P_fe
         return 2*P_d2E, 2*P_d20E, 2*P_d2E2
     
     def IA_s2(self, P, P_window=None, C_window=None):
@@ -659,9 +659,9 @@ class FASTPT:
         P_S2he, A = self.J_k_tensor(P, self.X_IA_gb2_S2he, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2he = self.EK.PK_original(P_S2he)
-        P_s2sij=P_S2F2+2*P_13S2F2
-        P_s2dsij=P_S2fe
-        P_s2sij2=P_S2he
+        P_s2E=P_S2F2+2*P_13S2F2
+        P_s20E=P_S2fe
+        P_s2E2=P_S2he
         return 2*P_s2E, 2*P_s20E, 2*P_s2E2
 
 
