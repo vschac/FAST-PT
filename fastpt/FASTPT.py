@@ -715,15 +715,7 @@ class FASTPT:
             
         return 2*P_0tE,2*P_0EtE,2*P_E2tE,2*P_tEtE
     
-
     def IA_ctbias(self,P,P_window=None, C_window=None):
-    def IA_d2(self,P,P_window=None, C_window=None):
-        P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_fe = self.EK.PK_original(P_fe)
-        P_he, A = self.J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_he = self.EK.PK_original(P_he)
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_F2 = self.EK.PK_original(P_F2)
@@ -731,13 +723,6 @@ class FASTPT:
         if (self.extrap):
             _, P_G2 = self.EK.PK_original(P_G2)
         P_d2tE = P_G2-P_F2
-        sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
-        P_d2E = P_F2
-        P_d20E = P_he
-        P_d2E2 = P_fe
-        return 2*P_d2E, 2*P_d20E, 2*P_d2E2
-    
-    def IA_s2(self, P, P_window=None, C_window=None):
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2F2 = self.EK.PK_original(P_S2F2)
@@ -750,6 +735,30 @@ class FASTPT:
         P_s2tE=P_S2G2-P_S2F2
 
         return 2*P_d2tE,2*P_s2tE
+
+
+    def IA_d2(self,P,P_window=None, C_window=None):
+        P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_fe = self.EK.PK_original(P_fe)
+        P_he, A = self.J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_he = self.EK.PK_original(P_he)
+        P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_F2 = self.EK.PK_original(P_F2)
+        sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
+        P_d2E = P_F2
+        P_d20E = P_he
+        P_d2E2 = P_fe
+        return 2*P_d2E, 2*P_d20E, 2*P_d2E2
+    
+    def IA_s2(self, P, P_window=None, C_window=None):
+        P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
+        if (self.extrap):
+            _, P_S2F2 = self.EK.PK_original(P_S2F2)
+
+        P_13S2F2 = P_IA_13S2F2(self.k_original, P)
 
         P_S2fe, A = self.J_k_tensor(P, self.X_IA_gb2_S2fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
