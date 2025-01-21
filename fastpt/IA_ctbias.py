@@ -38,7 +38,6 @@ def IA_gb2_S2F2():
             [1,-1,0,0,1,2/15],\
             [1,-1,0,0,3,1/5],\
             [-1,1,0,0,1,2/15],\
-            [-1,1,0,0,1,1/5]],dtype=float)
             [-1,1,0,0,3,1/5]],dtype=float)
     table=np.zeros(10,dtype=float)
     for i in range(l_mat_gb2_S2F2.shape[0]):
