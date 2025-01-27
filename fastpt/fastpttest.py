@@ -1,13 +1,14 @@
-import fastpt as pt
+from fastpt import FASTPT
 from time import time
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
     # Version check
 
     # load the data file
-
-d = np.loadtxt('/home/carterw/FAST-PT/examples/Pk_test.dat')
+data_path = os.path.join(os.path.dirname(__file__), '..', 'examples', 'Pk_test.dat')
+d = np.loadtxt(data_path)
     # declare k and the power spectrum
 k = d[:, 0];
 P = d[:, 1]
@@ -28,12 +29,12 @@ to_do = ['one_loop_dd']
     # initialize the FASTPT class
     # including extrapolation to higher and lower k
 t1 = time()
-fpt = pt(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
+fpt = FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
 t2 = time()
     # calculate 1loop SPT (and time the operation)
     # P_spt=fastpt.one_loop_dd(P,C_window=C_window)
-P_lpt = fpt.one_loop_dd_bias_lpt(P, C_window=C_window)
+P_lpt = fpt.one_loop_dd_bias_lpt_NL(P, C_window=C_window)
 P_der = fpt.IA_der(P,C_window=C_window)
 
     # for M = 10**14 M_sun/h
