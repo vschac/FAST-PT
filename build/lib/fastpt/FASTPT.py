@@ -848,7 +848,7 @@ class FASTPT:
         if (self.extrap):
             _, P_S2he = self.EK.PK_original(P_S2he)
         #THIS LINE RIGHT HERE
-        P_s2E=P_S2F2+2*P_13S2F2
+        P_s2E=P_S2F2#+2*P_13S2F2
         P_s20E=P_S2fe
         P_s2E2=P_S2he
         return 2*P_s2E, 2*P_s20E, 2*P_s2E2

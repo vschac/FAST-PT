@@ -37,6 +37,7 @@ fastpt/J_k.py
 fastpt/J_table.py
 fastpt/OV.py
 fastpt/P_extend.py
+fastpt/Profiler.py
 fastpt/RG_RK4.py
 fastpt/RG_RK4_filt.py
 fastpt/RG_STS.py
