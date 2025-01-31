@@ -68,3 +68,4 @@ paper/inputs/P_OV_KPol.dat
 paper/inputs/P_RSD_A.dat
 paper/inputs/P_RSD_B.dat
 paper/inputs/P_lin.dat
+tests/test_fastpt.py

@@ -1129,7 +1129,7 @@ if __name__ == "__main__":
 
     d = np.loadtxt('Pk_test.dat')
     # declare k and the power spectrum
-    k = d[:, 0];
+    k = d[:, 0]
     P = d[:, 1]
 
     # set the parameters for the power spectrum window and
