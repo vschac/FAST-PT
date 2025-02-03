@@ -107,12 +107,12 @@ class FASTPT:
         np.testing.assert_array_almost_equal(dk, dk_test, decimal=4, err_msg=log_sample_test, verbose=False)
 
         if (verbose):
-            print('the minumum and maximum inputed log10(k) are :', np.min(np.log10(k)), np.max(np.log10(k)))
-            print('the grid spacing Delta log (k) is', (log(np.max(k)) - log(np.min(k))) / (k.size - 1))
-            print('number of input k points are', k.size)
-            print('the power spectrum is extraplated to log10(k_min)=', low_extrap)
-            print('the power spectrum is extraplated to log10(k_max)=', high_extrap)
-            print('the power spectrum has ', n_pad, ' zeros added to both ends of the power spectrum')
+            print(f'the minumum and maximum inputed log10(k) are: {np.min(np.log10(k))} and {np.max(np.log10(k))}')
+            print(f'the grid spacing Delta log (k) is, {(log(np.max(k)) - log(np.min(k))) / (k.size - 1)}')
+            print(f'number of input k points are, {k.size}')
+            print(f'the power spectrum is extraplated to log10(k_min)={low_extrap}')
+            print(f'the power spectrum is extraplated to log10(k_max)={high_extrap}')
+            print(f'the power spectrum has {n_pad} zeros added to both ends of the power spectrum')
 
         self.k_original = k
         self.extrap = False
@@ -146,9 +146,9 @@ class FASTPT:
             n_pad_check = int(np.log(2) / delta_L) + 1
             if (n_pad < n_pad_check):
                 print('*** Warning ***')
-                print('You should consider increasing your zero padding to at least ', n_pad_check)
+                print(f'You should consider increasing your zero padding to at least {n_pad_check}')
                 print('to ensure that the minimum k_output is > 2k_min in the FASTPT universe.')
-                print('k_min in the FASTPT universe is ', k[0], ' while k_min_input is ', self.k_old[0])
+                print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_old[0]}')
 
         self.k = k
         self.k_size = k.size
@@ -245,7 +245,7 @@ class FASTPT:
                 self.IA_tij_do = True
                 continue
             else:
-                raise ValueError('FAST-PT does not recognize "' + entry + '" in the to_do list.')
+                raise ValueError(f'FAST-PT does not recognize {entry} in the to_do list.')
 
         ### INITIALIZATION of k-grid quantities ###
         if self.dd_do:
@@ -1123,7 +1123,7 @@ if __name__ == "__main__":
     from time import time
 
     # Version check
-    print('This is FAST-PT version', __version__)
+    print(f'This is FAST-PT version {__version__}')
 
     # load the data file
 
