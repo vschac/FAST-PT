@@ -8,11 +8,10 @@
 '''
 
 import numpy as np
-from .matter_power_spt import one_loop
 import matplotlib.pyplot as plt
 
 from .fastpt_extr import p_window
-from scipy.signal import butter, lfilter, filtfilt, lfilter_zi
+from scipy.signal import butter, lfilter
 import time
 import sys
 from . import FASTPT

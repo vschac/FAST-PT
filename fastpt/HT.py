@@ -27,11 +27,10 @@
 from __future__ import division 
 
 import numpy as np
-from numpy.fft import fft, ifft , fftshift, ifftshift , rfft, irfft 
-from numpy import exp, log, log10, cos, sin, pi
+from numpy.fft import rfft, irfft 
+from numpy import exp, log, cos, sin, pi
 from scipy.special import gamma 
 from time import time 
-from numpy import gradient as grad
 import sys
 
 log2=log(2)

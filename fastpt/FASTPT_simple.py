@@ -17,18 +17,15 @@ from __future__ import print_function
 
 
 import numpy as np
-from numpy.fft import fft, ifft , rfft, irfft , fftfreq
-from numpy import exp, log, log10, cos, sin, pi, cosh, sinh , sqrt
-from scipy.special import gamma
+from numpy.fft import ifft , rfft, irfft
+from numpy import exp, log, pi
 import sys
 from time import time
-from .fastpt_extr import p_window, c_window, pad_left, pad_right
+from .fastpt_extr import p_window, c_window
 from .matter_power_spt import P_13_reg
-from scipy.signal import convolve , fftconvolve
-from scipy.interpolate import interp1d
+from scipy.signal import fftconvolve
 from .gamma_funcs import g_m_vals, gamsn
 from .P_extend import k_extend
-from scipy.integrate import quad
 
 log2=log(2.)
 class FASTPT:

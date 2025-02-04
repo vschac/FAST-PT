@@ -4,7 +4,7 @@
 	quatities for each FAST-PT parameter matrix.
 '''
 import numpy as np
-from numpy import exp, pi, sin, cos, log, sqrt
+from numpy import exp, pi, log, sqrt
 from scipy.special import gamma
 from .get_nu1_nu2 import nu1_nu2
 import sys

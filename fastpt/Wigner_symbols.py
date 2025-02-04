@@ -62,7 +62,7 @@ def three_j(j,m):
 
 
 	PF= int((-1) ** int(j_1 - j_2 - m_3))
-	M=-m_3;
+	M=-m_3
 
 	a1 = j_1 + j_2 - j_3
 	if a1 < 0:

@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import butter, lfilter, filtfilt, lfilter_zi
+from scipy.signal import butter, lfilter, filtfilt
 import copy
 from .P_extend import k_extend 
 

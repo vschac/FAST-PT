@@ -3,7 +3,7 @@ import numpy as np
 from .J_table import J_table 
 import sys
 from time import time
-from numpy import log, sqrt, exp, pi
+from numpy import log, exp, pi
 from scipy.signal import fftconvolve as convolve
 
 def P_IA_13S2F2(k,P):

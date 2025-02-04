@@ -1,4 +1,3 @@
-import numpy as np
 
 def nu1_nu2(alpha,beta):
     

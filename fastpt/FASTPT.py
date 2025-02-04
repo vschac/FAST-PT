@@ -38,29 +38,26 @@ from __future__ import print_function
 from .info import __version__
 
 import numpy as np
-from numpy.fft import fft, ifft, rfft, irfft, fftfreq
-from numpy import exp, log, log10, cos, sin, pi, cosh, sinh, sqrt
-from scipy.special import gamma
+from numpy.fft import ifft, rfft, irfft
+from numpy import exp, log, cos, sin, pi
 from scipy.signal import fftconvolve
 import scipy.integrate as integrate
-from .fastpt_extr import p_window, c_window, pad_left, pad_right
-from .matter_power_spt import P_13_reg, Y1_reg_NL, Y2_reg_NL, P_22
+from .fastpt_extr import p_window, c_window
+from .matter_power_spt import P_13_reg, Y1_reg_NL, Y2_reg_NL
 from .initialize_params import scalar_stuff, tensor_stuff
 from .IA_tt import IA_tt
 from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
 from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
 from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_he, P_IA_13S2F2
 from .IA_gb2 import IA_gb2_S2F2, IA_gb2_S2fe, IA_gb2_S2he
-from .IA_ct import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, P_22F_reg, P_22G_reg, IA_tij_F2G2reg
+from .IA_ct import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, IA_tij_F2G2reg
 from .IA_ctbias import IA_gb2_F2, IA_gb2_G2, IA_gb2_S2F2, IA_gb2_S2G2
-from .J_k import J_k
 from .OV import OV
 from .kPol import kPol
 from .RSD import RSDA, RSDB
 from . import RSD_ItypeII
 from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
-import pdb
 
 ## WHEN DOES THE IMPORT STEP OCCUR? DO WE WANT TO MOVE SOME OF THESE TO THE INITIALIZATION BLOCK TO SAVE TIME ON LIGHT RUNS?
 
@@ -180,6 +177,7 @@ class FASTPT:
         self.IA_gb2_do = False
         self.IA_tij_do = False
 
+        #NEED TO UPDATE LIST WITH NEW CARTER TERMS
         for entry in to_do:  # convert to_do list to instructions for FAST-PT initialization
             if entry == 'one_loop_dd':
                 self.dd_do = True
@@ -437,9 +435,6 @@ class FASTPT:
             _, P_1loop = self.EK.PK_original(P_1loop)
 
         return P_1loop, Ps
-
-
-
 
 
 

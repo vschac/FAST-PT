@@ -4,7 +4,7 @@ from .J_table import J_table
 from .J_k import J_k
 import sys
 from time import time
-from numpy import log, sqrt, exp, pi
+from numpy import log, exp, pi
 from scipy.signal import fftconvolve as convolve
 
 def IA_tij_feG2():

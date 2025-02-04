@@ -3,8 +3,6 @@ import numpy as np
 from .J_table import J_table 
 import sys
 from time import time
-from numpy import log, sqrt, exp, pi
-from scipy.signal import fftconvolve as convolve
 
 def IA_gb2_F2():
     # Ordering is \alpha, \beta, l_1, l_2, l, A coeficient
