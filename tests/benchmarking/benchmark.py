@@ -12,7 +12,6 @@ to_do=['all']
 fpt=FASTPT(k,to_do=to_do,low_extrap=-5,high_extrap=3,n_pad=n_pad)
 
 
-# calculate 1loop SPT (and time the operation)
 P_spt=fpt.one_loop_dd(P,C_window=C_window)
 
 
