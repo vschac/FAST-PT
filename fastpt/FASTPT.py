@@ -732,69 +732,6 @@ class FASTPT:
 
         return 2*P_d2tE,2*P_s2tE
     
-    def IA_tij(self,P,P_window=None, C_window=None):
-        P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_feG2 = self.EK.PK_original(P_feG2)
-        P_heG2, A = self.J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_heG2 = self.EK.PK_original(P_heG2)
-        P_F2F2, A = self.J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2F2 = self.EK.PK_original(P_F2F2)
-        P_G2G2, A = self.J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_G2G2 = self.EK.PK_original(P_G2G2)
-        P_F2G2, A = self.J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2G2 = self.EK.PK_original(P_F2G2)
-        P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
-        P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
-        P_13F = P_IA_13F(self.k_original, P)
-        P_13G = P_IA_13G(self.k_original,P,)
-        nu=-2
-        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
-        one_loop_coef = np.array(
-            [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
-        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
-        P_22F = np.sum(P22_mat, 1)
-
-        one_loop_coefG= np.array(
-            [2*1003/1470, 2*803/1029, 2*64/1715, 2*1/3, 2*58/35, 2*12/35, 1/3])
-        PsG, matG = self.J_k_scalar(P, self.X_sptG, nu, P_window=P_window, C_window=C_window)
-        P22G_mat = np.multiply(one_loop_coefG, np.transpose(matG))
-        P_22G = np.sum(P22G_mat, 1)
-        if (self.extrap):
-            _, P_22F=self.EK.PK_original(P_22F)
-            _, P_22G=self.EK.PK_original(P_22G)
-        P_tijtij = P_F2F2+P_G2G2-2*P_F2G2
-        P_tijsij = P_22G-P_22F+P_13G-P_13F
-        P_feG2sub = np.subtract(P_feG2,(1/2)*P_A00E)
-        P_heG2sub = np.subtract(P_heG2,(1/2)*P_A0E2)
-            
-        return 2*P_tijsij,2*P_feG2sub,2*P_heG2sub,2*P_tijtij
-    
-
-    def IA_gb2tij(self,P,P_window=None, C_window=None):
-        P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2 = self.EK.PK_original(P_F2)
-        P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_G2 = self.EK.PK_original(P_G2)
-        P_gb2tij = P_G2-P_F2
-        P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2F2 = self.EK.PK_original(P_S2F2)
-
-        P_13S2F2 = P_IA_13S2F2(self.k_original, P)
-
-        P_S2G2, A = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2G2 = self.EK.PK_original(P_S2G2)
-        P_s2tij=P_S2G2-P_S2F2
-
-        return 2*P_gb2tij,2*P_s2tij
 
 
     def IA_gb2(self,P,P_window=None, C_window=None):
