@@ -47,9 +47,9 @@ print(f"k shape: {k.shape}") # (3000,)
 print(f"P_spt shape: {np.array(P_spt).shape}") #(3000,)
 print(f"P_kPol shape: {np.array(P_kPol).shape}") #(3,3000)
 print(f"P_OV shape: {np.array(P_OV).shape}") #(3000,)
-#print(f"P_bias shape: {np.array(P_bias).shape}") inhomogeneuous array sizes
-#print(f"P_bias_b3nl shape: {np.array(P_bias_b3nl).shape}") inhomogeneuous array sizes
-#print(f"P_bias_lpt_NL shape: {np.array(P_bias_lpt_NL).shape}") inhomogeneuous array sizes
+print(f"P_bias shape: {np.array(P_bias).shape}") #inhomogeneuous array sizes
+print(f"P_bias_b3nl shape: {np.array(P_bias_b3nl).shape}") #inhomogeneuous array sizes
+print(f"P_bias_lpt_NL shape: {np.array(P_bias_lpt_NL).shape}") #inhomogeneuous array sizes
 print(f"P_IA_tt shape: {np.array(P_IA_tt).shape}") #(2,3000)
 print(f"P_IA_ta shape: {np.array(P_IA_ta).shape}") #(4,3000)
 print(f"P_IA_mix shape: {np.array(P_IA_mix).shape}") #(4,3000)
@@ -79,16 +79,16 @@ names = {
     'P_IA_d2': P_IA_d2,
     'P_IA_s2': P_IA_s2,
     'P_RSD': P_RSD,
-    'P_RSD_ABsum_components': P_RSD_ABsum_components
+    'P_RSD_ABsum_components': P_RSD_ABsum_components,
 }
-'''
+
 for name, arr in names.items():
     try: 
-        np.savetxt(f'{name}_benchmark.txt', arr, header=f'{name}')
+        np.savetxt(f'{name}_benchmark.txt', np.transpose(arr), header=f'{name}')
     except AttributeError:
         print(f"Error saving {name} array")
         print(AttributeError.with_traceback())
-'''
+
 
 inhomogeneous_array_names = {
     'P_bias': P_bias,
@@ -97,24 +97,17 @@ inhomogeneous_array_names = {
 }
 
 for name, arr in inhomogeneous_array_names.items():
+    try: 
+        np.savetxt(f'{name}_benchmark.txt', np.transpose(arr), header=f'{name}')
+    except AttributeError:
+        print(f"Error saving {name} array")
+        print(AttributeError.with_traceback())
+
+'''
+Debugging inhomogeneous array sizes
+for name, arr in inhomogeneous_array_names.items():
     print(f"\n{name} type: {type(arr)}")
     print(f"{name} length: {len(arr)}")
     for i, component in enumerate(arr):
         print(f"Component {i} shape: {np.array(component).shape}")
-
-
 '''
-# Modify data storage to handle multi-component returns
-data = np.transpose([
-    k,
-    P_spt, P_kPol, P_OV,
-    P_bias, P_bias_b3nl, P_bias_lpt_NL,
-    P_IA_tt, P_IA_ta, P_IA_mix, P_IA_ct, P_IA_ctbias, P_IA_gb2, P_IA_d2, P_IA_s2,
-    P_RSD_ABsum_mu,  # Only use the final combined result
-    P_IRres
-])
-
-header = 'k P_spt P_kPol P_OV P_bias P_bias_b3nl P_bias_lpt_NL P_IA_tt P_IA_ta P_IA_mix P_IA_ct P_IA_ctbias P_IA_gb2 P_IA_d2 P_IA_s2 P_RSD P_IRres'
-np.savetxt('fastpt_benchmark_results.txt', data, header=header)
-'''
-
