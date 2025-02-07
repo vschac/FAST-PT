@@ -42,26 +42,6 @@ P_RSD_ABsum_mu = fpt.RSD_ABsum_mu(P, 1.0, 1.0, C_window=C_window)
 P_IRres = fpt.IRres(P, C_window=C_window)
 
 
-# Debug: Print shapes
-print(f"k shape: {k.shape}") # (3000,)
-print(f"P_spt shape: {np.array(P_spt).shape}") #(3000,)
-print(f"P_kPol shape: {np.array(P_kPol).shape}") #(3,3000)
-print(f"P_OV shape: {np.array(P_OV).shape}") #(3000,)
-print(f"P_bias shape: {np.array(P_bias).shape}") #inhomogeneuous array sizes
-print(f"P_bias_b3nl shape: {np.array(P_bias_b3nl).shape}") #inhomogeneuous array sizes
-print(f"P_bias_lpt_NL shape: {np.array(P_bias_lpt_NL).shape}") #inhomogeneuous array sizes
-print(f"P_IA_tt shape: {np.array(P_IA_tt).shape}") #(2,3000)
-print(f"P_IA_ta shape: {np.array(P_IA_ta).shape}") #(4,3000)
-print(f"P_IA_mix shape: {np.array(P_IA_mix).shape}") #(4,3000)
-print(f"P_IA_ct shape: {np.array(P_IA_ct).shape}") #(4,3000)
-print(f"P_IA_ctbias shape: {np.array(P_IA_ctbias).shape}") #(2,3000)
-print(f"P_IA_gb2 shape: {np.array(P_IA_gb2).shape}") #(3,3000)
-print(f"P_IA_d2 shape: {np.array(P_IA_d2).shape}") #(3,3000)
-print(f"P_IA_s2 shape: {np.array(P_IA_s2).shape}") #(3,3000)
-print(f"P_RSD_ABsum_components shape: {np.array(P_RSD_ABsum_components).shape}") #(4,3000)
-print(f"P_RSD_ABsum_mu shape: {np.array(P_RSD_ABsum_mu).shape}") #(3000,)
-print(f"P_IRres shape: {np.array(P_IRres).shape}") #(3000,)
-
 
 names = {
     'k': k,
@@ -80,6 +60,9 @@ names = {
     'P_IA_s2': P_IA_s2,
     'P_RSD': P_RSD,
     'P_RSD_ABsum_components': P_RSD_ABsum_components,
+    'P_bias': P_bias,
+    'P_bias_b3nl': P_bias_b3nl,
+    'P_bias_lpt_NL': P_bias_lpt_NL,
 }
 
 for name, arr in names.items():
@@ -88,26 +71,3 @@ for name, arr in names.items():
     except AttributeError:
         print(f"Error saving {name} array")
         print(AttributeError.with_traceback())
-
-
-inhomogeneous_array_names = {
-    'P_bias': P_bias,
-    'P_bias_b3nl': P_bias_b3nl,
-    'P_bias_lpt_NL': P_bias_lpt_NL,
-}
-
-for name, arr in inhomogeneous_array_names.items():
-    try: 
-        np.savetxt(f'{name}_benchmark.txt', np.transpose(arr), header=f'{name}')
-    except AttributeError:
-        print(f"Error saving {name} array")
-        print(AttributeError.with_traceback())
-
-'''
-Debugging inhomogeneous array sizes
-for name, arr in inhomogeneous_array_names.items():
-    print(f"\n{name} type: {type(arr)}")
-    print(f"{name} length: {len(arr)}")
-    for i, component in enumerate(arr):
-        print(f"Component {i} shape: {np.array(component).shape}")
-'''
