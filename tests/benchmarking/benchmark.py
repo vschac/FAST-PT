@@ -60,9 +60,6 @@ names = {
     'P_IA_s2': P_IA_s2,
     'P_RSD': P_RSD,
     'P_RSD_ABsum_components': P_RSD_ABsum_components,
-    'P_bias': P_bias,
-    'P_bias_b3nl': P_bias_b3nl,
-    'P_bias_lpt_NL': P_bias_lpt_NL,
 }
 
 for name, arr in names.items():
@@ -71,3 +68,17 @@ for name, arr in names.items():
     except AttributeError:
         print(f"Error saving {name} array")
         print(AttributeError.with_traceback())
+
+inhomogeneous_arrays = {
+    'P_bias': list(P_bias), #Have to cast to list since tuple is immutable
+    'P_bias_b3nl': list(P_bias_b3nl),
+    'P_bias_lpt_NL': list(P_bias_lpt_NL),
+}
+
+for name, arr in inhomogeneous_arrays.items():
+    for i, element in enumerate(arr):
+        if isinstance(element, float): #sig4 is of type float, converting it to np array
+            new_array = np.zeros(len(arr[i-1])) #should be of length 3000, not hardcoded incase it changes
+            new_array[0] = element
+            arr[i] = new_array
+    np.savetxt(f'{name}_benchmark.txt', np.transpose(arr), header=f'{name}')
