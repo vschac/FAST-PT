@@ -79,6 +79,23 @@ class FASTPT:
 					edge effects.
 				* verbose is to turn on verbose settings.
 		'''
+        
+        if (k is None or len(k) == 0):
+            raise ValueError('You must provide an input k array.')
+        
+        self.k_original = k
+        self.extrap = False
+        if (low_extrap is not None or high_extrap is not None):
+            if (high_extrap < low_extrap):
+                raise ValueError('high_extrap must be greater than low_extrap')
+            self.EK = k_extend(k, low_extrap, high_extrap)
+            k = self.EK.extrap_k()
+            self.extrap = True
+
+        self.low_extrap = low_extrap
+        self.high_extrap = high_extrap
+
+        self.k_old = k
 
         # if no to_do list is given, default to fastpt_simple SPT case
         if (to_do is None):
@@ -111,17 +128,6 @@ class FASTPT:
             print(f'the power spectrum is extraplated to log10(k_max)={high_extrap}')
             print(f'the power spectrum has {n_pad} zeros added to both ends of the power spectrum')
 
-        self.k_original = k
-        self.extrap = False
-        if (low_extrap is not None or high_extrap is not None):
-            self.EK = k_extend(k, low_extrap, high_extrap)
-            k = self.EK.extrap_k()
-            self.extrap = True
-
-        self.low_extrap = low_extrap
-        self.high_extrap = high_extrap
-
-        self.k_old = k
 
         # print(self.k_old.size, 'k size')
         # size of input array must be an even number

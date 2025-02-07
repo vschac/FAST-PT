@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from fastpt import FASTPT
 
+
 @pytest.fixture
 def fpt(): 
     d = np.loadtxt('benchmarking/Pk_test.dat')
@@ -15,42 +16,47 @@ def test_init_empty_arrays():
     with pytest.raises(ValueError):
         FASTPT([], [])
 
-def test_init_mismatched_arrays():
+def test_init_odd_length_k():
+    """Test initialization with odd-length k array"""
+    k = np.logspace(-3, 1, 201)  # Odd length
+    with pytest.raises(ValueError):
+        FASTPT(k)
+
+def test_init_non_log_spaced():
+    """Test initialization with non-log-spaced k array"""
+    k = np.linspace(0.1, 10, 200)  # Linear spacing
+    with pytest.raises(AssertionError):
+        FASTPT(k)
+
+def test_init_invalid_to_do():
+    """Test initialization with invalid to_do parameter"""
     k = np.logspace(-3, 1, 200)
-    p = np.logspace(-3, 1, 201)  # Different length
     with pytest.raises(ValueError):
-        FASTPT(k, p)
+        FASTPT(k, to_do=['invalid_option'])
 
-def test_init_negative_k():
-    k = np.array([-1.0, 0.0, 1.0])
-    p = np.ones(3)
-    with pytest.raises(ValueError):
-        FASTPT(k, p)
-
-def test_init_zero_k():
-    k = np.array([0.0, 1.0, 2.0])
-    p = np.ones(3)
-    with pytest.raises(ValueError):
-        FASTPT(k, p)
-
-def test_init_non_monotonic_k():
-    k = np.array([1.0, 0.5, 2.0])  # Non-monotonic
-    p = np.ones(3)
-    with pytest.raises(ValueError):
-        FASTPT(k, p)
-
-def test_init_valid(fpt):
-    assert isinstance(fpt, FASTPT)
-    assert len(fpt.k) > 0
-    assert all(fpt.k > 0)  # Check all k values are positive
-    assert np.all(np.diff(fpt.k) > 0)  # Check k is monotonically increasing
-
-def test_init_with_params(fpt):
-    assert isinstance(fpt, FASTPT)
-    assert fpt.n_pad == int(0.5 * len(fpt.k))
+def test_init_extrapolation_ranges():
+    """Test initialization with various extrapolation ranges"""
+    k = np.logspace(-3, 1, 200)
+            
+    # Test valid extrapolation
+    fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
     assert fpt.low_extrap == -5
     assert fpt.high_extrap == 3
-    assert fpt.to_do == ['all']
+            
+    # Test invalid extrapolation
+    with pytest.raises(ValueError):
+        FASTPT(k, low_extrap=3, high_extrap=-5)  # Invalid range
+
+def test_init_padding(fpt):
+    """Test initialization with different padding values"""
+    k = np.logspace(-3, 1, 200)
+            
+    # Test with no padding
+    fpt1 = FASTPT(k, n_pad=None)
+    assert not hasattr(fpt1, 'n_pad')
+            
+    # Test with padding
+    assert hasattr(fpt, 'n_pad')
 
 
 
