@@ -5,6 +5,7 @@ from fastpt import FASTPT
 P = np.loadtxt('benchmarking/Pk_test.dat')[:, 1]
 C_window = 0.75
 
+
 @pytest.fixture
 def fpt(): 
     d = np.loadtxt('benchmarking/Pk_test.dat')
@@ -61,18 +62,161 @@ def test_init_padding(fpt):
     assert hasattr(fpt, 'n_pad')
 
 
+def test_validate_parameters(fpt):
+    """Test the validate_parameters function with various inputs"""
+    
+    # Test 1: Valid cases
+    assert fpt.validate_parameters(P) is None
+    assert fpt.validate_parameters(P, P_window=0.1, C_window=0.5) is None
+    
+    # Test 2: Empty or None power spectrum
+    with pytest.raises(ValueError, match='You must provide an input power spectrum array.'):
+        fpt.validate_parameters(None)
+    with pytest.raises(ValueError, match='You must provide an input power spectrum array.'):
+        fpt.validate_parameters([])
+        
+    # Test 3: Zero power spectrum
+    k = fpt.k
+    P_zero = np.zeros_like(k)
+    with pytest.raises(ValueError, match='Your input power spectrum array is all zeros.'):
+        fpt.validate_parameters(P_zero)
+    
+    # Test 4: P_window validation
+    max_window = (np.log(fpt.k[-1]) - np.log(fpt.k[0])) / 2
+    
+    # Test valid P_window
+    assert fpt.validate_parameters(P, P_window=max_window/2) is None
+    
+    # Test P_window too large
+    with pytest.raises(ValueError, match=f'P_window value is too large'):
+        fpt.validate_parameters(P, P_window=max_window*2)
+        
+    # Test 5: C_window validation
+    # Test valid C_window values
+    assert fpt.validate_parameters(P, C_window=0.0) is None
+    assert fpt.validate_parameters(P, C_window=0.5) is None
+    assert fpt.validate_parameters(P, C_window=1.0) is None
+    
+    # Test invalid C_window values
+    with pytest.raises(ValueError, match='C_window must be between 0 and 1.'):
+        fpt.validate_parameters(P, C_window=-0.1)
+    with pytest.raises(ValueError, match='C_window must be between 0 and 1.'):
+        fpt.validate_parameters(P, C_window=1.1)
+        
+    # Test 6: Combined parameter validation
+    with pytest.raises(ValueError):
+        fpt.validate_parameters(None, P_window=0.1, C_window=0.5)
+    with pytest.raises(ValueError):
+        fpt.validate_parameters(P, P_window=max_window*2, C_window=1.1)
 
+
+####################EDGE CASE TESTS####################
 def test_one_loop_dd(fpt):
-    assert True
+    """Test the one_loop_dd function with various inputs"""
+    # Test with standard input
+    result = fpt.one_loop_dd(P)
+    assert isinstance(result, tuple)
+    
+    # Test with zero power spectrum
+    P_zero = np.zeros_like(P)
+    result_zero = fpt.one_loop_dd(P_zero)
+    assert np.allclose(result_zero[0], np.zeros_like(P_zero))
+
+    #Test with random power spectrum
+    P_rand = np.random.rand(len(P))
+    result_rand = fpt.one_loop_dd(P_rand)
+    assert isinstance(result_rand, tuple)
+
+    # Test with window functions
+    P_window = np.array([0.2, 0.2])
+    result_window = fpt.one_loop_dd(P, P_window=P_window, C_window=C_window)
+    assert isinstance(result_window, tuple)
+        
+    # Test shape consistency
+    assert result[0].shape == P.shape
 
 def test_one_lood_dd_bias(fpt):
-    assert True
+    """Test the one_loop_dd_bias function including bias terms"""
+        
+    # Test standard calculation
+    result = fpt.one_loop_dd_bias(P)
+    assert isinstance(result, tuple)
+        
+    # Verify sigma4 calculation is positive
+    assert result[-2] > 0  # sig4 should be positive
+        
+    # Test bias terms have correct shapes
+    for term in result[1:-2]:  # Skip P_1loop and sig4
+        assert term.shape == P.shape
+            
+    # Test with window functions
+    result_window = fpt.one_loop_dd_bias(P, P_window=None, C_window=C_window)
+    assert isinstance(result_window, tuple)
 
 def test_one_loop_dd_bias_b3nl(fpt):
-    assert True
+    """Test the one_loop_dd_bias_b3nl function including b3nl terms"""
+        
+    # Test standard calculation
+    result = fpt.one_loop_dd_bias_b3nl(P)
+    assert isinstance(result, tuple)
+        
+    # Test sig3nl term
+    assert hasattr(result, 'sig3nl')
+    assert result.sig3nl.shape == P.shape
+        
+    # Test with window functions
+    result_window = fpt.one_loop_dd_bias_b3nl(P, P_window=None, C_window=C_window)
+    assert isinstance(result_window, tuple)
+        
+    # Verify consistency between b3nl and standard bias results
+    result_bias = fpt.one_loop_dd_bias(P)
+    for i in range(min(len(result), len(result_bias))):
+        assert np.allclose(result[i], result_bias[i])
 
 def test_one_loop_dd_bias_lpt_NL(fpt):
-    assert True
+    """Test the one_loop_dd_bias_lpt_NL function"""
+        
+    # Test standard calculation
+    result = fpt.one_loop_dd_bias_lpt_NL(P)
+    assert isinstance(result, tuple)
+        
+    # Test shapes of LPT bias terms
+    expected_terms = ['Pb1L', 'Pb1L_2', 'Pb1L_b2L', 'Pb2L', 'Pb2L_2']
+    for term, name in zip(result, expected_terms):
+        assert term.shape == P.shape, f"{name} has incorrect shape"
+        
+    # Test with window functions
+    result_window = fpt.one_loop_dd_bias_lpt_NL(P, P_window=None, C_window=0.75)
+    assert isinstance(result_window, tuple)
+
+def test_one_loop_edge_cases():
+    """Test edge cases for all one-loop functions"""
+    k = np.logspace(-3, 1, 200)
+    fpt = FASTPT(k, to_do=['all'])
+        
+    # Test with very small power spectrum values
+    P_small = np.ones_like(k) * 1e-30
+        
+    # Each function should handle small values without numerical issues
+    result_dd = fpt.one_loop_dd(P_small)
+    result_bias = fpt.one_loop_dd_bias(P_small)
+    result_b3nl = fpt.one_loop_dd_bias_b3nl(P_small)
+    result_lpt = fpt.one_loop_dd_bias_lpt_NL(P_small)
+        
+    # Test with NaN values
+    P_nan = np.full_like(k, np.nan)
+    with pytest.raises(ValueError):
+        fpt.one_loop_dd(P_nan)
+            
+    # Test with infinite values
+    P_inf = np.full_like(k, np.inf)
+    with pytest.raises(ValueError):
+        fpt.one_loop_dd(P_inf)
+
+
+
+
+
 
 #def test_cleft_Q_R(fpt):
 #   assert True

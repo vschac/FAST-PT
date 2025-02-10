@@ -383,6 +383,27 @@ class FASTPT:
             p_mat = tabB[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_RSDB = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
+
+    def validate_parameters(self, P, P_window=None, C_window=None):
+        ''' This function checks the input power spectrum for the correct dimensions and values.
+            It also checks the input window functions for the correct dimensions and values.
+        '''
+        if (P is None or len(P) == 0):
+            raise ValueError('You must provide an input power spectrum array.')
+
+        if (np.all(P == 0.0)):
+            raise ValueError('Your input power spectrum array is all zeros.')
+
+        if (P_window is not None):
+            if (P_window > (log(self.k[-1]) - log(self.k[0])) / 2):
+                raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k[-1]) - log(self.k[0])) / 2} to avoid over tapering.')
+
+        if (C_window is not None):
+            if (C_window < 0 or C_window > 1):
+                raise ValueError('C_window must be between 0 and 1.')
+            
+        return None
+
     ### Top-level functions to output final quantities ###
     def one_loop_dd(self, P, P_window=None, C_window=None):
         nu = -2
