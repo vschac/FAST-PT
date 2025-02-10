@@ -2,3 +2,4 @@ examples/*.pdf
 examples/*.npy
 *.pyc
 build/
+tests/benchmarking/*.txt
