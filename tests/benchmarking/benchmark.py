@@ -10,7 +10,7 @@ to_do=['all']
 fpt=FASTPT(k,to_do=to_do,low_extrap=-5,high_extrap=3,n_pad=n_pad)
 
 # Base one-loop terms
-P_spt = fpt.one_loop_dd(P, C_window=C_window)[0]  # Need [0] for P_22 + P_13
+P_dd = fpt.one_loop_dd(P, C_window=C_window)[0]  # Need [0] for P_22 + P_13
 P_kPol = fpt.kPol(P, C_window=C_window)
 P_OV = fpt.OV(P, C_window=C_window)
 
@@ -45,7 +45,7 @@ P_IRres = fpt.IRres(P, C_window=C_window)
 
 names = {
     'k': k,
-    'P_spt': P_spt,
+    'P_dd': P_dd,
     'P_OV': P_OV,
     'P_RSD_ABsum_mu': P_RSD_ABsum_mu,
     'P_IRres': P_IRres,
