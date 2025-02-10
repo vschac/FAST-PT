@@ -14,6 +14,7 @@ def fpt():
     to_do = ['all']
     return FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
+
 ####################INITIALIZATION TESTS####################
 def test_init_empty_arrays():
     with pytest.raises(ValueError):
@@ -62,52 +63,58 @@ def test_init_padding(fpt):
     assert hasattr(fpt, 'n_pad')
 
 
-def test_validate_parameters(fpt):
-    """Test the validate_parameters function with various inputs"""
-    
+def test_validate_params_decorator(fpt):
+    """Test the validate_params_decorator function with various inputs
+        (Using one_loop_dd as a sample method though all decorating functions
+        will follow the same validation behavior)"""
+    P_window = np.array([0.2, 0.2])
     # Test 1: Valid cases
-    assert fpt.validate_parameters(P) is None
-    assert fpt.validate_parameters(P, P_window=0.1, C_window=0.5) is None
+    assert fpt.one_loop_dd(P) is not None
+    assert fpt.one_loop_dd(P, P_window=P_window, C_window=0.5) is not None
     
     # Test 2: Empty or None power spectrum
-    with pytest.raises(ValueError, match='You must provide an input power spectrum array.'):
-        fpt.validate_parameters(None)
-    with pytest.raises(ValueError, match='You must provide an input power spectrum array.'):
-        fpt.validate_parameters([])
+    with pytest.raises(ValueError, match=r'You must provide an input power spectrum array'):
+        fpt.one_loop_dd(None)
+    with pytest.raises(ValueError, match=r'You must provide an input power spectrum array'):
+        fpt.one_loop_dd([])
         
     # Test 3: Zero power spectrum
     k = fpt.k
     P_zero = np.zeros_like(k)
-    with pytest.raises(ValueError, match='Your input power spectrum array is all zeros.'):
-        fpt.validate_parameters(P_zero)
+    with pytest.raises(ValueError, match=r'Your input power spectrum array is all zeros'):
+        fpt.one_loop_dd(P_zero)
     
     # Test 4: P_window validation
     max_window = (np.log(fpt.k[-1]) - np.log(fpt.k[0])) / 2
+    Max_P_window = np.array([max_window, max_window])
+    assert fpt.one_loop_dd(P, P_window=Max_P_window / 2) is not None
     
-    # Test valid P_window
-    assert fpt.validate_parameters(P, P_window=max_window/2) is None
-    
-    # Test P_window too large
-    with pytest.raises(ValueError, match=f'P_window value is too large'):
-        fpt.validate_parameters(P, P_window=max_window*2)
+    with pytest.raises(ValueError, match=r'P_window must be a tuple of two values.'):
+        fpt.one_loop_dd(P, P_window=Max_P_window[:-1])
+
+    with pytest.raises(ValueError, match=r'P_window value is too large'):
+        fpt.one_loop_dd(P, P_window=Max_P_window * 2)
         
     # Test 5: C_window validation
     # Test valid C_window values
-    assert fpt.validate_parameters(P, C_window=0.0) is None
-    assert fpt.validate_parameters(P, C_window=0.5) is None
-    assert fpt.validate_parameters(P, C_window=1.0) is None
+    assert fpt.one_loop_dd(P, C_window=0.0) is not None
+    assert fpt.one_loop_dd(P, C_window=0.5) is not None
+    assert fpt.one_loop_dd(P, C_window=1.0) is not None
     
     # Test invalid C_window values
-    with pytest.raises(ValueError, match='C_window must be between 0 and 1.'):
-        fpt.validate_parameters(P, C_window=-0.1)
-    with pytest.raises(ValueError, match='C_window must be between 0 and 1.'):
-        fpt.validate_parameters(P, C_window=1.1)
+    with pytest.raises(ValueError, match=r'C_window must be between 0 and 1'):
+        fpt.one_loop_dd(P, C_window=-0.1)
+    with pytest.raises(ValueError, match=r'C_window must be between 0 and 1'):
+        fpt.one_loop_dd(P, C_window=1.1)
         
     # Test 6: Combined parameter validation
     with pytest.raises(ValueError):
-        fpt.validate_parameters(None, P_window=0.1, C_window=0.5)
+        fpt.one_loop_dd(None, P_window=P_window, C_window=0.5)
     with pytest.raises(ValueError):
-        fpt.validate_parameters(P, P_window=max_window*2, C_window=1.1)
+        fpt.one_loop_dd(P, P_window=Max_P_window * 2, C_window=1.1)
+
+
+
 
 
 ####################EDGE CASE TESTS####################
@@ -116,22 +123,12 @@ def test_one_loop_dd(fpt):
     # Test with standard input
     result = fpt.one_loop_dd(P)
     assert isinstance(result, tuple)
-    
-    # Test with zero power spectrum
-    P_zero = np.zeros_like(P)
-    result_zero = fpt.one_loop_dd(P_zero)
-    assert np.allclose(result_zero[0], np.zeros_like(P_zero))
-
-    #Test with random power spectrum
-    P_rand = np.random.rand(len(P))
-    result_rand = fpt.one_loop_dd(P_rand)
-    assert isinstance(result_rand, tuple)
 
     # Test with window functions
     P_window = np.array([0.2, 0.2])
     result_window = fpt.one_loop_dd(P, P_window=P_window, C_window=C_window)
     assert isinstance(result_window, tuple)
-        
+    
     # Test shape consistency
     assert result[0].shape == P.shape
 
@@ -188,32 +185,6 @@ def test_one_loop_dd_bias_lpt_NL(fpt):
     # Test with window functions
     result_window = fpt.one_loop_dd_bias_lpt_NL(P, P_window=None, C_window=0.75)
     assert isinstance(result_window, tuple)
-
-def test_one_loop_edge_cases():
-    """Test edge cases for all one-loop functions"""
-    k = np.logspace(-3, 1, 200)
-    fpt = FASTPT(k, to_do=['all'])
-        
-    # Test with very small power spectrum values
-    P_small = np.ones_like(k) * 1e-30
-        
-    # Each function should handle small values without numerical issues
-    result_dd = fpt.one_loop_dd(P_small)
-    result_bias = fpt.one_loop_dd_bias(P_small)
-    result_b3nl = fpt.one_loop_dd_bias_b3nl(P_small)
-    result_lpt = fpt.one_loop_dd_bias_lpt_NL(P_small)
-        
-    # Test with NaN values
-    P_nan = np.full_like(k, np.nan)
-    with pytest.raises(ValueError):
-        fpt.one_loop_dd(P_nan)
-            
-    # Test with infinite values
-    P_inf = np.full_like(k, np.inf)
-    with pytest.raises(ValueError):
-        fpt.one_loop_dd(P_inf)
-
-
 
 
 

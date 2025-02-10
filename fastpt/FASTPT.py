@@ -384,27 +384,34 @@ class FASTPT:
             self.X_RSDB = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
 
-    def validate_parameters(self, P, P_window=None, C_window=None):
-        ''' This function checks the input power spectrum for the correct dimensions and values.
-            It also checks the input window functions for the correct dimensions and values.
-        '''
-        if (P is None or len(P) == 0):
-            raise ValueError('You must provide an input power spectrum array.')
+    def validate_params_decorator(func):
+        def wrapper(self, P, *args, **kwargs):
+            if (P is None or len(P) == 0):
+                raise ValueError('You must provide an input power spectrum array.')
 
-        if (np.all(P == 0.0)):
-            raise ValueError('Your input power spectrum array is all zeros.')
+            if (np.all(P == 0.0)):
+                raise ValueError('Your input power spectrum array is all zeros.')
 
-        if (P_window is not None):
-            if (P_window > (log(self.k[-1]) - log(self.k[0])) / 2):
-                raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k[-1]) - log(self.k[0])) / 2} to avoid over tapering.')
+            P_window = kwargs.get('P_window', np.array([]))
+            C_window = kwargs.get('C_window', None)
 
-        if (C_window is not None):
-            if (C_window < 0 or C_window > 1):
-                raise ValueError('C_window must be between 0 and 1.')
-            
-        return None
+            if P_window is not None and P_window.size > 0:
+                maxP = (log(self.k[-1]) - log(self.k[0])) / 2
+                if len(P_window) != 2:
+                    raise ValueError(f'P_window must be a tuple of two values.')
+                if P_window[0] > maxP or P_window[1] > maxP:
+                    raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k[-1]) - log(self.k[0])) / 2} to avoid over tapering.')
+
+            if C_window is not None:
+                if C_window < 0 or C_window > 1:
+                    raise ValueError('C_window must be between 0 and 1.')
+
+            return func(self, P, *args, **kwargs)
+        return wrapper
+
 
     ### Top-level functions to output final quantities ###
+    @validate_params_decorator
     def one_loop_dd(self, P, P_window=None, C_window=None):
         nu = -2
 
@@ -464,7 +471,7 @@ class FASTPT:
         return P_1loop, Ps
 
 
-
+    @validate_params_decorator
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
         nu = -2
 
@@ -511,6 +518,7 @@ class FASTPT:
         #			return P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, Ps #original
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4  # new,for consistency
 
+    @validate_params_decorator
     def one_loop_dd_bias_b3nl(self, P, P_window=None, C_window=None):
         nu = -2
 
@@ -553,6 +561,7 @@ class FASTPT:
         #			return P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, Ps #original
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl  # new,for consistency
 
+    @validate_params_decorator
     def one_loop_dd_bias_lpt_NL(self, P, P_window=None, C_window=None):
         nu_arr = -2
 
@@ -603,6 +612,7 @@ class FASTPT:
 
         return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
 
+    @validate_params_decorator
     def cleft_Q_R(self, P, P_window=None, C_window=None):
 
 
@@ -639,6 +649,7 @@ class FASTPT:
 
         return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_old,FR1,FR2
 
+    @validate_params_decorator
     def IA_tt(self, P, P_window=None, C_window=None):
 
         P_E, A = self.J_k_tensor(P, self.X_IA_E, P_window=P_window, C_window=C_window)
@@ -652,6 +663,7 @@ class FASTPT:
 
     ## eq 21 EE; eq 21 BB
 
+    @validate_params_decorator
     def IA_mix(self, P, P_window=None, C_window=None):
 
         P_A, A = self.J_k_tensor(P, self.X_IA_A, P_window=P_window, C_window=C_window)
@@ -672,6 +684,7 @@ class FASTPT:
 
     ## eq 18; eq 19; eq 27 EE; eq 27 BB
 
+    @validate_params_decorator
     def IA_ta(self, P, P_window=None, C_window=None):
 
         P_deltaE1, A = self.J_k_tensor(P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window)
@@ -692,10 +705,12 @@ class FASTPT:
 
     ## eq 12 (line 2); eq 12 (line 3); eq 15 EE; eq 15 BB
 
+    @validate_params_decorator
     def IA_der(self, P, P_window=None, C_window=None):
         P_der = (self.k_original**2)*P
         return P_der
     
+    @validate_params_decorator
     def IA_ct(self,P,P_window=None, C_window=None):
         P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -738,6 +753,7 @@ class FASTPT:
             
         return 2*P_0tE,2*P_0EtE,2*P_E2tE,2*P_tEtE
     
+    @validate_params_decorator
     def IA_ctbias(self,P,P_window=None, C_window=None):
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -760,7 +776,7 @@ class FASTPT:
         return 2*P_d2tE,2*P_s2tE
     
 
-
+    @validate_params_decorator
     def IA_gb2(self,P,P_window=None, C_window=None):
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -777,6 +793,7 @@ class FASTPT:
         P_gb2dsij = P_fe
         return 2*P_gb2sij, 2*P_gb2dsij, 2*P_gb2sij2
     
+    @validate_params_decorator
     def IA_d2(self,P,P_window=None, C_window=None):
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -793,6 +810,7 @@ class FASTPT:
         P_d2E2 = P_fe
         return 2*P_d2E, 2*P_d20E, 2*P_d2E2
     
+    @validate_params_decorator
     def IA_s2(self, P, P_window=None, C_window=None):
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -812,13 +830,14 @@ class FASTPT:
         P_s2E2=P_S2he
         return 2*P_s2E, 2*P_s20E, 2*P_s2E2
 
-
+    @validate_params_decorator
     def OV(self, P, P_window=None, C_window=None):
         P, A = self.J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P = self.EK.PK_original(P)
         return P * (2 * pi) ** 2
 
+    @validate_params_decorator
     def kPol(self, P, P_window=None, C_window=None):
         P1, A = self.J_k_tensor(P, self.X_kP1, P_window=P_window, C_window=C_window)
         if (self.extrap):
@@ -833,6 +852,7 @@ class FASTPT:
             _, P3 = self.EK.PK_original(P3)
         return P1 / (80 * pi ** 2), P2 / (160 * pi ** 2), P3 / (80 * pi ** 2)
 
+    @validate_params_decorator
     def RSD_components(self, P, f, P_window=None, C_window=None):
 
         _, A = self.J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
@@ -863,6 +883,7 @@ class FASTPT:
 
         return A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5
 
+    @validate_params_decorator
     def RSD_ABsum_components(self, P, f, P_window=None, C_window=None):
 
         A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = self.RSD_components(P, f, P_window, C_window)
@@ -873,11 +894,13 @@ class FASTPT:
 
         return ABsum_mu2, ABsum_mu4, ABsum_mu6, ABsum_mu8
 
+    @validate_params_decorator
     def RSD_ABsum_mu(self, P, f, mu_n, P_window=None, C_window=None):
         ABsum_mu2, ABsum_mu4, ABsum_mu6, ABsum_mu8 = self.RSD_ABsum_components(P, f, P_window, C_window)
         ABsum = ABsum_mu2 * mu_n ** 2 + ABsum_mu4 * mu_n ** 4 + ABsum_mu6 * mu_n ** 6 + ABsum_mu8 * mu_n ** 8
         return ABsum
 
+    @validate_params_decorator
     def IRres(self, P, L=0.2, h=0.67, rsdrag=135, P_window=None, C_window=None):
         # based on script by M. Ivanov. See arxiv:1605.02149, eq 7.4
 
@@ -928,16 +951,19 @@ class FASTPT:
 
     ######################################################################################
     ### functions that use the older version structures. ###
+    @validate_params_decorator
     def one_loop(self, P, P_window=None, C_window=None):
 
         return self.pt_simple.one_loop(P, P_window=P_window, C_window=C_window)
 
+    @validate_params_decorator
     def P_bias(self, P, P_window=None, C_window=None):
 
         return self.pt_simple.P_bias(P, P_window=P_window, C_window=C_window)
 
     ######################################################################################
     ### Core functions used by top-level functions ###
+    @validate_params_decorator
     def J_k_scalar(self, P_in, X, nu, P_window=None, C_window=None):
 
         pf, p, g_m, g_n, two_part_l, h_l = X
@@ -997,6 +1023,7 @@ class FASTPT:
 
         return P_out, A_out
 
+    @validate_params_decorator
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
 
         pf, p, nu1, nu2, g_m, g_n, h_l = X
