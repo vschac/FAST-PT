@@ -15,7 +15,7 @@ P_kPol = fpt.kPol(P, C_window=C_window)
 P_OV = fpt.OV(P, C_window=C_window)
 
 # Bias terms
-P_bias = fpt.one_loop_dd_bias(P, C_window=C_window)
+P_loop_bias = fpt.one_loop_dd_bias(P, C_window=C_window)
 P_bias_b3nl = fpt.one_loop_dd_bias_b3nl(P, C_window=C_window)
 P_bias_lpt_NL = fpt.one_loop_dd_bias_lpt_NL(P, C_window=C_window)
 
@@ -32,6 +32,7 @@ P_IA_ctbias = fpt.IA_ctbias(P, C_window=C_window)
 P_IA_gb2 = fpt.IA_gb2(P, C_window=C_window)
 P_IA_d2 = fpt.IA_d2(P, C_window=C_window)
 P_IA_s2 = fpt.IA_s2(P, C_window=C_window)
+P_IA_der = fpt.IA_der(P, C_window=C_window)
 
 # RSD terms - note P_RSD requires f=1.0 parameter
 P_RSD = fpt.RSD_components(P, 1.0, C_window=C_window)
@@ -40,7 +41,6 @@ P_RSD_ABsum_mu = fpt.RSD_ABsum_mu(P, 1.0, 1.0, C_window=C_window)
 
 # IR resummation
 P_IRres = fpt.IRres(P, C_window=C_window)
-
 
 
 names = {
@@ -58,6 +58,7 @@ names = {
     'P_IA_gb2': P_IA_gb2,
     'P_IA_d2': P_IA_d2,
     'P_IA_s2': P_IA_s2,
+    'P_IA_der': P_IA_der,
     'P_RSD': P_RSD,
     'P_RSD_ABsum_components': P_RSD_ABsum_components,
 }
@@ -70,7 +71,7 @@ for name, arr in names.items():
         print(AttributeError.with_traceback())
 
 inhomogeneous_arrays = {
-    'P_bias': list(P_bias), #Have to cast to list since tuple is immutable
+    'P_loop_bias': list(P_loop_bias), #Have to cast to list since tuple is immutable
     'P_bias_b3nl': list(P_bias_b3nl),
     'P_bias_lpt_NL': list(P_bias_lpt_NL),
 }
