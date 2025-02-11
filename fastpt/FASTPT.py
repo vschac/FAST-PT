@@ -38,10 +38,7 @@ from __future__ import print_function
 from .info import __version__
 
 import numpy as np
-from numpy.fft import ifft, rfft, irfft
 from numpy import exp, log, cos, sin, pi
-from scipy.signal import fftconvolve
-import scipy.integrate as integrate
 from .fastpt_extr import p_window, c_window
 from .matter_power_spt import P_13_reg, Y1_reg_NL, Y2_reg_NL
 from .initialize_params import scalar_stuff, tensor_stuff
@@ -933,6 +930,7 @@ class FASTPT:
             return plin(x) - psmooth(x)
 
         # compute Sigma^2 and the tree-level IR-resummed PS
+        import scipy.integrate as integrate
 
         Sigma = integrate.quad(lambda x: (4 * pi) * psmooth(x) * (
                 1 - 3 * (2 * rbao * x * cos(x * rbao) + (-2 + rbao ** 2 * x ** 2) * sin(rbao * x)) / (
@@ -965,6 +963,8 @@ class FASTPT:
     ### Core functions used by top-level functions ###
     @validate_params_decorator
     def J_k_scalar(self, P_in, X, nu, P_window=None, C_window=None):
+        from numpy.fft import ifft, rfft, irfft
+        from scipy.signal import fftconvolve
 
         pf, p, g_m, g_n, two_part_l, h_l = X
 
@@ -1025,6 +1025,8 @@ class FASTPT:
 
     @validate_params_decorator
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
+        from scipy.signal import fftconvolve
+        from numpy.fft import ifft, rfft
 
         pf, p, nu1, nu2, g_m, g_n, h_l = X
 
