@@ -2,6 +2,7 @@
 IA_ABD_plot.py
 LICENSE
 README.md
+pyproject.toml
 setup.py
 docs/usr_manual.pdf
 examples/P_bias_example.dat

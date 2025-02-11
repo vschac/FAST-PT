@@ -5,6 +5,13 @@ from fastpt import FASTPT
 P = np.loadtxt('benchmarking/Pk_test.dat')[:, 1]
 C_window = 0.75
 
+d = np.loadtxt('benchmarking/Pk_test.dat')
+k = d[:, 0]
+n_pad = int(0.5 * len(k))
+to_do = ['all']
+fpt = FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
+s = fpt.J_k_scalar(P, fpt.X_spt, -2)
+print(len(s[1]))
 
 @pytest.fixture
 def fpt(): 
@@ -63,6 +70,7 @@ def test_init_padding(fpt):
     assert hasattr(fpt, 'n_pad')
 
 
+####################PARAMETER VALIDATION TESTS####################
 def test_validate_params_decorator(fpt):
     """Test the validate_params_decorator function with various inputs
         (Using one_loop_dd as a sample method though all decorating functions
@@ -117,7 +125,7 @@ def test_validate_params_decorator(fpt):
 
 
 
-####################EDGE CASE TESTS####################
+####################UNIT TESTS####################
 def test_one_loop_dd(fpt):
     """Test the one_loop_dd function with various inputs"""
     # Test with standard input
@@ -140,7 +148,7 @@ def test_one_lood_dd_bias(fpt):
     assert isinstance(result, tuple)
         
     # Verify sigma4 calculation is positive
-    assert result[-2] > 0  # sig4 should be positive
+    assert result[-1] > 0  # sig4 should be positive
         
     # Test bias terms have correct shapes
     for term in result[1:-2]:  # Skip P_1loop and sig4
@@ -158,8 +166,7 @@ def test_one_loop_dd_bias_b3nl(fpt):
     assert isinstance(result, tuple)
         
     # Test sig3nl term
-    assert hasattr(result, 'sig3nl')
-    assert result.sig3nl.shape == P.shape
+    assert result[-1].shape == P.shape
         
     # Test with window functions
     result_window = fpt.one_loop_dd_bias_b3nl(P, P_window=None, C_window=C_window)
@@ -186,63 +193,119 @@ def test_one_loop_dd_bias_lpt_NL(fpt):
     result_window = fpt.one_loop_dd_bias_lpt_NL(P, P_window=None, C_window=0.75)
     assert isinstance(result_window, tuple)
 
-
-
-
 #def test_cleft_Q_R(fpt):
 #   assert True
 
-def test_IA_TT(fpt):
-    assert True
+def test_IA_tt(fpt):
+    """Test the IA_tt function"""
+    result = fpt.IA_tt(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    assert result[0].shape == P.shape
+    assert result[1].shape == P.shape
 
 def test_IA_mix(fpt):
-    assert True
+    """Test the IA_mix function"""
+    result = fpt.IA_mix(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    for term in result:
+        assert term.shape == P.shape
 
 def test_IA_ta(fpt):
-    assert True
+    """Test the IA_ta function"""
+    result = fpt.IA_ta(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    for term in result:
+        assert term.shape == P.shape
 
 def test_IA_der(fpt):
-    assert True
+    """Test the IA_der function"""
+    result = fpt.IA_der(P)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == P.shape
 
 def test_IA_ct(fpt):
-    assert True
+    """Test the IA_ct function"""
+    result = fpt.IA_ct(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    for term in result:
+        assert term.shape == P.shape
 
 def test_IA_ctbias(fpt):
-    assert True
+    """Test the IA_ctbias function"""
+    result = fpt.IA_ctbias(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    for term in result:
+        assert term.shape == P.shape
 
 def test_IA_d2(fpt):
-    assert True
+    """Test the IA_d2 function"""
+    result = fpt.IA_d2(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 3
+    for term in result:
+        assert term.shape == P.shape
 
 def test_IA_s2(fpt):
-    assert True
+    """Test the IA_s2 function"""
+    result = fpt.IA_s2(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 3
+    for term in result:
+        assert term.shape == P.shape
 
 def test_OV(fpt):
-    assert True
+    """Test the OV function"""
+    result = fpt.OV(P)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == P.shape
 
 def test_kPol(fpt):
-    assert True
+    """Test the kPol function"""
+    result = fpt.kPol(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 3
+    for term in result:
+        assert term.shape == P.shape
 
 def test_RSD_components(fpt):
-    assert True
+    """Test the RSD_components function"""
+    f = 0.5  # Example growth rate
+    result = fpt.RSD_components(P, f)
+    assert isinstance(result, tuple)
+    assert len(result) == 10
+    for term in result:
+        assert term.shape == P.shape
 
 def test_RSD_ABsum_components(fpt):
-    assert True
+    """Test the RSD_ABsum_components function"""
+    f = 0.5  # Example growth rate
+    result = fpt.RSD_ABsum_components(P, f)
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    for term in result:
+        assert term.shape == P.shape
 
 def test_RSD_ABsum_mu(fpt):
-    assert True
+    """Test the RSD_ABsum_mu function"""
+    f = 0.5  # Example growth rate
+    mu_n = 0.5  # Example mu_n value
+    result = fpt.RSD_ABsum_mu(P, f, mu_n)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == P.shape
 
 def test_IRres(fpt):
-    assert True
-
-def test_one_loop(fpt):
-    assert True
-
-def test_P_bias(fpt):
-    assert True
+    """Test the IRres function"""
+    result = fpt.IRres(P)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == P.shape
 
 def test_J_K_scalar(fpt):
     assert True
 
 def test_J_K_tensor(fpt):
     assert True
-    
