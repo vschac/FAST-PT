@@ -171,107 +171,53 @@ class FASTPT:
         self.l = np.arange(-self.n_l // 2 + 1, self.n_l // 2 + 1)
         self.tau_l = omega * self.l
 
-        self.dd_do = False
-        self.cleft = False
-        self.dd_bias_do = False
-        self.IA_tt_do = False
-        self.IA_ta_do = False
-        self.IA_mix_do = False
-        self.OV_do = False
-        self.kPol_do = False
-        self.RSD_do = False
-        self.IA_gb2_do = False
-        self.IA_tij_do = False
+        self.todo_dict = {
+            'one_loop_dd': False, 'one_loop_cleft_dd': False, 
+            'dd_bias': False, 'IA_all': False,
+            'IA_tt': False, 'IA_ta': False, 
+            'IA_mix': False, 'OV': False, 'kPol': False,
+            'RSD': False, 'IRres': False, 
+            'tij': False, 'gb2': False, 
+            'all': False, 'everything': False
+        }
 
-        #NEED TO UPDATE LIST WITH NEW CARTER TERMS
-        for entry in to_do:  # convert to_do list to instructions for FAST-PT initialization
-            if entry == 'one_loop_dd':
-                self.dd_do = True
-                continue
-
-            if entry == 'one_loop_cleft_dd':
-                self.cleft = True
-                continue
-
+        for entry in to_do:
+            if entry in {'all', 'everything'}:
+                for key in self.todo_dict:
+                    self.todo_dict[key] = True
+            elif entry in {'IA_all', 'IA'}:
+                for key in ['IA_tt', 'IA_ta', 'IA_mix', 'gb2', 'tij']:
+                    self.todo_dict[key] = True
             elif entry == 'dd_bias':
-                self.dd_do = True
-                self.dd_bias_do = True
-                continue
-            elif entry == 'IA_all' or entry == 'IA':
-                self.IA_tt_do = True
-                self.IA_ta_do = True
-                self.IA_mix_do = True
-                self.IA_gb2_do = True
-                self.IA_tij_do = True
-                continue
-            elif entry == 'IA_tt':
-                self.IA_tt_do = True
-                continue
-            elif entry == 'IA_ta':
-                self.IA_ta_do = True
-                continue
-            elif entry == 'IA_mix':
-                self.IA_mix_do = True
-                continue
-            elif entry == 'OV':
-                self.OV_do = True
-                continue
-            elif entry == 'kPol':
-                self.kPol_do = True
-                continue
-            elif entry == 'RSD':
-                self.RSD_do = True
-                continue
-            elif entry == 'IRres':
-                self.dd_do = True
-                continue
+                self.todo_dict['one_loop_dd'] = True
+                self.todo_dict['dd_bias'] = True
             elif entry == 'tij':
-                self.IA_dd_do = True
-                self.IA_ta_do = True
-                self.IA_tt_do = True
-                self.IA_mix_do = True
-                self.IA_tij_do = True
-                continue
-            elif entry == 'gb2':
-                self.IA_gb2_do = True
-                continue
-            elif entry == 'all' or entry == 'everything':
-                self.dd_do = True
-                self.dd_bias_do = True
-                self.IA_tt_do = True
-                self.IA_ta_do = True
-                self.IA_mix_do = True
-                self.OV_do = True
-                self.kPol_do = True
-                self.RSD_do = True
-                self.cleft = True
-                self.IA_gb2_do = True
-                self.IA_tij_do = True
-                continue
+                for key in ['one_loop_dd', 'tij', 'IA_tt', 'IA_ta', 'IA_mix']:
+                    self.todo_dict[key] = True
+            elif entry in self.todo_dict:
+                self.todo_dict[entry] = True
             else:
-                raise ValueError(f'FAST-PT does not recognize {entry} in the to_do list.')
+                raise ValueError(f'FAST-PT does not recognize {entry} in the to_do list.\n{self.todo_dict.keys()} are the valid entries.')
+
 
         ### INITIALIZATION of k-grid quantities ###
-        if self.dd_do:
+        if self.todo_dict['one_loop_dd'] or self.todo_dict['dd_bias'] or self.todo_dict['IRres']:
             nu = -2
-            # parameter matrix for 1-loop calculations
-            p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0], \
-                              [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
-
-            p_mat_lpt = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [2, -2, 2, 0], \
-                                  [1, -1, 1, 0], [1, -1, 3, 0], [0, 0, 4, 0], [2, -2, 0, 1]])
-
+            p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0],
+                            [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
+            p_mat_lpt = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [2, -2, 2, 0],
+                           [1, -1, 1, 0], [1, -1, 3, 0], [0, 0, 4, 0], [2, -2, 0, 1]])
             self.X_spt = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_lpt = scalar_stuff(p_mat_lpt, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_sptG = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-        if self.cleft:
+        if self.todo_dict['one_loop_cleft_dd']:
             nu = -2
             p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [1, -1, 1, 0], [1, -1, 3, 0], [-1, 1, 1, 0],
-                              [-1, 1, 3, 0]])
+                            [-1, 1, 3, 0]])
             self.X_cleft = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-        if self.IA_tt_do:
+        if self.todo_dict['IA_tt']: 
             hE_tab, hB_tab = IA_tt()
             p_mat_E = hE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             p_mat_B = hB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
@@ -279,7 +225,7 @@ class FASTPT:
             self.X_IA_E = tensor_stuff(p_mat_E, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_B = tensor_stuff(p_mat_B, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-        if self.IA_mix_do:
+        if self.todo_dict['IA_mix']:
             IA_A_tab = IA_A()
             IA_DEE_tab = IA_DEE()
             IA_DBB_tab = IA_DBB()
@@ -291,19 +237,13 @@ class FASTPT:
             self.X_IA_DEE = tensor_stuff(p_mat_DEE, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_DBB = tensor_stuff(p_mat_DBB, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-        if self.IA_ta_do:
-            IA_deltaE1_tab = IA_deltaE1()
-            IA_0E0E_tab = IA_0E0E()
-            IA_0B0B_tab = IA_0B0B()
-            p_mat_deltaE1 = IA_deltaE1_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_0E0E = IA_0E0E_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_0B0B = IA_0B0B_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_IA_deltaE1 = tensor_stuff(p_mat_deltaE1, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_0E0E = tensor_stuff(p_mat_0E0E, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_0B0B = tensor_stuff(p_mat_0B0B, self.N, self.m, self.eta_m, self.l, self.tau_l)
-        
-        
-        if self.IA_gb2_do:
+        if self.todo_dict['IA_ta']:
+            IA_deltaE1_tab, IA_0E0E_tab, IA_0B0B_tab = IA_deltaE1(), IA_0E0E(), IA_0B0B()
+            self.X_IA_deltaE1 = tensor_stuff(IA_deltaE1_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_0E0E = tensor_stuff(IA_0E0E_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_0B0B = tensor_stuff(IA_0B0B_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+        if self.todo_dict['gb2']:
             IA_gb2_fe_tab = IA_gb2_fe()
             IA_gb2_he_tab = IA_gb2_he()
             IA_gb2_F2_tab = IA_gb2_F2()
@@ -318,7 +258,8 @@ class FASTPT:
             p_mat_gb2_S2he = IA_gb2_S2he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_IA_gb2_fe = tensor_stuff(p_mat_gb2_fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_gb2_he = tensor_stuff(p_mat_gb2_he, self.N, self.m, self.eta_m, self.l, self.tau_l)
-        if self.IA_tij_do:
+
+        if self.todo_dict['tij']:
             IA_tij_feG2_tab = IA_tij_feG2()
             IA_tij_heG2_tab = IA_tij_heG2()
             IA_tij_F2F2_tab = IA_tij_F2F2()
@@ -350,20 +291,14 @@ class FASTPT:
             self.X_IA_gb2_S2F2 = tensor_stuff(p_mat_gb2_S2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_gb2_S2fe = tensor_stuff(p_mat_gb2_S2fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
             self.X_IA_gb2_S2he = tensor_stuff(p_mat_gb2_S2he, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            
             self.X_IA_gb2_S2G2 = tensor_stuff(p_mat_gb2_S2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-
-        if self.OV_do:
-            # For OV, we can use two different values for
-            # nu1=0 and nu2=-2
-
+        if self.todo_dict['OV']: 
             OV_tab = OV()
             p_mat = OV_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-
             self.X_OV = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-        if self.kPol_do:
+        if self.todo_dict['kPol']:
             tab1, tab2, tab3 = kPol()
             p_mat = tab1[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_kP1 = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
@@ -374,7 +309,7 @@ class FASTPT:
             p_mat = tab3[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_kP3 = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
 
-        if self.RSD_do:
+        if self.todo_dict['RSD']:
             tabA, self.A_coeff = RSDA()
             p_mat = tabA[:, [0, 1, 5, 6, 7, 8, 9]]
             self.X_RSDA = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
@@ -432,7 +367,7 @@ class FASTPT:
 
         
 
-        if (self.dd_bias_do):
+        if (self.todo_dict['dd_bias']):
             # if dd_bias is in to_do, this function acts like one_loop_dd_bias
 
             # Quadraric bias Legendre components
