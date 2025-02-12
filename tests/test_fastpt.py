@@ -5,14 +5,6 @@ from fastpt import FASTPT
 P = np.loadtxt('benchmarking/Pk_test.dat')[:, 1]
 C_window = 0.75
 
-d = np.loadtxt('benchmarking/Pk_test.dat')
-k = d[:, 0]
-n_pad = int(0.5 * len(k))
-to_do = ['all']
-fpt = FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
-s = fpt.J_k_scalar(P, fpt.X_spt, -2)
-print(len(s[1]))
-
 @pytest.fixture
 def fpt(): 
     d = np.loadtxt('benchmarking/Pk_test.dat')
