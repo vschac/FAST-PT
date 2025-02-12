@@ -61,6 +61,16 @@ def test_init_padding(fpt):
     # Test with padding
     assert hasattr(fpt, 'n_pad')
 
+@pytest.mark.parametrize("to_do", [['all'], ['one_loop_dd'], ['dd_bias'], 
+                                   ['one_loop_cleft_dd'], ['IA_tt'], 
+                                   ['IA_mix'], ['IA_ta'], ['OV'], 
+                                   ['kPol'], ['RSD'], ['tij'], ['gb2'], 
+                                   ['IRres'], ['all'], ['everything']])
+def test_all_todos(to_do):
+    """Test initialization with all possible to_do options"""
+    k = np.logspace(-3, 1, 200)
+    fpt = FASTPT(k, to_do=to_do)
+    assert fpt is not None
 
 ####################PARAMETER VALIDATION TESTS####################
 def test_validate_params_decorator(fpt):
