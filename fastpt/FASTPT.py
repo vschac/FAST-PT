@@ -186,7 +186,7 @@ class FASTPT:
                 self.todo_dict['one_loop_dd'] = True
                 self.todo_dict['dd_bias'] = True
             elif entry == 'tij':
-                for key in ['one_loop_dd', 'tij', 'IA_tt', 'IA_ta', 'IA_mix']:
+                for key in ['gb2', 'one_loop_dd', 'tij', 'IA_tt', 'IA_ta', 'IA_mix']:
                     self.todo_dict[key] = True
             elif entry in self.todo_dict:
                 self.todo_dict[entry] = True
