@@ -19,7 +19,6 @@ def log_gamma(z):
 	y=np.imag(w)
 	return x,y
 
-
 def g_m_vals(mu,q):
 
 	imag_q= np.imag(q)

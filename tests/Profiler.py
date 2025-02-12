@@ -1,9 +1,8 @@
-import cProfile
-import pstats
 from fastpt import FASTPT
 import numpy as np
 import os
 from line_profiler import LineProfiler
+from fastpt import initialize_params
 
 def profile_fastpt():
     data_path = os.path.join(os.path.dirname(__file__), '..', 'examples', 'Pk_test.dat')
@@ -13,20 +12,18 @@ def profile_fastpt():
     n_pad = int(0.5 * len(k))
     fpt = FASTPT(k, to_do=['one_loop_dd'], low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
-profiler = cProfile.Profile()
-profiler.run('profile_fastpt()')
-
-stats = pstats.Stats(profiler)
-stats.sort_stats('cumulative')
-stats.print_stats(10)
-
 
 # Profile specific methods
-profiler = LineProfiler()
-profiler.add_function(FASTPT.__init__)
+lprofiler = LineProfiler()
+lprofiler.add_function(FASTPT.__init__)
+'''
+Longer runtime functions:
+- initialize_params.g_m_vals (lines 38 and 42)
+
+'''
 
 # Run profiling
-profiler.run('profile_fastpt()')
-profiler.print_stats()
+lprofiler.run('profile_fastpt()')
+lprofiler.print_stats()
 
 
