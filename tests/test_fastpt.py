@@ -1,13 +1,15 @@
 import pytest
 import numpy as np
 from fastpt import FASTPT
+import os
 
-P = np.loadtxt('benchmarking/Pk_test.dat')[:, 1]
+data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
+P = np.loadtxt(data_path)[:, 1]
 C_window = 0.75
 
 @pytest.fixture
 def fpt(): 
-    d = np.loadtxt('benchmarking/Pk_test.dat')
+    d = np.loadtxt(data_path)
     k = d[:, 0]
     n_pad = int(0.5 * len(k))
     to_do = ['all']
