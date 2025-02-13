@@ -25,5 +25,3 @@ Longer runtime functions:
 # Run profiling
 lprofiler.run('profile_fastpt()')
 lprofiler.print_stats()
-
-
