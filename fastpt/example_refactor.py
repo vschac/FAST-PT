@@ -5,6 +5,7 @@ from pprint import pprint
 class FPT:
     def __init__(self, k):
         self.k = k
+        self.tracer = None
     """Regular init code here"""
 
     def one_loop_dd(self, P, P_window=None, C_window=None):
@@ -13,11 +14,16 @@ class FPT:
     
     def IA_ct(self, P, P_window=None, C_window=None):
         """Method code here"""
-        return P
+        if self.tracer is None: 
+            print("Calcuating tracer...")
+            self.tracer = (4 * 5) #Meant to represent complicated computation of scalar/tensor stuff
+        else:
+            print("Tracer calculated already. Using cached value")
+        return P, P_window, C_window
     
     def RSD_components(self, P, f, P_window=None, C_window=None):
         """Method code here"""
-        return P
+        return P, P_window, C_window
     
 
 
@@ -61,7 +67,6 @@ class FunctionHandler:
 
     def run(self, function_name, *override_args, **override_kwargs):
         """ Runs the selected function from FASTPT with validated parameters. """
-        #Could potentially get a list of all FPT functions during init to save time
         if not hasattr(self.fastpt, function_name):
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
 
@@ -110,9 +115,14 @@ class FunctionHandler:
         """ Returns a list of valid FASTPT functions. """
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("__")])
 
+    def get_k(self):
+        return self.fastpt.k
+
 
 if __name__ == "__main__":
     """
+    The main purpose of the FunctionHandler class is to provide a cache (or multiple methods for caching)
+    and ease the user experience through a clear syntax and storing redundant parameters to be used later.
         - Can pass in parametes at FuncionHandler definition to be pre validated
         - If new parameters are passed they need to be revalidated
         - Function result with those specific parameters is cached
@@ -122,6 +132,13 @@ if __name__ == "__main__":
         - TODO: Should the tracers be cached as well since its unlikely the user will call the 
                 exact same function and parameters multiple times? Gotta chache as much as possible
         - TODO: Add a verbose flag and check how it would merge/conflict with FPT verbose
+        - ?TODO?: Is there any precomputation that should be done or are we fine with having the 
+                first call take slightly longer? (Would still need to implement more caching for tracers)
+        - ?TODO?: Add functionality to update handler's instance of FAST-PT, currently it is pointing to an instance 
+                so it would update automatically without needing a new object created. 
+                (Should cache be deleted since there's a new k or other params)
+        - ?TODO?: Should I implement a max limit (suggested 1000 entries) for the cache?
+                Is there a potential case when that many computations would be needed?
     """
 
     k = np.logspace(-3, 1, 200)
@@ -131,11 +148,14 @@ if __name__ == "__main__":
     result = handler.run("one_loop_dd")
     print(result)
     r2 = handler.run("one_loop_dd")
+
+    rIA = handler.run("IA_ct")
+    rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different value so it non cached output is used
     #Still backwards compatible
     #print(fpt.IA_ct(P=(4, 5, 6)))
 
-    # r3 = handler.run("IA_ct", P=(4, 5, 6))
-    # print(r3)
+    #r3 = handler.run("IA_ct", P=(4, 5, 6))
+    #print(r3)
 
     # try:
     #     r4 = handler.run("RSD_components", P=(1, 3, 6))
