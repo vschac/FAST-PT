@@ -59,7 +59,7 @@ class FunctionHandler:
         return tuple(sorted(hashable_params))
 
 
-    def run(self, function_name, **override_params):
+    def run(self, function_name, *override_args, **override_kwargs):
         """ Runs the selected function from FASTPT with validated parameters. """
         #Could potentially get a list of all FPT functions during init to save time
         if not hasattr(self.fastpt, function_name):
@@ -68,9 +68,14 @@ class FunctionHandler:
         func = getattr(self.fastpt, function_name)
         required_params = self._get_function_params(func)
 
-        if (override_params): self._validate_params(override_params)
-        # Merge stored parameters with user overrides
-        merged_params = {**self.default_params, **override_params}
+        if (override_kwargs): self._validate_params(override_kwargs)
+        if (override_args): 
+            self._validate_params(override_args)
+            #Convert positional args to a dict for merging (Python does this already with kwargs)
+            args_dict = dict(zip(required_params[:len(override_args)], override_args))
+            merged_params = {**self.default_params, **args_dict, **override_kwargs}
+        else:
+            merged_params = {**self.default_params, **override_kwargs}
 
         missing_params = [p for p in required_params if p not in merged_params]
         if missing_params:
@@ -124,9 +129,8 @@ if __name__ == "__main__":
 
     handler = FunctionHandler(fpt, P=np.array([1.0, 2.0, 3.0]), P_window=(0.1, 0.2), C_window=0.75)
     result = handler.run("one_loop_dd")
-    print("Result ", result)
+    print(result)
     r2 = handler.run("one_loop_dd")
-    
     #Still backwards compatible
     #print(fpt.IA_ct(P=(4, 5, 6)))
 
