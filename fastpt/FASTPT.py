@@ -1060,6 +1060,7 @@ class FASTPT:
         if (self.n_pad is not None):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
 
+        ####### CACHE THIS #######
         c_m_positive = rfft(P_b)
         # We always filter the Fourier coefficients, so the last element is zero.
         # But in case someone does not filter, divide the end point by two

@@ -26,7 +26,7 @@ class FPT:
 class FunctionHandler:
     def __init__(self, fastpt_instance, **params):
         self.fastpt = fastpt_instance
-        self.default_params = self._validate_params(params)
+        self.default_params = self._validate_params(params) if params else {}
         self.cache = {}
 
 
@@ -112,8 +112,6 @@ class FunctionHandler:
     def get_k(self):
         return self.fastpt.k
     
-    #ADD FUNCTIONS FOR: removing default params, updating default params
-
 
 if __name__ == "__main__":
     """
@@ -125,6 +123,7 @@ if __name__ == "__main__":
         - Passing any parameters on the run call will override any stored parameters,
             not passing any required parameters will default to what is stored
         - TODO: Add a verbose flag and check how it would merge/conflict with FPT verbose
+        - TODO: Add functionality to remove default params and update default params
         - ?TODO?: Add functionality to update handler's instance of FAST-PT, currently it is pointing to an instance 
                 so it would update automatically without needing a new object created. 
                 (Should cache be deleted since there's a new k or other params)
@@ -138,13 +137,14 @@ if __name__ == "__main__":
     handler = FunctionHandler(fpt, P=np.array([1.0, 2.0, 3.0]), P_window=(0.1, 0.2), C_window=0.75)
     result = handler.run("one_loop_dd")
     print(result)
-    r2 = handler.run("one_loop_dd", P=np.array([4, 5, 6]))
+    r2 = handler.run("one_loop_dd")
     print(r2)
 
-    #rIA = handler.run("IA_ct")
-    #rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different P value so non cached output is used
+    rIA = handler.run("IA_ct")
+    rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different P value so non cached output is used
+    
     #Still backwards compatible
-    print(fpt.IA_ct(P=(4, 5, 6)))
+    print(fpt.IA_ct(P=np.array([4, 5, 6])))
 
     # try:
     #     r4 = handler.run("RSD_components", P=(1, 3, 6))
