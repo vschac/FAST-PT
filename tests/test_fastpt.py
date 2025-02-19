@@ -67,12 +67,26 @@ def test_init_padding(fpt):
                                    ['one_loop_cleft_dd'], ['IA_tt'], 
                                    ['IA_mix'], ['IA_ta'], ['OV'], 
                                    ['kPol'], ['RSD'], ['tij'], ['gb2'], 
-                                   ['IRres'], ['all'], ['everything']])
+                                   ['IRres'], ['all'], ['everything'], ['skip']])
 def test_all_todos(to_do):
     """Test initialization with all possible to_do options"""
     k = np.logspace(-3, 1, 200)
     fpt = FASTPT(k, to_do=to_do)
     assert fpt is not None
+
+
+def test_skip_todo(fpt):
+    """Test to make sure skip is faster (doesn't initialize anything)"""
+    from time import time
+    t0 = time()
+    slowPT = FASTPT(fpt.k, to_do=['all'])
+    t1 = time()
+    diff1 = t1 - t0
+    t2 = time()
+    fastPT = FASTPT(fpt.k, to_do=['skip'])
+    t3 = time()
+    diff2 = t3 - t2
+    assert diff2 < diff1
 
 
 ####################PARAMETER VALIDATION TESTS####################

@@ -5,7 +5,6 @@ from pprint import pprint
 class FPT:
     def __init__(self, k):
         self.k = k
-        self.tracer = None
     """Regular init code here"""
 
     def one_loop_dd(self, P, P_window=None, C_window=None):
@@ -14,11 +13,6 @@ class FPT:
     
     def IA_ct(self, P, P_window=None, C_window=None):
         """Method code here"""
-        if self.tracer is None: 
-            print("Calcuating tracer...")
-            self.tracer = (4 * 5) #Meant to represent complicated computation of scalar/tensor stuff
-        else:
-            print("Tracer calculated already. Using cached value")
         return P, P_window, C_window
     
     def RSD_components(self, P, f, P_window=None, C_window=None):
@@ -117,23 +111,20 @@ class FunctionHandler:
 
     def get_k(self):
         return self.fastpt.k
+    
+    #ADD FUNCTIONS FOR: removing default params, updating default params
 
 
 if __name__ == "__main__":
     """
     The main purpose of the FunctionHandler class is to provide a cache (or multiple methods for caching)
     and ease the user experience through a clear syntax and storing redundant parameters to be used later.
-        - Can pass in parametes at FuncionHandler definition to be pre validated
+        - Can pass in parameters at FuncionHandler definition to be pre validated
         - If new parameters are passed they need to be revalidated
         - Function result with those specific parameters is cached
-        - Can list available functions
         - Passing any parameters on the run call will override any stored parameters,
             not passing any required parameters will default to what is stored
-        - TODO: Should the tracers be cached as well since its unlikely the user will call the 
-                exact same function and parameters multiple times? Gotta chache as much as possible
         - TODO: Add a verbose flag and check how it would merge/conflict with FPT verbose
-        - ?TODO?: Is there any precomputation that should be done or are we fine with having the 
-                first call take slightly longer? (Would still need to implement more caching for tracers)
         - ?TODO?: Add functionality to update handler's instance of FAST-PT, currently it is pointing to an instance 
                 so it would update automatically without needing a new object created. 
                 (Should cache be deleted since there's a new k or other params)
@@ -147,20 +138,15 @@ if __name__ == "__main__":
     handler = FunctionHandler(fpt, P=np.array([1.0, 2.0, 3.0]), P_window=(0.1, 0.2), C_window=0.75)
     result = handler.run("one_loop_dd")
     print(result)
-    r2 = handler.run("one_loop_dd")
+    r2 = handler.run("one_loop_dd", P=np.array([4, 5, 6]))
+    print(r2)
 
-    rIA = handler.run("IA_ct")
-    rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different value so it non cached output is used
+    #rIA = handler.run("IA_ct")
+    #rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different P value so non cached output is used
     #Still backwards compatible
-    #print(fpt.IA_ct(P=(4, 5, 6)))
-
-    #r3 = handler.run("IA_ct", P=(4, 5, 6))
-    #print(r3)
+    print(fpt.IA_ct(P=(4, 5, 6)))
 
     # try:
     #     r4 = handler.run("RSD_components", P=(1, 3, 6))
     # except ValueError as e:
     #     print(e)
-
-    # r5 = handler.run("RSD_components", f=0.5)
-    # print(r5)

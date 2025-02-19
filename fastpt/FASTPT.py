@@ -59,6 +59,17 @@ from . import FASTPT_simple as fastpt_simple
 log2 = log(2.)
 
 
+def cached_property(method):
+    """Decorator to cache property values"""
+    cache_name = f'_{method.__name__}'
+    
+    def getter(instance):
+        if not hasattr(instance, cache_name):
+            setattr(instance, cache_name, method(instance))
+        return getattr(instance, cache_name)
+    
+    return property(getter)
+
 class FASTPT:
 
     def __init__(self, k, nu=None, to_do=None, param_mat=None, low_extrap=None, high_extrap=None, n_pad=None,
@@ -103,7 +114,7 @@ class FASTPT:
                                                   high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
             return None
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
-
+        
         # check for log spacing
         # print('Initializing k-grid quantities...')
         dk = np.diff(np.log(k))
@@ -165,6 +176,7 @@ class FASTPT:
         self.l = np.arange(-self.n_l // 2 + 1, self.n_l // 2 + 1)
         self.tau_l = omega * self.l
 
+        
         self.todo_dict = {
             'one_loop_dd': False, 'one_loop_cleft_dd': False, 
             'dd_bias': False, 'IA_all': False,
@@ -190,134 +202,271 @@ class FASTPT:
                     self.todo_dict[key] = True
             elif entry in self.todo_dict:
                 self.todo_dict[entry] = True
+            elif entry == 'skip':
+                #If todo list is skipped no terms will be calculated at Fast-PT initialization,
+                #instead they will be calculated as they are needed then cached for later use.
+                break
             else:
                 raise ValueError(f'FAST-PT does not recognize {entry} in the to_do list.\n{self.todo_dict.keys()} are the valid entries.')
 
-
+        
         ### INITIALIZATION of k-grid quantities ###
         if self.todo_dict['one_loop_dd'] or self.todo_dict['dd_bias'] or self.todo_dict['IRres']:
-            nu = -2
-            p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0],
-                            [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
-            p_mat_lpt = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [2, -2, 2, 0],
-                           [1, -1, 1, 0], [1, -1, 3, 0], [0, 0, 4, 0], [2, -2, 0, 1]])
-            self.X_spt = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_lpt = scalar_stuff(p_mat_lpt, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_sptG = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_spt
+            self.X_lpt
+            self.X_sptG
 
         if self.todo_dict['one_loop_cleft_dd']:
-            nu = -2
-            p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [1, -1, 1, 0], [1, -1, 3, 0], [-1, 1, 1, 0],
-                            [-1, 1, 3, 0]])
-            self.X_cleft = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+            self.X_cleft
         if self.todo_dict['IA_tt']: 
-            hE_tab, hB_tab = IA_tt()
-            p_mat_E = hE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_B = hB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-
-            self.X_IA_E = tensor_stuff(p_mat_E, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_B = tensor_stuff(p_mat_B, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_E 
+            self.X_IA_B
 
         if self.todo_dict['IA_mix']:
-            IA_A_tab = IA_A()
-            IA_DEE_tab = IA_DEE()
-            IA_DBB_tab = IA_DBB()
-            p_mat_A = IA_A_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_DEE = IA_DEE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_DBB = IA_DBB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-
-            self.X_IA_A = tensor_stuff(p_mat_A, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_DEE = tensor_stuff(p_mat_DEE, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_DBB = tensor_stuff(p_mat_DBB, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_A
+            self.X_IA_DEE
+            self.X_IA_DBB
 
         if self.todo_dict['IA_ta']:
-            IA_deltaE1_tab, IA_0E0E_tab, IA_0B0B_tab = IA_deltaE1(), IA_0E0E(), IA_0B0B()
-            self.X_IA_deltaE1 = tensor_stuff(IA_deltaE1_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_0E0E = tensor_stuff(IA_0E0E_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_0B0B = tensor_stuff(IA_0B0B_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_deltaE1
+            self.X_IA_0E0E
+            self.X_IA_0B0B
 
         if self.todo_dict['gb2']:
-            IA_gb2_fe_tab = IA_gb2_fe()
-            IA_gb2_he_tab = IA_gb2_he()
-            IA_gb2_F2_tab = IA_gb2_F2()
-            IA_gb2_S2F2_tab = IA_gb2_S2F2()
-            IA_gb2_S2fe_tab = IA_gb2_S2fe()
-            IA_gb2_S2he_tab = IA_gb2_S2he()
-            p_mat_gb2_fe = IA_gb2_fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_he = IA_gb2_he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_F2 = IA_gb2_F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_S2F2 = IA_gb2_S2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_S2fe = IA_gb2_S2fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_S2he = IA_gb2_S2he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_IA_gb2_fe = tensor_stuff(p_mat_gb2_fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_he = tensor_stuff(p_mat_gb2_he, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_gb2_fe
+            self.X_IA_gb2_he
 
         if self.todo_dict['tij']:
-            IA_tij_feG2_tab = IA_tij_feG2()
-            IA_tij_heG2_tab = IA_tij_heG2()
-            IA_tij_F2F2_tab = IA_tij_F2F2()
-            IA_tij_G2G2_tab = IA_tij_G2G2()
-            IA_tij_F2G2_tab = IA_tij_F2G2()
-            IA_tij_F2G2reg_tab =IA_tij_F2G2reg()
-            IA_gb2_F2_tab = IA_gb2_F2()
-            IA_gb2_G2_tab = IA_gb2_G2()
-            IA_gb2_S2F2_tab = IA_gb2_S2F2()
-            IA_gb2_S2G2_tab = IA_gb2_S2G2()
-            p_mat_tij_feG2 = IA_tij_feG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_tij_heG2 = IA_tij_heG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_tij_F2F2 = IA_tij_F2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_tij_G2G2 = IA_tij_G2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_tij_F2G2 = IA_tij_F2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_tij_F2G2reg_tab = IA_tij_F2G2reg_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_F2 = IA_gb2_F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_G2 = IA_gb2_G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_S2F2 = IA_gb2_S2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            p_mat_gb2_S2G2 = IA_gb2_S2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_IA_tij_feG2 = tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_tij_heG2 = tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l) 
-            self.X_IA_tij_F2F2 = tensor_stuff(p_mat_tij_F2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_tij_G2G2 = tensor_stuff(p_mat_tij_G2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_tij_F2G2 = tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_tij_F2G2reg = tensor_stuff(p_mat_tij_F2G2reg_tab, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_F2 = tensor_stuff(p_mat_gb2_F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_G2 = tensor_stuff(p_mat_gb2_G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_S2F2 = tensor_stuff(p_mat_gb2_S2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_S2fe = tensor_stuff(p_mat_gb2_S2fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_S2he = tensor_stuff(p_mat_gb2_S2he, self.N, self.m, self.eta_m, self.l, self.tau_l)
-            self.X_IA_gb2_S2G2 = tensor_stuff(p_mat_gb2_S2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_IA_tij_feG2
+            self.X_IA_tij_heG2
+            self.X_IA_tij_F2F2
+            self.X_IA_tij_G2G2
+            self.X_IA_tij_F2G2
+            self.X_IA_tij_F2G2reg
+            self.X_IA_gb2_F2
+            self.X_IA_gb2_G2
+            self.X_IA_gb2_S2F2
+            self.X_IA_gb2_S2fe
+            self.X_IA_gb2_S2he
+            self.X_IA_gb2_S2G2
 
         if self.todo_dict['OV']: 
-            OV_tab = OV()
-            p_mat = OV_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_OV = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_OV
 
         if self.todo_dict['kPol']:
-            tab1, tab2, tab3 = kPol()
-            p_mat = tab1[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_kP1 = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
-            p_mat = tab2[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_kP2 = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
-            p_mat = tab3[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_kP3 = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_kP1
+            self.X_kP2
+            self.X_kP3
 
         if self.todo_dict['RSD']:
-            tabA, self.A_coeff = RSDA()
-            p_mat = tabA[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_RSDA = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+            self.X_RSDA
+            self.X_RSDB
+        
 
-            tabB, self.B_coeff = RSDB()
-            p_mat = tabB[:, [0, 1, 5, 6, 7, 8, 9]]
-            self.X_RSDB = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    @cached_property
+    def X_spt(self):
+        nu = -2
+        p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0],
+                    [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
+        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_lpt(self):
+        nu = -2
+        p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [2, -2, 2, 0],
+                    [1, -1, 1, 0], [1, -1, 3, 0], [0, 0, 4, 0], [2, -2, 0, 1]])
+        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_sptG(self):
+        nu = -2
+        p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0],
+                        [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
+        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_cleft(self):
+        nu = -2
+        p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [1, -1, 1, 0], [1, -1, 3, 0], [-1, 1, 1, 0],
+                        [-1, 1, 3, 0]])
+        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_E(self):
+        hE_tab, _ = IA_tt()
+        p_mat_E = hE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_E, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_B(self):
+        _, hB_tab = IA_tt()
+        p_mat_B = hB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_B, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_A(self):
+        IA_A_tab = IA_A()
+        p_mat_A = IA_A_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_A, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_DEE(self):
+        IA_DEE_tab = IA_DEE()
+        p_mat_DEE = IA_DEE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_DEE, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_DBB(self):
+        IA_DBB_tab = IA_DBB()
+        p_mat_DBB = IA_DBB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_DBB, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_deltaE1(self):
+        IA_deltaE1_tab = IA_deltaE1()
+        return tensor_stuff(IA_deltaE1_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_0E0E(self):
+        IA_0E0E_tab = IA_0E0E()
+        return tensor_stuff(IA_0E0E_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_0B0B(self):
+        IA_0B0B_tab = IA_0B0B()
+        return tensor_stuff(IA_0B0B_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_fe(self):
+        IA_gb2_fe_tab = IA_gb2_fe()
+        p_mat_gb2_fe = IA_gb2_fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_he(self):
+        IA_gb2_he_tab = IA_gb2_he()
+        p_mat_gb2_he = IA_gb2_he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_he, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_tij_feG2(self):
+        IA_tij_feG2_tab = IA_tij_feG2()
+        p_mat_tij_feG2 = IA_tij_feG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_tij_heG2(self):
+        IA_tij_heG2_tab = IA_tij_heG2()
+        p_mat_tij_heG2 = IA_tij_heG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l) 
+    
+    @cached_property
+    def X_IA_tij_F2F2(self):
+        IA_tij_F2F2_tab = IA_tij_F2F2()
+        p_mat_tij_F2F2 = IA_tij_F2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_tij_F2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_tij_G2G2(self):
+        IA_tij_G2G2_tab = IA_tij_G2G2()
+        p_mat_tij_G2G2 = IA_tij_G2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_tij_G2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_tij_F2G2(self):
+        IA_tij_F2G2_tab = IA_tij_F2G2()
+        p_mat_tij_F2G2 = IA_tij_F2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_tij_F2G2reg(self):
+        IA_tij_F2G2reg_tab =IA_tij_F2G2reg()
+        p_mat_tij_F2G2reg_tab = IA_tij_F2G2reg_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_tij_F2G2reg_tab, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_F2(self):
+        IA_gb2_F2_tab = IA_gb2_F2()
+        p_mat_gb2_F2 = IA_gb2_F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_G2(self):
+        IA_gb2_G2_tab = IA_gb2_G2()
+        p_mat_gb2_G2 = IA_gb2_G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_S2F2(self):
+        IA_gb2_S2F2_tab = IA_gb2_S2F2()
+        p_mat_gb2_S2F2 = IA_gb2_S2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_S2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_S2fe(self):
+        IA_gb2_S2fe_tab = IA_gb2_S2fe()
+        p_mat_gb2_S2fe = IA_gb2_S2fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_S2fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_IA_gb2_S2he(self):
+        IA_gb2_S2he_tab = IA_gb2_S2he()
+        p_mat_gb2_S2he = IA_gb2_S2he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_S2he, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_IA_gb2_S2G2(self):
+        IA_gb2_S2G2_tab = IA_gb2_S2G2()
+        p_mat_gb2_S2G2 = IA_gb2_S2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat_gb2_S2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_OV(self):
+        OV_tab = OV()
+        p_mat = OV_tab[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_kP1(self):
+        tab1, _, _ = kPol()
+        p_mat = tab1[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_kP2(self):
+        _, tab2, _ = kPol()
+        p_mat = tab2[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+    @cached_property
+    def X_kP3(self):
+        _, _, tab3 = kPol()
+        p_mat = tab3[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_RSDA(self):
+        tabA, self.A_coeff = RSDA()
+        p_mat = tabA[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+    
+    @cached_property
+    def X_RSDB(self):
+        tabB, self.B_coeff = RSDB()
+        p_mat = tabB[:, [0, 1, 5, 6, 7, 8, 9]]
+        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+
+
+
 
 
     def validate_params_decorator(func):
         def wrapper(self, P, *args, **kwargs):
             if (P is None or len(P) == 0):
                 raise ValueError('You must provide an input power spectrum array.')
-
+            #if (len(P) != len(self.k)):
+            #    raise ValueError('Input k and P arrays must have the same size.')
+            
             if (np.all(P == 0.0)):
                 raise ValueError('Your input power spectrum array is all zeros.')
 
@@ -361,7 +510,8 @@ class FASTPT:
 
         
 
-        if (self.todo_dict['dd_bias']):
+        #if (self.todo_dict['dd_bias']): ##########################<<<<<<<Find a way around todo list here
+        if(True):
             # if dd_bias is in to_do, this function acts like one_loop_dd_bias
 
             # Quadraric bias Legendre components
