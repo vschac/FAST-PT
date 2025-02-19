@@ -104,10 +104,15 @@ def test_validate_params_decorator(fpt):
         fpt.one_loop_dd(None)
     with pytest.raises(ValueError, match=r'You must provide an input power spectrum array'):
         fpt.one_loop_dd([])
+
+    #Test mismatched P and k
+    half_P = P[:len(P)//2]
+    with pytest.raises(ValueError, match=r'Input k and P arrays must have the same size'):
+        fpt.one_loop_dd(half_P)
         
     # Test 3: Zero power spectrum
     k = fpt.k
-    P_zero = np.zeros_like(k)
+    P_zero = np.zeros_like(fpt.k_original)
     with pytest.raises(ValueError, match=r'Your input power spectrum array is all zeros'):
         fpt.one_loop_dd(P_zero)
     

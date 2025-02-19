@@ -464,8 +464,8 @@ class FASTPT:
         def wrapper(self, P, *args, **kwargs):
             if (P is None or len(P) == 0):
                 raise ValueError('You must provide an input power spectrum array.')
-            #if (len(P) != len(self.k)):
-            #    raise ValueError('Input k and P arrays must have the same size.')
+            if (len(P) != len(self.k_original)):
+                raise ValueError(f'Input k and P arrays must have the same size. P:{len(P)}, K:{len(self.k)}')
             
             if (np.all(P == 0.0)):
                 raise ValueError('Your input power spectrum array is all zeros.')
@@ -510,8 +510,7 @@ class FASTPT:
 
         
 
-        #if (self.todo_dict['dd_bias']): ##########################<<<<<<<Find a way around todo list here
-        if(True):
+        if (self.todo_dict['dd_bias']):
             # if dd_bias is in to_do, this function acts like one_loop_dd_bias
 
             # Quadraric bias Legendre components
