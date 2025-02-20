@@ -88,6 +88,8 @@ class FASTPT:
         if (k is None or len(k) == 0):
             raise ValueError('You must provide an input k array.')
         
+        if nu: print("Warning: nu is no longer needed for FAST-PT initialization.")
+        
         self.k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
