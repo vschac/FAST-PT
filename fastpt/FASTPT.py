@@ -110,6 +110,7 @@ class FASTPT:
             if (nu is None):  # give a warning if nu=None that a default value is being used.
                 print('WARNING: No value for nu is given. FASTPT_simple is being called with a default of nu=-2')
                 nu = -2  # this is the default value for P22+P13 and bias calculation
+            print("WARNING: No to_do list is given therefore calling FASTPT_simple. FASTPT_simple will soon be DEPRECATED.")
             self.pt_simple = fastpt_simple.FASTPT(k, nu, param_mat=param_mat, low_extrap=low_extrap,
                                                   high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
             return None
@@ -176,7 +177,7 @@ class FASTPT:
         self.l = np.arange(-self.n_l // 2 + 1, self.n_l // 2 + 1)
         self.tau_l = omega * self.l
 
-        
+        if to_do: print("Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed.")
         self.todo_dict = {
             'one_loop_dd': False, 'one_loop_cleft_dd': False, 
             'dd_bias': False, 'IA_all': False,
