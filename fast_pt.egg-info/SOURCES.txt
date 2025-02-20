@@ -26,6 +26,7 @@ fast_pt.egg-info/requires.txt
 fast_pt.egg-info/top_level.txt
 fastpt/FASTPT.py
 fastpt/FASTPT_simple.py
+fastpt/FPTHandler.py
 fastpt/HT.py
 fastpt/IA.py
 fastpt/IA_ABD.py
@@ -38,7 +39,6 @@ fastpt/J_k.py
 fastpt/J_table.py
 fastpt/OV.py
 fastpt/P_extend.py
-fastpt/Profiler.py
 fastpt/RG_RK4.py
 fastpt/RG_RK4_filt.py
 fastpt/RG_STS.py
@@ -48,6 +48,7 @@ fastpt/RSD_ItypeII.py
 fastpt/Wigner_symbols.py
 fastpt/__init__.py
 fastpt/bias_choice_plot.py
+fastpt/example_refactor.py
 fastpt/fastpt_extr.py
 fastpt/fastpttest.py
 fastpt/filter_Pk.py
@@ -69,4 +70,5 @@ paper/inputs/P_OV_KPol.dat
 paper/inputs/P_RSD_A.dat
 paper/inputs/P_RSD_B.dat
 paper/inputs/P_lin.dat
+tests/test_benchmarks.py
 tests/test_fastpt.py
