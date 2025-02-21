@@ -144,3 +144,8 @@ class FunctionHandler:
     def update_default_params(self, **params):
         self.default_params = self._validate_params(**params)
         print("Default parameters updated.")
+
+    def update_fastpt_instance(self, fastpt_instance: FASTPT):
+        self.fastpt = fastpt_instance
+        self.clear_cache()
+        print("FASTPT instance updated. Cached cleared.")

@@ -204,6 +204,14 @@ def test_update_params(fpt):
     handler.update_default_params(**new_params)
     assert handler.default_params == new_params
 
+def test_update_fpt_instance(fpt):
+    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler.run('one_loop_dd')  # Run to initialize cache
+    new_fpt = FASTPT(fpt.k_original)
+    handler.update_fastpt_instance(new_fpt)
+    assert handler.fastpt == new_fpt
+    assert len(handler.cache) == 0
+
 ################# BENCHMARK TESTS #################
 def test_handler_function_equality(fpt):
     """Test that handler produces identical results to direct FASTPT function calls"""
