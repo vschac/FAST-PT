@@ -62,8 +62,17 @@ def test_IA_der(fpt):
     assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IA_der_benchmark.txt'))
 
 def test_IA_ct(fpt):
-    bmark = np.transpose(fpt.IA_ct(P, C_window=C_window))
-    assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IA_ct_benchmark.txt'))
+    result = np.transpose(fpt.IA_ct(P, C_window=C_window))
+    benchmark = np.loadtxt('tests/benchmarking/P_IA_ct_benchmark.txt')
+    tolerance = 1e-6
+    #assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IA_ct_benchmark.txt'))
+    if not np.allclose(result, benchmark):
+        differences = np.where(np.abs(result - benchmark) > tolerance)
+        print("Differences found at indices:", differences)
+        print("Result values:", result[differences])
+        print("Benchmark values:", benchmark[differences])
+    
+    assert np.allclose(result, benchmark)
 
 def test_IA_ctbias(fpt):
     bmark = np.transpose(fpt.IA_ctbias(P, C_window=C_window))
