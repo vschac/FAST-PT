@@ -193,6 +193,16 @@ def test_all_fastpt_functions_with_run_params(fpt):
         except Exception as e:
             pytest.fail(f"Function {func_name} failed to run with error: {str(e)}")
 
+def test_clear_params(fpt):
+    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler.clear_default_params()
+    assert handler.default_params == {}
+
+def test_update_params(fpt):
+    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    new_params = {'P': P * 2, 'P_window': np.array([0.1, 0.1]), 'C_window': 0.5}
+    handler.update_default_params(**new_params)
+    assert handler.default_params == new_params
 
 ################# BENCHMARK TESTS #################
 def test_handler_function_equality(fpt):

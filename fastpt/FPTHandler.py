@@ -135,3 +135,12 @@ class FunctionHandler:
     def list_available_functions(self):
         """ Returns a list of valid FASTPT functions. """
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("__")])
+
+    
+    def clear_default_params(self):
+        self.default_params = {}
+        print("Cache cleared for all functions.")
+
+    def update_default_params(self, **params):
+        self.default_params = self._validate_params(**params)
+        print("Default parameters updated.")
