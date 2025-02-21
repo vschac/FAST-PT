@@ -59,7 +59,7 @@ class FunctionHandler:
         return tuple(sorted(hashable_params))
 
 
-    def run(self, function_name, *override_args, **override_kwargs):
+    def run(self, function_name, **override_kwargs):
         """ Runs the selected function from FASTPT with validated parameters. """
         if not hasattr(self.fastpt, function_name):
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
@@ -68,14 +68,8 @@ class FunctionHandler:
         required_params = self._get_function_params(func)
 
         if (override_kwargs): self._validate_params(override_kwargs)
-        if (override_args): 
-            self._validate_params(override_args)
-            #Convert positional args to a dict for merging (Python does this already with kwargs)
-            args_dict = dict(zip(required_params[:len(override_args)], override_args))
-            merged_params = {**self.default_params, **args_dict, **override_kwargs}
-        else:
-            merged_params = {**self.default_params, **override_kwargs}
-
+        merged_params = {**self.default_params, **override_kwargs}
+        print("merged: ", merged_params)
         missing_params = [p for p in required_params if p not in merged_params]
         if missing_params:
             raise ValueError(f"Missing required parameters for '{function_name}': {missing_params}. "
@@ -140,11 +134,11 @@ if __name__ == "__main__":
     r2 = handler.run("one_loop_dd")
     print(r2)
 
-    rIA = handler.run("IA_ct")
-    rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different P value so non cached output is used
+    #rIA = handler.run("IA_ct")
+    #rIA2 = handler.run("IA_ct", P=np.array([4, 5, 6])) #Different P value so non cached output is used
     
     #Still backwards compatible
-    print(fpt.IA_ct(P=np.array([4, 5, 6])))
+    #print(fpt.IA_ct(P=np.array([4, 5, 6])))
 
     # try:
     #     r4 = handler.run("RSD_components", P=(1, 3, 6))

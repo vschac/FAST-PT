@@ -15,7 +15,10 @@ class FunctionHandler:
     def _validate_params(self, **params):
         """" Same function as before """
         #Would need to add checks for every possible parameter (f, nu, X, etc)
-        #Unless we want to make it so only P, P_window, C_window passable at init
+        valid_params = ('P', 'P_window', 'C_window', 'f', 'X', 'nu', 'mu_n', 'L', 'h', 'rsdrag')
+        for key in params.keys():
+            if key not in valid_params:
+                raise ValueError(f'Invalid parameter: {key}. Valid parameters are: {valid_params}')
         P = params.get('P', None)
         if (P is None or len(P) == 0):
             raise ValueError('You must provide an input power spectrum array.')
@@ -43,20 +46,28 @@ class FunctionHandler:
 
 
     def _get_function_params(self, func):
-        """ Returns the required parameter names for a given FASTPT function. """
+        """ Returns both required and optional parameter names for a given FASTPT function. """
         signature = inspect.signature(func)
-        # Filter out self, *args and **kwargs from required parameters
-        return [param for param in signature.parameters if signature.parameters[param].default == inspect.Parameter.empty]
-        # return [
-        #     param for param in signature.parameters 
-        #     if (signature.parameters[param].default == inspect.Parameter.empty
-        #         and signature.parameters[param].kind not in (
-        #             inspect.Parameter.VAR_POSITIONAL,
-        #             inspect.Parameter.VAR_KEYWORD
-        #         )
-        #         and param != 'self'  # Exclude the 'self' parameter
-        #     )
-        # ]
+        required_params = []
+        optional_params = []
+    
+        for param_name, param in signature.parameters.items():
+            # Skip self parameter and *args/**kwargs
+            if (param_name == 'self' or 
+                param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
+                continue
+            
+            # Check if parameter is required or optional
+            if param.default == inspect.Parameter.empty:
+                required_params.append(param_name)
+            else:
+                optional_params.append(param_name)
+    
+        return {
+            'required': required_params,
+            'optional': optional_params,
+            'all': required_params + optional_params
+        }
 
 
     def _cache_result(self, function_name, params, result):
@@ -66,45 +77,44 @@ class FunctionHandler:
     
 
     def _convert_to_hashable(self, params):
+        """Convert parameters to hashable format, handling numpy arrays specially"""
         hashable_params = []
         for k, v in params.items():
             if isinstance(v, np.ndarray):
-                hashable_params.append((k, tuple(v.flat)))
+                hashable_params.append((k, hash(v.tobytes())))
             else:
                 hashable_params.append((k, v))
         return tuple(sorted(hashable_params))
 
 
-    def run(self, function_name, *override_args, **override_kwargs):
-        """ Runs the selected function from FASTPT with validated parameters. """
+    def run(self, function_name, **override_kwargs):
+        """Runs the selected function from FASTPT with validated parameters."""
         if not hasattr(self.fastpt, function_name):
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
 
         func = getattr(self.fastpt, function_name)
-        required_params = self._get_function_params(func)
+        params_info = self._get_function_params(func)
 
-        if (override_kwargs): self._validate_params(override_kwargs)
-        if (override_args): 
-            self._validate_params(override_args)
-            #Convert positional args to a dict for merging (Python does this already with kwargs)
-            args_dict = dict(zip(required_params[:len(override_args)], override_args))
-            merged_params = {**self.default_params, **args_dict, **override_kwargs}
-        else:
-            merged_params = {**self.default_params, **override_kwargs}
+        if (override_kwargs): 
+            self._validate_params(**override_kwargs)
+        merged_params = {**self.default_params, **override_kwargs}
 
-        missing_params = [p for p in required_params if p not in merged_params]
+        missing_params = [p for p in params_info['required'] if p not in merged_params]
         if missing_params:
             raise ValueError(f"Missing required parameters for '{function_name}': {missing_params}. "
-                             f"Please recall with the missing parameters.")
+                         f"Please recall with the missing parameters.")
+    
+        # Remove unneeded default params
+        passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
 
-        # Check cache first
-        param_tuple = self._convert_to_hashable(merged_params)
-        if (function_name, param_tuple) in self.cache:
-            print(f"Using cached result for {function_name} with parameters {merged_params}.")
-            return self.cache[(function_name, param_tuple)]
+        # Convert parameters to hashable format for cache key
+        cache_key = self._convert_to_hashable(passing_params)
+        if cache_key in self.cache:
+            print(f"Using cached result for {function_name}")
+            return self.cache[cache_key]
 
-        result = func(**merged_params)
-        self._cache_result(function_name, merged_params, result)
+        result = func(**passing_params)
+        self._cache_result(function_name, passing_params, result)
         return result
     
 

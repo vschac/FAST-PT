@@ -1026,8 +1026,8 @@ class FASTPT:
         def presum(x):
             return psmooth(x) + pw(x) * exp(-x ** 2 * Sigma)
 
-        P_in = presum(k)
-        out_1loop = self.one_loop_dd(P_in, P_window=P_window, C_window=C_window)[0]
+        P = presum(k)
+        out_1loop = self.one_loop_dd(P, P_window=P_window, C_window=C_window)[0]
         # p1loop = interpolate.InterpolatedUnivariateSpline(k,out_1loop) # is this necessary? out_1loop should already be at the correct k spacing
         return psmooth(k) + out_1loop + pw(k) * exp(-k ** 2 * Sigma) * (1 + Sigma * k ** 2)
 
@@ -1046,19 +1046,19 @@ class FASTPT:
     ######################################################################################
     ### Core functions used by top-level functions ###
     
-    def J_k_scalar(self, P_in, X, nu, P_window=None, C_window=None):
+    def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         from numpy.fft import ifft, rfft, irfft
         from scipy.signal import fftconvolve
 
         pf, p, g_m, g_n, two_part_l, h_l = X
 
         if (self.low_extrap is not None):
-            P_in = self.EK.extrap_P_low(P_in)
+            P = self.EK.extrap_P_low(P)
 
         if (self.high_extrap is not None):
-            P_in = self.EK.extrap_P_high(P_in)
+            P = self.EK.extrap_P_high(P)
 
-        P_b = P_in * self.k_old ** (-nu)
+        P_b = P * self.k_old ** (-nu)
 
         if (self.n_pad is not None):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
@@ -1130,7 +1130,7 @@ class FASTPT:
             P_b1 = P * self.k_old ** (-nu1[i])
             P_b2 = P * self.k_old ** (-nu2[i])
 
-            if (P_window != None):
+            if (P_window is not None):
                 # window the input power spectrum, so that at high and low k
                 # the signal smoothly tappers to zero. This make the input
                 # more "like" a periodic signal
