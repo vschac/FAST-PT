@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from fastpt import FASTPT
-from fastpt.FPTHandler import FunctionHandler
+from fastpt.FPTHandler import FPTHandler
 import os
 
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
@@ -9,8 +9,9 @@ P = np.loadtxt(data_path)[:, 1]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
 
-handler = FunctionHandler(FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip']), P=P, P_window=P_window, C_window=C_window)
-print(handler.max_cache_entries)
+handler = FPTHandler(FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip']), P=P, P_window=P_window, C_window=C_window)
+handler.run('one_loop_dd')
+handler.show_cache()
 
 @pytest.fixture
 def fpt():
@@ -21,39 +22,39 @@ def fpt():
 
 ################# FUNCTIONALITY TESTS #################
 def test_init_with_valid_params(fpt):
-    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     assert isinstance(handler.fastpt, FASTPT)
     assert handler.default_params['P'] is not None
     assert handler.default_params['P_window'].all() == P_window.all()
     assert handler.default_params['C_window'] == 0.75
 
 def test_run_without_power_spectrum(fpt):
-    handler = FunctionHandler(fpt) #P is not required at handler init but must be passed at every function call
+    handler = FPTHandler(fpt) #P is not required at handler init but must be passed at every function call
     with pytest.raises(ValueError, match="Missing required parameters for 'one_loop_dd': \['P'\]. Please recall with the missing parameters."):
         handler.run('one_loop_dd')
 
 def test_init_with_zero_power_spectrum(fpt):
     P = np.zeros_like(fpt.k_original)
     with pytest.raises(ValueError, match='Your input power spectrum array is all zeros'):
-        FunctionHandler(fpt, P=P)
+        FPTHandler(fpt, P=P)
 
 def test_init_with_mismatched_arrays(fpt):
     P = np.ones(10)  # Wrong size
     with pytest.raises(ValueError, match='Input k and P arrays must have the same size'):
-        FunctionHandler(fpt, P=P)
+        FPTHandler(fpt, P=P)
 
 def test_invalid_c_window(fpt):
     with pytest.raises(ValueError, match='C_window must be between 0 and 1'):
-        FunctionHandler(fpt, P=P, C_window=1.5)
+        FPTHandler(fpt, P=P, C_window=1.5)
     with pytest.raises(ValueError, match='C_window must be between 0 and 1'):
-        FunctionHandler(fpt, P=P, C_window=-0.5)
+        FPTHandler(fpt, P=P, C_window=-0.5)
 
 def test_invalid_p_window(fpt):
     with pytest.raises(ValueError, match='P_window must be a tuple of two values'):
-        FunctionHandler(fpt, P=P, P_window=np.array([1.0]))
+        FPTHandler(fpt, P=P, P_window=np.array([1.0]))
 
 def test_cache_functionality(fpt):
-    handler = FunctionHandler(fpt, P=P)
+    handler = FPTHandler(fpt, P=P)
     handler.run('one_loop_dd')  # First run
     cache_size_before = len(handler.cache)
     handler.run('one_loop_dd')  # Should use cache
@@ -63,7 +64,7 @@ def test_cache_functionality(fpt):
 
 def test_cache_with_other_params(fpt):
     """Test caching behavior with various parameter combinations"""
-    handler = FunctionHandler(fpt)
+    handler = FPTHandler(fpt)
     
     # Test parameters that should result in different cache entries
     param_combinations = [
@@ -110,17 +111,17 @@ def test_cache_with_other_params(fpt):
     assert len(handler.cache) > cache_size, "Different P values should create new cache entry"
 
 def test_invalid_function_call(fpt):
-    handler = FunctionHandler(fpt, P=P)
+    handler = FPTHandler(fpt, P=P)
     with pytest.raises(ValueError, match="Function 'nonexistent_function' not found"):
         handler.run('nonexistent_function')
 
 def test_missing_required_params(fpt):
-    handler = FunctionHandler(fpt, P=P)
+    handler = FPTHandler(fpt, P=P)
     with pytest.raises(ValueError, match="Missing required parameters"):
         handler.run('RSD_components')
 
 def test_clear_specific_cache(fpt):
-    handler = FunctionHandler(fpt, P=P)
+    handler = FPTHandler(fpt, P=P)
     handler.run('one_loop_dd')
     handler.run('one_loop_dd_bias')
     handler.clear_cache('one_loop_dd')
@@ -141,7 +142,7 @@ def test_all_fastpt_functions_with_handler_params(fpt):
         'h': 0.67,
         'rsdrag': 135
     }
-    handler = FunctionHandler(fpt, **default_params)
+    handler = FPTHandler(fpt, **default_params)
     
     # Dictionary mapping functions to any additional required parameters
     func_names = (
@@ -163,7 +164,7 @@ def test_all_fastpt_functions_with_handler_params(fpt):
 
 def test_all_fastpt_functions_with_run_params(fpt):
     """Test FASTPT functions with parameters passed during run call"""
-    handler = FunctionHandler(fpt)
+    handler = FPTHandler(fpt)
     
     # Dictionary mapping functions to their required run-time parameters
     function_params = {
@@ -197,18 +198,18 @@ def test_all_fastpt_functions_with_run_params(fpt):
             pytest.fail(f"Function {func_name} failed to run with error: {str(e)}")
 
 def test_clear_params(fpt):
-    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     handler.clear_default_params()
     assert handler.default_params == {}
 
 def test_update_params(fpt):
-    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     new_params = {'P': P * 2, 'P_window': np.array([0.1, 0.1]), 'C_window': 0.5}
     handler.update_default_params(**new_params)
     assert handler.default_params == new_params
 
 def test_update_fpt_instance(fpt):
-    handler = FunctionHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     handler.run('one_loop_dd')  # Run to initialize cache
     new_fpt = FASTPT(fpt.k_original)
     handler.update_fastpt_instance(new_fpt)
@@ -216,7 +217,7 @@ def test_update_fpt_instance(fpt):
     assert len(handler.cache) == 0
 
 def test_max_cache_entries(fpt):
-    handler = FunctionHandler(fpt, max_cache_entries=5, P=P, P_window=P_window, C_window=C_window)
+    handler = FPTHandler(fpt, max_cache_entries=5, P=P, P_window=P_window, C_window=C_window)
     for i in range(10):
         handler.run('one_loop_dd')
     assert len(handler.cache) <= 5
@@ -224,7 +225,7 @@ def test_max_cache_entries(fpt):
 ################# BENCHMARK TESTS #################
 def test_handler_function_equality(fpt):
     """Test that handler produces identical results to direct FASTPT function calls"""
-    handler = FunctionHandler(fpt)
+    handler = FPTHandler(fpt)
     
     function_params = {
         'one_loop_dd': {'P': P, 'P_window': P_window, 'C_window': C_window},

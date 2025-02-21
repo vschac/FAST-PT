@@ -90,8 +90,8 @@ def test_skip_todo(fpt):
 
 
 ####################PARAMETER VALIDATION TESTS####################
-def test_validate_params_decorator(fpt):
-    """Test the validate_params_decorator function with various inputs
+def test_validate_params(fpt):
+    """Test the validate_params function with various inputs
         (Using one_loop_dd as a sample method though all decorating functions
         will follow the same validation behavior)"""
     P_window = np.array([0.2, 0.2])

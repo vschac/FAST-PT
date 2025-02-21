@@ -463,37 +463,38 @@ class FASTPT:
 
 
 
-    def validate_params_decorator(func):
-        def wrapper(self, P, *args, **kwargs):
-            if (P is None or len(P) == 0):
-                raise ValueError('You must provide an input power spectrum array.')
-            if (len(P) != len(self.k_original)):
-                raise ValueError(f'Input k and P arrays must have the same size. P:{len(P)}, K:{len(self.k)}')
+    def validate_params(self, P, **kwargs):
+        if (P is None):
+            raise ValueError('You must provide an input power spectrum array.')
+        if (len(P) == 0):
+            raise ValueError('You must provide an input power spectrum array.')
+        if (len(P) != len(self.k_original)):
+            raise ValueError(f'Input k and P arrays must have the same size. P:{len(P)}, K:{len(self.k)}')
             
-            if (np.all(P == 0.0)):
-                raise ValueError('Your input power spectrum array is all zeros.')
+        if (np.all(P == 0.0)):
+            raise ValueError('Your input power spectrum array is all zeros.')
 
-            P_window = kwargs.get('P_window', np.array([]))
-            C_window = kwargs.get('C_window', None)
+        P_window = kwargs.get('P_window', np.array([]))
+        C_window = kwargs.get('C_window', None)
 
-            if P_window is not None and P_window.size > 0:
-                maxP = (log(self.k[-1]) - log(self.k[0])) / 2
-                if len(P_window) != 2:
-                    raise ValueError(f'P_window must be a tuple of two values.')
-                if P_window[0] > maxP or P_window[1] > maxP:
-                    raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k[-1]) - log(self.k[0])) / 2} to avoid over tapering.')
+        if P_window is not None and P_window.size > 0:
+            maxP = (log(self.k[-1]) - log(self.k[0])) / 2
+            if len(P_window) != 2:
+                raise ValueError(f'P_window must be a tuple of two values.')
+            if P_window[0] > maxP or P_window[1] > maxP:
+                raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k[-1]) - log(self.k[0])) / 2} to avoid over tapering.')
 
-            if C_window is not None:
-                if C_window < 0 or C_window > 1:
-                    raise ValueError('C_window must be between 0 and 1.')
+        if C_window is not None:
+            if C_window < 0 or C_window > 1:
+                raise ValueError('C_window must be between 0 and 1.')
 
-            return func(self, P, *args, **kwargs)
-        return wrapper
+        return None
 
 
     ### Top-level functions to output final quantities ###
     
     def one_loop_dd(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         nu = -2
 
         # routine for one-loop spt calculations
@@ -554,6 +555,7 @@ class FASTPT:
 
     
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         nu = -2
 
         # routine for one-loop spt calculations
@@ -601,6 +603,7 @@ class FASTPT:
 
     
     def one_loop_dd_bias_b3nl(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         nu = -2
 
         # routine for one-loop spt calculations
@@ -644,6 +647,7 @@ class FASTPT:
 
     
     def one_loop_dd_bias_lpt_NL(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         nu_arr = -2
 
         # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
@@ -695,7 +699,7 @@ class FASTPT:
 
     
     def cleft_Q_R(self, P, P_window=None, C_window=None):
-
+        self.validate_params(P, P_window=P_window, C_window=C_window)
 
 
         nu_arr = -2
@@ -732,7 +736,7 @@ class FASTPT:
 
     
     def IA_tt(self, P, P_window=None, C_window=None):
-
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_E, A = self.J_k_tensor(P, self.X_IA_E, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_E = self.EK.PK_original(P_E)
@@ -746,7 +750,7 @@ class FASTPT:
 
     
     def IA_mix(self, P, P_window=None, C_window=None):
-
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_A, A = self.J_k_tensor(P, self.X_IA_A, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_A = self.EK.PK_original(P_A)
@@ -767,7 +771,7 @@ class FASTPT:
 
     
     def IA_ta(self, P, P_window=None, C_window=None):
-
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_deltaE1, A = self.J_k_tensor(P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_deltaE1 = self.EK.PK_original(P_deltaE1)
@@ -788,11 +792,13 @@ class FASTPT:
 
     
     def IA_der(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_der = (self.k_original**2)*P
         return P_der
     
     
     def IA_ct(self,P,P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_feG2 = self.EK.PK_original(P_feG2)
@@ -836,6 +842,7 @@ class FASTPT:
     
     
     def IA_ctbias(self,P,P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_F2 = self.EK.PK_original(P_F2)
@@ -859,6 +866,7 @@ class FASTPT:
 
     
     def IA_gb2(self,P,P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_fe = self.EK.PK_original(P_fe)
@@ -876,6 +884,7 @@ class FASTPT:
     
     
     def IA_d2(self,P,P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_fe = self.EK.PK_original(P_fe)
@@ -893,6 +902,7 @@ class FASTPT:
     
     
     def IA_s2(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P_S2F2 = self.EK.PK_original(P_S2F2)
@@ -913,6 +923,7 @@ class FASTPT:
 
     
     def OV(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P, A = self.J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P = self.EK.PK_original(P)
@@ -920,6 +931,7 @@ class FASTPT:
 
     
     def kPol(self, P, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         P1, A = self.J_k_tensor(P, self.X_kP1, P_window=P_window, C_window=C_window)
         if (self.extrap):
             _, P1 = self.EK.PK_original(P1)
@@ -935,7 +947,7 @@ class FASTPT:
 
 
     def RSD_components(self, P, f, P_window=None, C_window=None):
-
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         _, A = self.J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
 
         A1 = np.dot(self.A_coeff[:, 0], A) + f * np.dot(self.A_coeff[:, 1], A) + f ** 2 * np.dot(self.A_coeff[:, 2], A)
@@ -966,7 +978,7 @@ class FASTPT:
 
     
     def RSD_ABsum_components(self, P, f, P_window=None, C_window=None):
-
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = self.RSD_components(P, f, P_window, C_window)
         ABsum_mu2 = self.k_original * f * (A1 + P_Ap1) + (f * self.k_original) ** 2 * B0
         ABsum_mu4 = self.k_original * f * (A3 + P_Ap3) + (f * self.k_original) ** 2 * B2
@@ -977,12 +989,14 @@ class FASTPT:
 
     
     def RSD_ABsum_mu(self, P, f, mu_n, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         ABsum_mu2, ABsum_mu4, ABsum_mu6, ABsum_mu8 = self.RSD_ABsum_components(P, f, P_window, C_window)
         ABsum = ABsum_mu2 * mu_n ** 2 + ABsum_mu4 * mu_n ** 4 + ABsum_mu6 * mu_n ** 6 + ABsum_mu8 * mu_n ** 8
         return ABsum
 
     
     def IRres(self, P, L=0.2, h=0.67, rsdrag=135, P_window=None, C_window=None):
+        self.validate_params(P, P_window=P_window, C_window=C_window)
         # based on script by M. Ivanov. See arxiv:1605.02149, eq 7.4
 
         # put this function in the typical fast-pt format, with minimal additional function calls.
