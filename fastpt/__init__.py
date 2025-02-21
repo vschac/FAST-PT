@@ -35,5 +35,6 @@
 
 from .info import __version__
 from .FASTPT import *
+from .FPTHandler import *
 
 from . import HT

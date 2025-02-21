@@ -4,7 +4,7 @@ from pprint import pprint
 import inspect
 from fastpt import FASTPT
 
-class FunctionHandler:
+class FPTHandler:
     def __init__(self, fastpt_instance: FASTPT, max_cache_entries=500, **params):
         self.fastpt = fastpt_instance
         if not params or params is None: print("Warning: P is a required parameter for all functions, it will need to be passed on the run call.")
