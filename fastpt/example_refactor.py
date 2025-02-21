@@ -117,7 +117,6 @@ if __name__ == "__main__":
         - Passing any parameters on the run call will override any stored parameters,
             not passing any required parameters will default to what is stored
         - TODO: Add a verbose flag and check how it would merge/conflict with FPT verbose
-        - TODO: Add functionality to remove default params and update default params
         - ?TODO?: Add functionality to update handler's instance of FAST-PT, currently it is pointing to an instance 
                 so it would update automatically without needing a new object created. 
                 (Should cache be deleted since there's a new k or other params)

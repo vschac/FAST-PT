@@ -9,6 +9,9 @@ P = np.loadtxt(data_path)[:, 1]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
 
+handler = FunctionHandler(FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip']), P=P, P_window=P_window, C_window=C_window)
+print(handler.max_cache_entries)
+
 @pytest.fixture
 def fpt():
     k = np.loadtxt(data_path)[:, 0]
@@ -211,6 +214,12 @@ def test_update_fpt_instance(fpt):
     handler.update_fastpt_instance(new_fpt)
     assert handler.fastpt == new_fpt
     assert len(handler.cache) == 0
+
+def test_max_cache_entries(fpt):
+    handler = FunctionHandler(fpt, max_cache_entries=5, P=P, P_window=P_window, C_window=C_window)
+    for i in range(10):
+        handler.run('one_loop_dd')
+    assert len(handler.cache) <= 5
 
 ################# BENCHMARK TESTS #################
 def test_handler_function_equality(fpt):

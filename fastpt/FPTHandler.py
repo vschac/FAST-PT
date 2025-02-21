@@ -5,11 +5,12 @@ import inspect
 from fastpt import FASTPT
 
 class FunctionHandler:
-    def __init__(self, fastpt_instance: FASTPT, **params):
+    def __init__(self, fastpt_instance: FASTPT, max_cache_entries=500, **params):
         self.fastpt = fastpt_instance
         if not params or params is None: print("Warning: P is a required parameter for all functions, it will need to be passed on the run call.")
         self.default_params = self._validate_params(**params) if params else {}
         self.cache = {}
+        self.max_cache_entries = max_cache_entries
  
 
     def _validate_params(self, **params):
@@ -72,6 +73,9 @@ class FunctionHandler:
 
     def _cache_result(self, function_name, params, result):
         """ Stores results uniquely by function name and its specific parameters. """
+        if len(self.cache) >= self.max_cache_entries:
+            print("Max cache size reached. Removing oldest entry.")
+            self.cache.pop(next(iter(self.cache)))
         hashable_params = self._convert_to_hashable(params)
         self.cache[(function_name, hashable_params)] = result
     
