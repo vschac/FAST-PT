@@ -90,6 +90,7 @@ class FASTPT:
         
         if nu: print("Warning: nu is no longer needed for FAST-PT initialization.")
         
+        self.cache = {} #Used for storing JK tensor and scalar values
         self.k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
@@ -489,6 +490,13 @@ class FASTPT:
                 raise ValueError('C_window must be between 0 and 1.')
 
         return None
+    
+    ############## ABSTRACTED BEHAVIOR METHODS ##############
+    def _apply_extrapolation(self, *args):
+        """ Applies extrapolation to multiple variables at once """
+        if not self.extrap:
+            return args if len(args) > 1 else args[0]  # Avoid returning a tuple for a single value
+        return [self.EK.PK_original(var)[1] for var in args] if len(args) > 1 else self.EK.PK_original(args[0])[1]
 
 
     ### Top-level functions to output final quantities ###
@@ -535,20 +543,11 @@ class FASTPT:
                                                                                                                           :])
             Pd2s2 = 2. * (2. / 3 * mat[1, :])
             Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
-            if (self.extrap):
-                _, Ps = self.EK.PK_original(Ps)
-                _, P_1loop = self.EK.PK_original(P_1loop)
-                _, Pd1d2 = self.EK.PK_original(Pd1d2)
-                _, Pd2d2 = self.EK.PK_original(Pd2d2)
-                _, Pd1s2 = self.EK.PK_original(Pd1s2)
-                _, Pd2s2 = self.EK.PK_original(Pd2s2)
-                _, Ps2s2 = self.EK.PK_original(Ps2s2)
+            Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2 = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2)
 
             return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4
 
-        if (self.extrap):
-            _, Ps = self.EK.PK_original(Ps)
-            _, P_1loop = self.EK.PK_original(P_1loop)
+        P_1loop, Ps = self._apply_extrapolation(P_1loop, Ps)
 
         return P_1loop, Ps
 
@@ -589,14 +588,7 @@ class FASTPT:
         Pd2s2 = 2. * (2. / 3 * mat[1, :])
         Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
 
-        if (self.extrap):
-            _, Ps = self.EK.PK_original(Ps)
-            _, P_1loop = self.EK.PK_original(P_1loop)
-            _, Pd1d2 = self.EK.PK_original(Pd1d2)
-            _, Pd2d2 = self.EK.PK_original(Pd2d2)
-            _, Pd1s2 = self.EK.PK_original(Pd1s2)
-            _, Pd2s2 = self.EK.PK_original(Pd2s2)
-            _, Ps2s2 = self.EK.PK_original(Ps2s2)
+        Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2 = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2)
 
         #			return P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, Ps #original
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4  # new,for consistency
@@ -632,15 +624,7 @@ class FASTPT:
         Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
         sig3nl = Y1_reg_NL(self.k_old, Ps)
 
-        if (self.extrap):
-            _, Ps = self.EK.PK_original(Ps)
-            _, P_1loop = self.EK.PK_original(P_1loop)
-            _, Pd1d2 = self.EK.PK_original(Pd1d2)
-            _, Pd2d2 = self.EK.PK_original(Pd2d2)
-            _, Pd1s2 = self.EK.PK_original(Pd1s2)
-            _, Pd2s2 = self.EK.PK_original(Pd2s2)
-            _, Ps2s2 = self.EK.PK_original(Ps2s2)
-            _, sig3nl = self.EK.PK_original(sig3nl)
+        Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig3nl = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig3nl)
 
         #			return P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, Ps #original
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl  # new,for consistency
@@ -678,22 +662,8 @@ class FASTPT:
         Pb2L = X4
         Pb2L_2 = X5
 
-        if (self.extrap):
-            _, Ps = self.EK.PK_original(Ps)
-            # _, P_1loop=self.EK.PK_original(P_1loop)
-
-            _, Pb1L = self.EK.PK_original(Pb1L)
-            _, Pb1L_2 = self.EK.PK_original(Pb1L_2)
-            _, Pb1L_b2L = self.EK.PK_original(Pb1L_b2L)
-            _, Pb2L = self.EK.PK_original(Pb2L)
-            _, Pb2L_2 = self.EK.PK_original(Pb2L_2)
-            _, X1 = self.EK.PK_original(X1)
-            _, X2 = self.EK.PK_original(X2)
-            _, X3 = self.EK.PK_original(X3)
-            _, X4 = self.EK.PK_original(X4)
-            _, X5 = self.EK.PK_original(X5)
-            _, Y1 = self.EK.PK_original(Y1)
-            _, Y2 = self.EK.PK_original(Y2)
+        Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2 = self._apply_extrapolation(Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2)
+        X1, X2, X3, X4, X5, Y1, Y2 = self._apply_extrapolation(X1, X2, X3, X4, X5, Y1, Y2)
 
         return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
 
@@ -722,15 +692,7 @@ class FASTPT:
 
         # ipdb.set_trace()
 
-        if (self.extrap):
-            _, Ps_ep = self.EK.PK_original(Ps)
-            _, FQ1_ep = self.EK.PK_original(FQ1)
-            _, FQ2_ep = self.EK.PK_original(FQ2)
-            _, FQ5_ep = self.EK.PK_original(FQ5)
-            _, FQ8_ep = self.EK.PK_original(FQ8)
-            _, FQs2_ep = self.EK.PK_original(FQs2)
-            _, FR1_ep = self.EK.PK_original(FR1)
-            _, FR2_ep = self.EK.PK_original(FR2)
+        Ps_ep, FQ1_ep, FQ2_ep, FQ5_ep, FQ8_ep, FQs2_ep, FR1_ep, FR2_ep = self._apply_extrapolation(Ps, FQ1, FQ2, FQ5, FQ8, FQs2, FR1, FR2)
 
         return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_old,FR1,FR2
 
@@ -738,12 +700,8 @@ class FASTPT:
     def IA_tt(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_E, A = self.J_k_tensor(P, self.X_IA_E, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_E = self.EK.PK_original(P_E)
-
         P_B, A = self.J_k_tensor(P, self.X_IA_B, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_B = self.EK.PK_original(P_B)
+        P_B, P_E = self._apply_extrapolation(P_B, P_E)
         return 2. * P_E, 2. * P_B
 
     ## eq 21 EE; eq 21 BB
@@ -752,18 +710,13 @@ class FASTPT:
     def IA_mix(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_A, A = self.J_k_tensor(P, self.X_IA_A, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_A = self.EK.PK_original(P_A)
+        P_A = self._apply_extrapolation(P_A)
 
         P_Btype2 = P_IA_B(self.k_original, P)
 
         P_DEE, A = self.J_k_tensor(P, self.X_IA_DEE, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_DEE = self.EK.PK_original(P_DEE)
-
         P_DBB, A = self.J_k_tensor(P, self.X_IA_DBB, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_DBB = self.EK.PK_original(P_DBB)
+        P_DBB, P_DEE = self._apply_extrapolation(P_DBB, P_DEE)
 
         return 2 * P_A, 4 * P_Btype2, 2 * P_DEE, 2 * P_DBB
 
@@ -773,18 +726,13 @@ class FASTPT:
     def IA_ta(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_deltaE1, A = self.J_k_tensor(P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_deltaE1 = self.EK.PK_original(P_deltaE1)
+        P_deltaE1 = self._apply_extrapolation(P_deltaE1)
 
         P_deltaE2 = P_IA_deltaE2(self.k_original, P)
 
         P_0E0E, A = self.J_k_tensor(P, self.X_IA_0E0E, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_0E0E = self.EK.PK_original(P_0E0E)
-
         P_0B0B, A = self.J_k_tensor(P, self.X_IA_0B0B, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_0B0B = self.EK.PK_original(P_0B0B)
+        P_0B0B, P_0E0E = self._apply_extrapolation(P_0B0B, P_0E0E)
 
         return 2. * P_deltaE1, 2. * P_deltaE2, P_0E0E, P_0B0B
 
@@ -800,20 +748,11 @@ class FASTPT:
     def IA_ct(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_feG2 = self.EK.PK_original(P_feG2)
         P_heG2, A = self.J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_heG2 = self.EK.PK_original(P_heG2)
         P_F2F2, A = self.J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2F2 = self.EK.PK_original(P_F2F2)
         P_G2G2, A = self.J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_G2G2 = self.EK.PK_original(P_G2G2)
         P_F2G2, A = self.J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2G2 = self.EK.PK_original(P_F2G2)
+        P_feG2, P_heG2, P_F2F2, P_G2G2, P_F2G2 = self._apply_extrapolation(P_feG2, P_heG2, P_F2F2, P_G2G2, P_F2G2)
         P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
         P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
         P_13F = P_IA_13F(self.k_original, P)
@@ -830,9 +769,7 @@ class FASTPT:
         PsG, matG = self.J_k_scalar(P, self.X_sptG, nu, P_window=P_window, C_window=C_window)
         P22G_mat = np.multiply(one_loop_coefG, np.transpose(matG))
         P_22G = np.sum(P22G_mat, 1)
-        if (self.extrap):
-            _, P_22F=self.EK.PK_original(P_22F)
-            _, P_22G=self.EK.PK_original(P_22G)
+        P_22F, P_22G = self._apply_extrapolation(P_22F, P_22G)
         P_tEtE = P_F2F2+P_G2G2-2*P_F2G2
         P_0tE = P_22G-P_22F+P_13G-P_13F
         P_0EtE = np.subtract(P_feG2,(1/2)*P_A00E)
@@ -844,21 +781,15 @@ class FASTPT:
     def IA_ctbias(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2 = self.EK.PK_original(P_F2)
         P_G2, A = self.J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_G2 = self.EK.PK_original(P_G2)
+        P_F2, P_G2 = self._apply_extrapolation(P_F2, P_G2)
         P_d2tE = P_G2-P_F2
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2F2 = self.EK.PK_original(P_S2F2)
 
         #P_13S2F2 = P_IA_13S2F2(self.k_original, P)
 
         P_S2G2, A = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2G2 = self.EK.PK_original(P_S2G2)
+        P_S2F2, P_S2G2 = self._apply_extrapolation(P_S2F2, P_S2G2)
         P_s2tE=P_S2G2-P_S2F2
 
         return 2*P_d2tE,2*P_s2tE
@@ -868,14 +799,9 @@ class FASTPT:
     def IA_gb2(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_fe = self.EK.PK_original(P_fe)
         P_he, A = self.J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_he = self.EK.PK_original(P_he)
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2 = self.EK.PK_original(P_F2)
+        P_fe, P_he, P_F2 = self._apply_extrapolation(P_fe, P_he, P_F2)
         sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
         P_gb2sij = P_F2
         P_gb2sij2 = P_he
@@ -886,14 +812,9 @@ class FASTPT:
     def IA_d2(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_fe, A = self.J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_fe = self.EK.PK_original(P_fe)
         P_he, A = self.J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_he = self.EK.PK_original(P_he)
         P_F2, A = self.J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_F2 = self.EK.PK_original(P_F2)
+        P_fe, P_he, P_F2 = self._apply_extrapolation(P_fe, P_he, P_F2)
         sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
         P_d2E = P_F2
         P_d20E = P_he
@@ -904,17 +825,11 @@ class FASTPT:
     def IA_s2(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_S2F2, A = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2F2 = self.EK.PK_original(P_S2F2)
-
-        P_13S2F2 = P_IA_13S2F2(self.k_original, P)
+        #P_13S2F2 = P_IA_13S2F2(self.k_original, P)
 
         P_S2fe, A = self.J_k_tensor(P, self.X_IA_gb2_S2fe, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2fe = self.EK.PK_original(P_S2fe)
         P_S2he, A = self.J_k_tensor(P, self.X_IA_gb2_S2he, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P_S2he = self.EK.PK_original(P_S2he)
+        P_S2F2, P_S2fe, P_S2he = self._apply_extrapolation(P_S2F2, P_S2fe, P_S2he)
         #THIS LINE RIGHT HERE
         P_s2E=P_S2F2#+2*P_13S2F2
         P_s20E=P_S2fe
@@ -925,24 +840,16 @@ class FASTPT:
     def OV(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P, A = self.J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P = self.EK.PK_original(P)
+        P = self._apply_extrapolation(P)
         return P * (2 * pi) ** 2
 
     
     def kPol(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P1, A = self.J_k_tensor(P, self.X_kP1, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P1 = self.EK.PK_original(P1)
-
         P2, A = self.J_k_tensor(P, self.X_kP2, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P2 = self.EK.PK_original(P2)
-
         P3, A = self.J_k_tensor(P, self.X_kP3, P_window=P_window, C_window=C_window)
-        if (self.extrap):
-            _, P3 = self.EK.PK_original(P3)
+        P1, P2, P3 = self._apply_extrapolation(P1, P2, P3)
         return P1 / (80 * pi ** 2), P2 / (160 * pi ** 2), P3 / (80 * pi ** 2)
 
 
@@ -961,14 +868,7 @@ class FASTPT:
         B4 = np.dot(self.B_coeff[:, 6], B) + f * np.dot(self.B_coeff[:, 7], B) + f ** 2 * np.dot(self.B_coeff[:, 8], B)
         B6 = np.dot(self.B_coeff[:, 9], B) + f * np.dot(self.B_coeff[:, 10], B) + f ** 2 * np.dot(self.B_coeff[:, 11], B)
 
-        if (self.extrap):
-            _, A1 = self.EK.PK_original(A1)
-            _, A3 = self.EK.PK_original(A3)
-            _, A5 = self.EK.PK_original(A5)
-            _, B0 = self.EK.PK_original(B0)
-            _, B2 = self.EK.PK_original(B2)
-            _, B4 = self.EK.PK_original(B4)
-            _, B6 = self.EK.PK_original(B6)
+        A1, A3, A5, B0, B2, B4, B6 = self._apply_extrapolation(A1, A3, A5, B0, B2, B4, B6)
 
         P_Ap1 = RSD_ItypeII.P_Ap1(self.k_original, P, f)
         P_Ap3 = RSD_ItypeII.P_Ap3(self.k_original, P, f)
@@ -1203,6 +1103,31 @@ class FASTPT:
             P_fin = P_fin[self.id_pad]
 
         return P_fin, A_out
+
+
+
+def _compute_J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
+    """ Helper function to compute J_k_scalar with caching """
+    cache_key = ("J_k_scalar", hash(P.tobytes()), hash(X), nu, P_window, C_window)
+    if cache_key in self.cache:
+        return self.cache[cache_key]
+    
+    result = self.J_k_scalar(P, X, nu, P_window, C_window)
+    self.cache[cache_key] = result
+    return result
+
+def _compute_J_k_tensor(self, P, X, P_window=None, C_window=None):
+    """ Helper function to compute J_k_tensor with caching """
+    cache_key = ("J_k_tensor", hash(P.tobytes()), hash(X), P_window, C_window)
+    if cache_key in self.cache:
+        return self.cache[cache_key]
+    
+    result = self.J_k_tensor(P, X, P_window, C_window)
+    self.cache[cache_key] = result
+    return result
+
+
+
 
 
 ### Example script ###
