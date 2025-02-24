@@ -497,6 +497,70 @@ class FASTPT:
         if not self.extrap:
             return args if len(args) > 1 else args[0]  # Avoid returning a tuple for a single value
         return [self.EK.PK_original(var)[1] for var in args] if len(args) > 1 else self.EK.PK_original(args[0])[1]
+    
+    def _hash_arrays(self, arrays):
+        """Helper function to create a hash from multiple numpy arrays or scalars"""
+        if isinstance(arrays, tuple):
+            return tuple(hash(arr.tobytes()) if isinstance(arr, np.ndarray) else hash(arr) 
+                        for arr in arrays)
+        return hash(arrays.tobytes()) if isinstance(arrays, np.ndarray) else hash(arrays)
+
+
+    def _compute_one_loop_terms(self, P, X, P_window=None, C_window=None):
+        """ Computes the one-loop power spectrum terms """
+        nu = -2
+        one_loop_coef = np.array([2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 
+                                2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
+    
+        Ps, mat = self._compute_J_k_scalar(P, X, nu, P_window=P_window, C_window=C_window)
+    
+        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
+        P22 = np.sum(P22_mat, 1)
+        P13 = P_13_reg(self.k_old, Ps)
+        P_1loop = P22 + P13
+
+        return P_1loop, Ps, mat
+
+    def _compute_J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
+        """Helper function to compute J_k_scalar with caching"""
+        # Create hashable versions of arrays and tuples
+        p_hash = self._hash_arrays(P)
+        x_hash = self._hash_arrays(X)
+    
+        if P_window is not None:
+            p_window_hash = self._hash_arrays(P_window)
+        else:
+            p_window_hash = None
+        
+        cache_key = ("J_k_scalar", p_hash, x_hash, nu, p_window_hash, C_window)
+    
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        result = self.J_k_scalar(P, X, nu, P_window, C_window)
+        self.cache[cache_key] = result
+        return result
+
+    def _compute_J_k_tensor(self, P, X, P_window=None, C_window=None):
+        """Helper function to compute J_k_tensor with caching"""
+        # Create hashable versions of arrays and tuples
+        p_hash = self._hash_arrays(P)
+        x_hash = self._hash_arrays(X)
+    
+        if P_window is not None:
+            p_window_hash = self._hash_arrays(P_window)
+        else:
+            p_window_hash = None
+        
+        cache_key = ("J_k_tensor", p_hash, x_hash, p_window_hash, C_window)
+    
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        result = self.J_k_tensor(P, X, P_window, C_window)
+        self.cache[cache_key] = result
+        return result
+
 
 
     ### Top-level functions to output final quantities ###
@@ -507,18 +571,9 @@ class FASTPT:
 
         # routine for one-loop spt calculations
 
-        # coefficents for one_loop calculation
-        one_loop_coef = np.array(
-            [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
-
         # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
         # get the matrix for each J_k component
-        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
-
-        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
-        P22 = np.sum(P22_mat, 1)
-        P13 = P_13_reg(self.k_old, Ps)
-        P_1loop = P22 + P13
+        P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
 
         
 
@@ -534,7 +589,6 @@ class FASTPT:
             sig4 = np.trapz(self.k_old ** 3 * Ps ** 2, x=np.log(self.k_old)) / (2. * pi ** 2)
             self.sig4 = sig4
             # sig4 much more accurate when calculated in logk, especially for low-res input.
-
             Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
             Pd2d2 = 2. * (mat[0, :])
             Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
@@ -559,18 +613,9 @@ class FASTPT:
 
         # routine for one-loop spt calculations
 
-        # coefficents for one_loop calculation
-        one_loop_coef = np.array(
-            [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
-
         # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
         # get the matrix for each J_k component
-        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
-
-        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
-        P22 = np.sum(P22_mat, 1)
-        P13 = P_13_reg(self.k_old, Ps)
-        P_1loop = P22 + P13
+        P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
 
         # Quadraric bias Legendre components
         # See eg section B of Baldauf+ 2012 (arxiv: 1201.4827)
@@ -600,18 +645,9 @@ class FASTPT:
 
         # routine for one-loop spt calculations
 
-        # coefficents for one_loop calculation
-        one_loop_coef = np.array(
-            [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
-
         # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
         # get the matrix for each J_k component
-        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
-
-        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
-        P22 = np.sum(P22_mat, 1)
-        P13 = P_13_reg(self.k_old, Ps)
-        P_1loop = P22 + P13
+        P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
 
         sig4 = np.trapz(self.k_old ** 3 * Ps ** 2, x=np.log(self.k_old)) / (2. * pi ** 2)
         Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
@@ -636,7 +672,7 @@ class FASTPT:
 
         # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
         # get the matrix for each J_k component
-        Ps, mat = self.J_k_scalar(P, self.X_lpt, nu_arr, P_window=P_window, C_window=C_window)
+        _, Ps, mat = self._compute_one_loop_terms(P, self.X_lpt, P_window=P_window, C_window=C_window)
 
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
@@ -1104,27 +1140,6 @@ class FASTPT:
 
         return P_fin, A_out
 
-
-
-def _compute_J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
-    """ Helper function to compute J_k_scalar with caching """
-    cache_key = ("J_k_scalar", hash(P.tobytes()), hash(X), nu, P_window, C_window)
-    if cache_key in self.cache:
-        return self.cache[cache_key]
-    
-    result = self.J_k_scalar(P, X, nu, P_window, C_window)
-    self.cache[cache_key] = result
-    return result
-
-def _compute_J_k_tensor(self, P, X, P_window=None, C_window=None):
-    """ Helper function to compute J_k_tensor with caching """
-    cache_key = ("J_k_tensor", hash(P.tobytes()), hash(X), P_window, C_window)
-    if cache_key in self.cache:
-        return self.cache[cache_key]
-    
-    result = self.J_k_tensor(P, X, P_window, C_window)
-    self.cache[cache_key] = result
-    return result
 
 
 
