@@ -891,13 +891,13 @@ class FASTPT:
 
     def RSD_components(self, P, f, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        _, A = self.J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
+        _, A = self._compute_J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
 
         A1 = np.dot(self.A_coeff[:, 0], A) + f * np.dot(self.A_coeff[:, 1], A) + f ** 2 * np.dot(self.A_coeff[:, 2], A)
         A3 = np.dot(self.A_coeff[:, 3], A) + f * np.dot(self.A_coeff[:, 4], A) + f ** 2 * np.dot(self.A_coeff[:, 5], A)
         A5 = np.dot(self.A_coeff[:, 6], A) + f * np.dot(self.A_coeff[:, 7], A) + f ** 2 * np.dot(self.A_coeff[:, 8], A)
 
-        _, B = self.J_k_tensor(P, self.X_RSDB, P_window=P_window, C_window=C_window)
+        _, B = self._compute_J_k_tensor(P, self.X_RSDB, P_window=P_window, C_window=C_window)
 
         B0 = np.dot(self.B_coeff[:, 0], B) + f * np.dot(self.B_coeff[:, 1], B) + f ** 2 * np.dot(self.B_coeff[:, 2], B)
         B2 = np.dot(self.B_coeff[:, 3], B) + f * np.dot(self.B_coeff[:, 4], B) + f ** 2 * np.dot(self.B_coeff[:, 5], B)
