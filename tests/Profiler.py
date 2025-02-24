@@ -17,7 +17,7 @@ def run_benchmark(fpt, function_name, params, n_runs=5):
     
     for _ in range(n_runs):
         t0 = time()
-        method(**params)  # Unpack parameters correctly
+        method(**params)
         t1 = time()
         times.append(t1 - t0)
     
@@ -49,7 +49,6 @@ def numpy_to_python(obj):
 
 
 def main():
-    # Load test data
     data_path = os.path.join(os.path.dirname(__file__), '..', 'examples', 'Pk_test.dat')
     d = np.loadtxt(data_path)
     k = d[:, 0]
@@ -59,7 +58,6 @@ def main():
     n_pad = int(0.5 * len(k))
     fpt = FASTPT(k, to_do=['all'], low_extrap=-5, high_extrap=3, n_pad=n_pad)
     
-    # All available FASTPT functions to test
     function_params = {
         'one_loop_dd': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'one_loop_dd_bias': {'P': P, 'P_window': P_window, 'C_window': C_window},
@@ -79,25 +77,30 @@ def main():
         'RSD_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
         'RSD_ABsum_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
         'RSD_ABsum_mu': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5, 'mu_n': 0.5},
-        'J_k_scalr': {'P': P, 'X': fpt.X_spt, 'nu': -2, 'P_window': P_window, 'C_window': C_window},
-        'J_k_tensor': {'P': P, 'X': fpt.X_spt, 'P_window': P_window, 'C_window': C_window},
+        'J_k_scalar': {'P': P, 'X': fpt.X_spt, 'nu': -2, 'P_window': P_window, 'C_window': C_window},
+        'J_k_tensor': {'P': P, 'X': fpt.X_IA_E, 'P_window': P_window, 'C_window': C_window},
     }
     
     results = {}
 
         
-    # Test each function
     for func in function_params:
         print(f"Testing {func}...")
         try:
             results[func] = run_benchmark(fpt, func, function_params[func])
         except Exception as e:
             print(f"Error running {func}: {str(e)}")
-            print("Parameters:", function_params[func])  # Debug information
             results[func] = {'error': str(e)}
     
+    # Calculate total time before writing to JSON
+    total_time = 0
+    for func, result in results.items():
+        if isinstance(result, dict) and 'mean' in result:
+            total_time += result['mean']
+    
+    # Add total time to results
+    results['total_time'] = total_time
 
-    # Save results
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_file = os.path.join(os.path.dirname(__file__), f'timed_results_{timestamp}.json')
     

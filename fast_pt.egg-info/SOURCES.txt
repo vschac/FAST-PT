@@ -37,6 +37,7 @@ fastpt/fastpttest.py
 fastpt/filter_Pk.py
 fastpt/gamma_funcs.py
 fastpt/get_nu1_nu2.py
+fastpt/handler_demo.py
 fastpt/info.py
 fastpt/initialize_params.py
 fastpt/kPol.py
