@@ -91,6 +91,7 @@ class FASTPT:
         if nu: print("Warning: nu is no longer needed for FAST-PT initialization.")
         
         self.cache = {} #Used for storing JK tensor and scalar values
+        self.c_cache = {} #Used for storing c_m, c_n, and c_l values
         self.k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
@@ -995,7 +996,66 @@ class FASTPT:
 
     ######################################################################################
     ### Core functions used by top-level functions ###
+    def _cache_fourier_coefficients(self, P_b, C_window=None):
+        """Cache and return Fourier coefficients for a given biased power spectrum"""
+        from numpy.fft import rfft
     
+        # Create cache key
+        cache_key = ("fourier_coeffs", hash(P_b.tobytes()), C_window)
+    
+        if cache_key in self.c_cache:
+            return self.c_cache[cache_key]
+    
+        # Calculate coefficients
+        c_m_positive = rfft(P_b)
+        c_m_positive[-1] = c_m_positive[-1] / 2.
+        c_m_negative = np.conjugate(c_m_positive[1:])
+        c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
+    
+        # Apply window if specified
+        if C_window is not None:
+            if self.verbose:
+                print('windowing the Fourier coefficients')
+            c_m = c_m * c_window(self.m, int(C_window * self.N // 2.))
+    
+        # Cache and return
+        self.c_cache[cache_key] = c_m
+        return c_m
+
+    def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
+        """Cache and return convolution results"""
+        from scipy.signal import fftconvolve
+    
+        # Create cache key
+        cache_key = ("convolution", 
+                    hash(c1.tobytes()), 
+                    hash(c2.tobytes()),
+                    hash(g_m.tobytes()), 
+                    hash(g_n.tobytes()),
+                    hash(h_l.tobytes()),
+                    hash(two_part_l.tobytes()) if two_part_l is not None else None)
+    
+        if cache_key in self.c_cache:
+            return self.c_cache[cache_key]
+    
+        # Calculate convolution
+        C_l = fftconvolve(c1 * g_m, c2 * g_n)
+        #Old comments about C_l
+        # C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
+        # multiply all l terms together
+        # C_l=C_l*self.h_l[i,:]*self.two_part_l[i]
+    
+        # Apply additional terms
+        if two_part_l is not None:
+            C_l = C_l * h_l * two_part_l
+        else:
+            C_l = C_l * h_l
+        
+        # Cache and return
+        self.c_cache[cache_key] = C_l
+        return C_l
+
+
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         from numpy.fft import ifft, rfft, irfft
         from scipy.signal import fftconvolve
@@ -1013,31 +1073,13 @@ class FASTPT:
         if (self.n_pad is not None):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
 
-        ####### CACHE THIS #######
-        c_m_positive = rfft(P_b)
-        # We always filter the Fourier coefficients, so the last element is zero.
-        # But in case someone does not filter, divide the end point by two
-        c_m_positive[-1] = c_m_positive[-1] / 2.
-        c_m_negative = np.conjugate(c_m_positive[1:])
-        c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
-
-        if (C_window != None):
-            # Window the Fourier coefficients.
-            # This will damp the highest frequencies
-
-            if (self.verbose):
-                print('windowing the Fourier coefficients')
-            c_m = c_m * c_window(self.m, int(C_window * self.N // 2.))
+        c_m = self._cache_fourier_coefficients(P_b, C_window)
 
         A_out = np.zeros((pf.shape[0], self.k_size))
         for i in range(pf.shape[0]):
             # convolve f_c and g_c
             # C_l=np.convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
-            # CACHE THE CL's too##########
-            C_l = fftconvolve(c_m * g_m[i, :], c_m * g_n[i, :])
-
-            # multiply all l terms together
-            C_l = C_l * h_l[i, :] * two_part_l[i]
+            C_l = self._cache_convolution(c_m, c_m, g_m[i,:], g_n[i,:], h_l[i,:], two_part_l[i])
 
             # set up to feed ifft an array ordered with l=0,1,...,-1,...,N/2-1
             c_plus = C_l[self.l >= 0]
@@ -1095,30 +1137,12 @@ class FASTPT:
             if (self.n_pad != 0):
                 P_b1 = np.pad(P_b1, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
                 P_b2 = np.pad(P_b2, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
-            c_m_positive = rfft(P_b1)
-            c_n_positive = rfft(P_b2)
-
-            # CACHE CM AND CN
-            c_m_negative = np.conjugate(c_m_positive[1:])
-            c_n_negative = np.conjugate(c_n_positive[1:])
-            c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
-            c_n = np.hstack((c_n_negative[::-1], c_n_positive)) / float(self.N)
-
-            if (C_window != None):
-                # window the Fourier coefficients.
-                # This will damping the highest frequencies
-                if (self.verbose):
-                    print('windowing the Fourier coefficients')
-                c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
-                c_n = c_n * c_window(self.m, int(C_window * self.N / 2.))
+            c_m = self._cache_fourier_coefficients(P_b1, C_window)
+            c_n = self._cache_fourier_coefficients(P_b2, C_window)
 
             # convolve f_c and g_c
-            C_l = fftconvolve(c_m * g_m[i, :], c_n * g_n[i, :])
-            # C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
+            C_l = self._cache_convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
 
-            # multiply all l terms together
-            # C_l=C_l*self.h_l[i,:]*self.two_part_l[i]
-            C_l = C_l * h_l[i, :]
             # set up to feed ifft an array ordered with l=0,1,...,-1,...,N/2-1
             c_plus = C_l[self.l >= 0]
             c_minus = C_l[self.l < 0]
