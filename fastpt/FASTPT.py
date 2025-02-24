@@ -1097,6 +1097,7 @@ class FASTPT:
         for i in range(pf.shape[0]):
             # convolve f_c and g_c
             # C_l=np.convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
+            # CACHE THE CL's too##########
             C_l = fftconvolve(c_m * g_m[i, :], c_m * g_n[i, :])
 
             # multiply all l terms together
@@ -1161,6 +1162,7 @@ class FASTPT:
             c_m_positive = rfft(P_b1)
             c_n_positive = rfft(P_b2)
 
+            # CACHE CM AND CN
             c_m_negative = np.conjugate(c_m_positive[1:])
             c_n_negative = np.conjugate(c_n_positive[1:])
             c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)

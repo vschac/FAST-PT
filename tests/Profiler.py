@@ -1,51 +1,108 @@
 from fastpt import FASTPT
 import numpy as np
 import os
-from line_profiler import LineProfiler
-from fastpt import Wigner_symbols
+from time import time
+from statistics import mean, stdev
+import json
+from datetime import datetime
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from fastpt.FPTHandler import FPTHandler
 
-def profile_fastpt():
+
+def run_benchmark(fpt, function_name, params, n_runs=5):
+    """Run a specific FASTPT function multiple times and collect timing stats."""
+    times = []
+    method = getattr(fpt, function_name)
+    
+    for _ in range(n_runs):
+        t0 = time()
+        method(**params)  # Unpack parameters correctly
+        t1 = time()
+        times.append(t1 - t0)
+    
+    return {
+        'mean': mean(times),
+        'std': stdev(times),
+        'min': min(times),
+        'max': max(times),
+        'all_runs': times
+    }
+
+
+def numpy_to_python(obj):
+    """Convert numpy types to Python types for JSON serialization."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.int_, np.intc, np.intp, np.int8, np.int16, 
+        np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64)):
+        return int(obj)
+    if isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+        return float(obj)
+    if isinstance(obj, (np.complex_, np.complex64, np.complex128)):
+        return {'real': obj.real, 'imag': obj.imag}
+    if isinstance(obj, dict):
+        return {k: numpy_to_python(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [numpy_to_python(item) for item in obj]
+    return obj
+
+
+def main():
+    # Load test data
     data_path = os.path.join(os.path.dirname(__file__), '..', 'examples', 'Pk_test.dat')
     d = np.loadtxt(data_path)
     k = d[:, 0]
-    
+    P = d[:, 1]
+    P_window = np.array([0.2, 0.2])
+    C_window = 0.75
     n_pad = int(0.5 * len(k))
-    fpt = FASTPT(k, to_do=['IA_tt'], low_extrap=-5, high_extrap=3, n_pad=n_pad)
-    fpt.IA_tt(d[:,1])
-
-
-# Profile specific methods
-lprofiler = LineProfiler()
-lprofiler.add_module(FASTPT)
-'''
-Longer runtime functions:
-- initialize_params.g_m_vals (lines 38 and 42, from scalar stuff and tensor stuff)
-- J_table.coeff_b <- factorial (lines 28 - 32)
-'''
-
-# Run profiling
-#lprofiler.run('profile_fastpt()')
-#lprofiler.print_stats()
-
-
-from time import time
-
-data_path = os.path.join(os.path.dirname(__file__), '..', 'examples', 'Pk_test.dat')
-d = np.loadtxt(data_path)
-k = d[:, 0]
+    fpt = FASTPT(k, to_do=['all'], low_extrap=-5, high_extrap=3, n_pad=n_pad)
     
-n_pad = int(0.5 * len(k))
-fpt = FASTPT(k, to_do=['IA_tt'], low_extrap=-5, high_extrap=3, n_pad=n_pad)
-t0 = time()
-fpt.IA_tt(d[:,1])
-t1 = time()
-print(f"Time taken for IA_tt with todo list: {t1-t0}")
-fpt2 = FASTPT(k, to_do=['skip'], low_extrap=-5, high_extrap=3, n_pad=n_pad)
-t3 = time()
-fpt2.IA_tt(d[:,1])
-t4 = time()
-print(f"Time taken for IA_tt with skip list: {t4-t3}")
-t4 = time()
-fpt2.IA_tt(d[:,1])
-t5 = time()
-print(f"Time taken for IA_tt a second time (with skip list): {t5-t4}")
+    # All available FASTPT functions to test
+    function_params = {
+        'one_loop_dd': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'one_loop_dd_bias': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'one_loop_dd_bias_b3nl': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'one_loop_dd_bias_lpt_NL': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_tt': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_mix': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_der': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_ctbias': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_gb2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_d2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'IA_s2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'OV': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'kPol': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'RSD_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
+        'RSD_ABsum_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
+        'RSD_ABsum_mu': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5, 'mu_n': 0.5},
+        'J_k_scalr': {'P': P, 'X': fpt.X_spt, 'nu': -2, 'P_window': P_window, 'C_window': C_window},
+        'J_k_tensor': {'P': P, 'X': fpt.X_spt, 'P_window': P_window, 'C_window': C_window},
+    }
+    
+    results = {}
+
+        
+    # Test each function
+    for func in function_params:
+        print(f"Testing {func}...")
+        try:
+            results[func] = run_benchmark(fpt, func, function_params[func])
+        except Exception as e:
+            print(f"Error running {func}: {str(e)}")
+            print("Parameters:", function_params[func])  # Debug information
+            results[func] = {'error': str(e)}
+    
+
+    # Save results
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_file = os.path.join(os.path.dirname(__file__), f'timed_results_{timestamp}.json')
+    
+    with open(output_file, 'w') as f:
+        json.dump(numpy_to_python(results), f, indent=2)
+
+if __name__ == '__main__':
+    main()
