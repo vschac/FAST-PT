@@ -524,7 +524,6 @@ class FASTPT:
 
     def _compute_J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         """Wrapper function to compute J_k_scalar with caching"""
-        # Create hashable versions of arrays and tuples
         p_hash = self._hash_arrays(P)
         x_hash = self._hash_arrays(X)
     

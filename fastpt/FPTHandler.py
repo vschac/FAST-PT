@@ -58,7 +58,6 @@ class FPTHandler:
                 param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
                 continue
             
-            # Check if parameter is required or optional
             if param.default == inspect.Parameter.empty:
                 required_params.append(param_name)
             else:
@@ -111,7 +110,6 @@ class FPTHandler:
         # Remove unneeded default params
         passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
 
-        # Convert parameters to hashable format for cache key
         cache_key = self._convert_to_hashable(passing_params)
         if cache_key in self.cache:
             print(f"Using cached result for {function_name}")

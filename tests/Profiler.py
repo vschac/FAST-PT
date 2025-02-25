@@ -92,13 +92,11 @@ def main():
             print(f"Error running {func}: {str(e)}")
             results[func] = {'error': str(e)}
     
-    # Calculate total time before writing to JSON
     total_time = 0
     for func, result in results.items():
         if isinstance(result, dict) and 'mean' in result:
             total_time += result['mean']
     
-    # Add total time to results
     results['total_time'] = total_time
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
