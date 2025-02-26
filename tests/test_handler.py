@@ -11,7 +11,7 @@ P_window = np.array([0.2, 0.2])
 
 handler = FPTHandler(FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip']), P=P, P_window=P_window, C_window=C_window)
 handler.run('one_loop_dd')
-handler.show_cache()
+handler.show_cache_info()
 
 @pytest.fixture
 def fpt():

@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import log
-from pprint import pprint
 import inspect
 from fastpt import FASTPT
 
@@ -129,9 +128,14 @@ class FPTHandler:
             self.cache.clear()
             print("Cache cleared for all functions.")
 
-    def show_cache(self):
-        """Display cache using pprint"""
-        pprint(self.cache)
+    def show_cache_info(self):
+        """Display cache using info pprint"""
+        num_entries = len(self.cache)
+        print({
+            "num_entries": num_entries,
+            "max_entries": self.max_cache_entries,
+            "usage_percent": (num_entries / self.max_cache_entries) * 100 if self.max_cache_entries > 0 else 0
+        })
 
 
     def list_available_functions(self):
