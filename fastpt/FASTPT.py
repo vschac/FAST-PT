@@ -92,7 +92,7 @@ class FASTPT:
         
         self.cache = {} #Used for storing JK tensor and scalar values
         self.c_cache = {} #Used for storing c_m, c_n, and c_l values
-        self.k_original = k
+        self.__k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
             if (high_extrap < low_extrap):
@@ -267,6 +267,9 @@ class FASTPT:
             self.X_RSDA
             self.X_RSDB
         
+    @property
+    def k_original(self):
+        return self.__k_original
 
     @cached_property
     def X_spt(self):
