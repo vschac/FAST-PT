@@ -106,7 +106,7 @@ class FPTHandler:
             raise ValueError(f"Missing required parameters for '{function_name}': {missing_params}. "
                          f"Please recall with the missing parameters.")
     
-        # Remove unneeded default params
+        # Remove unneeded default params EX: f not needed in one_loop_dd
         passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
 
         cache_key = self._convert_to_hashable(passing_params)
@@ -118,6 +118,35 @@ class FPTHandler:
         self._cache_result(function_name, passing_params, result)
         return result
     
+    #Not saving any time by caching this function because the individual terms
+    #are already cached in FASTPT
+    def get(self, *args, **override_kwargs):
+        """Allows for quick access to a specific term from a function."""
+        output = {}
+        for arg in args:
+            if not hasattr(self.fastpt, f"get_{arg}"):
+                raise ValueError(f"Term '{arg}' not found in FASTPT.")
+        
+            func_name = f"get_{arg}"
+            func = getattr(self.fastpt, func_name)
+            params_info = self._get_function_params(func)
+
+            if (override_kwargs): 
+                self._validate_params(**override_kwargs)
+            merged_params = {**self.default_params, **override_kwargs}
+
+            missing_params = [p for p in params_info['required'] if p not in merged_params]
+            if missing_params:
+                raise ValueError(f"Missing required parameters for '{func_name}': {missing_params}. "
+                            f"Please recall with the missing parameters.")
+
+            passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
+            result = func(**passing_params)
+            output[arg] = result
+        # If only one term was requested, return just that value
+        if len(output) == 1 and len(args) == 1:
+            return output[list(output.keys())[0]]
+        return output
 
     def clear_cache(self, function_name=None):
         """ Clears specific or all cached results. """
@@ -142,6 +171,138 @@ class FPTHandler:
         """ Returns a list of valid FASTPT functions. """
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("__")])
 
+    def list_available_terms(self):
+        """
+        List all available power spectrum terms that can be requested via get()
+    
+        Returns:
+        --------
+        dict
+            Dictionary mapping function names to their available terms
+        """
+        term_sources = {
+            # one_loop_dd and one_loop_dd_bias terms
+            "P_1loop": ("one_loop_dd", 0),
+            "Ps": ("one_loop_dd", 1),
+            "Pd1d2": ("one_loop_dd_bias", 2),  
+            "Pd2d2": ("one_loop_dd_bias", 3),
+            "Pd1s2": ("one_loop_dd_bias", 4),
+            "Pd2s2": ("one_loop_dd_bias", 5),
+            "Ps2s2": ("one_loop_dd_bias", 6),
+            "sig4": ("one_loop_dd_bias", 7),
+        
+            # one_loop_dd_bias_b3nl additional term
+            "sig3nl": ("one_loop_dd_bias_b3nl", 8),
+        
+            # one_loop_dd_bias_lpt_NL terms
+            "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
+            "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
+            "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
+            "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
+            "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
+        
+            # IA_tt terms
+            "P_E": ("IA_tt", 0),
+            "P_B": ("IA_tt", 1),
+        
+            # IA_mix terms
+            "P_A": ("IA_mix", 0),
+            "P_Btype2": ("IA_mix", 1),
+            "P_DEE": ("IA_mix", 2),
+            "P_DBB": ("IA_mix", 3),
+        
+            # IA_ta terms
+            "P_deltaE1": ("IA_ta", 0),
+            "P_deltaE2": ("IA_ta", 1),
+            "P_0E0E": ("IA_ta", 2),
+            "P_0B0B": ("IA_ta", 3),
+        
+            # IA_gb2 terms
+            "P_gb2sij": ("IA_gb2", 0),
+            "P_gb2dsij": ("IA_gb2", 1),
+            "P_gb2sij2": ("IA_gb2", 2),
+
+            "P_der": ("IA_der", 0),
+
+            # IA_ct terms
+            "P_0tE": ("IA_ct", 0),
+            "P_0EtE": ("IA_ct", 1),
+            "P_E2tE": ("IA_ct", 2),
+            "P_tEtE": ("IA_ct", 3),
+        
+            # IA_ctbias terms
+            "P_d2tE": ("IA_ctbias", 0),
+            "P_s2tE": ("IA_ctbias", 1),
+        
+            # IA_s2 terms
+            "P_s2E": ("IA_s2", 0),
+            "P_s20E": ("IA_s2", 1),
+            "P_s2E2": ("IA_s2", 2),
+        
+            # IA_d2 terms
+            "P_d2E": ("IA_d2", 0),
+            "P_d20E": ("IA_d2", 1),
+            "P_d2E2": ("IA_d2", 2),
+        
+            # OV term
+            "P_OV": ("OV", 0),
+        
+            # kPol terms
+            "P_kP1": ("kPol", 0),
+            "P_kP2": ("kPol", 1),
+            "P_kP3": ("kPol", 2),
+        
+            # RSD_components terms
+            "A1": ("RSD_components", 0),
+            "A3": ("RSD_components", 1),
+            "A5": ("RSD_components", 2),
+            "B0": ("RSD_components", 3),
+            "B2": ("RSD_components", 4),
+            "B4": ("RSD_components", 5),
+            "B6": ("RSD_components", 6),
+            "P_Ap1": ("RSD_components", 7),
+            "P_Ap3": ("RSD_components", 8),
+            "P_Ap5": ("RSD_components", 9),
+        
+            # RSD_ABsum_components terms
+            "ABsum_mu2": ("RSD_ABsum_components", 0),
+            "ABsum_mu4": ("RSD_ABsum_components", 1),
+            "ABsum_mu6": ("RSD_ABsum_components", 2),
+            "ABsum_mu8": ("RSD_ABsum_components", 3),
+        
+            "ABsum": ("RSD_ABsum_components", 0),
+
+            # IRres term
+            "P_IRres": ("IRres", 0),
+        }
+    
+        # Organize by function
+        organized = {}
+        for term, (func, _) in term_sources.items():
+            if func not in organized:
+                organized[func] = []
+            organized[func].append(term)
+        
+        # Print in a nice format
+        print("Available terms by function:")
+        for func, terms in organized.items():
+            print(f"\n{func}:")
+            terms_str = ", ".join(sorted(terms))
+            print(f"  {terms_str}")
+        
+        # Special parameter requirements
+        special_params = {
+            "RSD_components": ["f"],
+            "RSD_ABsum_components": ["f"],
+            "RSD_ABsum_mu": ["f", "mu_n"],
+            "IRres": ["L", "h", "rsdrag"]
+        }
+    
+        print("\nSpecial parameter requirements:")
+        for func, params in special_params.items():
+            print(f"{func}: requires {', '.join(params)}")
+        
+        return organized
     
     def clear_default_params(self):
         self.default_params = {}

@@ -8,10 +8,11 @@ data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat
 P = np.loadtxt(data_path)[:, 1]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-
-handler = FPTHandler(FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip']), P=P, P_window=P_window, C_window=C_window)
-handler.run('one_loop_dd')
-handler.show_cache_info()
+fpt = FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip'])
+handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+term = handler.get("P_deltaE1")
+func_term = fpt.IA_ta(P=P, P_window=P_window, C_window=C_window)[0]
+print(np.allclose(term, func_term))
 
 @pytest.fixture
 def fpt():
@@ -30,7 +31,7 @@ def test_init_with_valid_params(fpt):
 
 def test_run_without_power_spectrum(fpt):
     handler = FPTHandler(fpt) #P is not required at handler init but must be passed at every function call
-    with pytest.raises(ValueError, match="Missing required parameters for 'one_loop_dd': \['P'\]. Please recall with the missing parameters."):
+    with pytest.raises(ValueError, match="Missing required parameters for 'one_loop_dd': \\['P'\\]. Please recall with the missing parameters."):
         handler.run('one_loop_dd')
 
 def test_init_with_zero_power_spectrum(fpt):

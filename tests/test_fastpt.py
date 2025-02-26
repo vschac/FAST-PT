@@ -58,7 +58,7 @@ def test_init_padding(fpt):
 
     # Test with no padding
     fpt1 = FASTPT(k, n_pad=None)
-    assert not hasattr(fpt1, 'n_pad')
+    assert fpt1.n_pad == 0
             
     # Test with padding
     assert hasattr(fpt, 'n_pad')

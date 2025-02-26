@@ -55,6 +55,7 @@ from .RSD import RSDA, RSDB
 from . import RSD_ItypeII
 from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
+import functools
 
 log2 = log(2.)
 
@@ -92,6 +93,7 @@ class FASTPT:
         
         self.cache = {} #Used for storing JK tensor and scalar values
         self.c_cache = {} #Used for storing c_m, c_n, and c_l values
+        self.term_cache = {} #Usef for storing individual terms from all FAST-PT functions
         self.__k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
@@ -103,7 +105,7 @@ class FASTPT:
 
         self.low_extrap = low_extrap
         self.high_extrap = high_extrap
-
+        self.n_pad = 0
         self.k_old = k
 
         # if no to_do list is given, default to fastpt_simple SPT case
@@ -146,7 +148,10 @@ class FASTPT:
         # can we just force the extrapolation to add an element if we need one more? how do we prevent the extrapolation from giving us an odd number of elements? is that hard coded into extrap? or just trim the lowest k value if there is an odd numebr and no extrapolation is requested.
 
         if (n_pad != None):
-
+            # Make sure n_pad is an integer
+            if not isinstance(n_pad, int):
+                n_pad = int(n_pad)
+            self.n_pad = n_pad
             self.id_pad = np.arange(k.size) + n_pad
             d_logk = delta_L
             k_pad = np.log(k[0]) - np.arange(1, n_pad + 1) * d_logk
@@ -162,6 +167,8 @@ class FASTPT:
                 print(f'You should consider increasing your zero padding to at least {n_pad_check}')
                 print('to ensure that the minimum k_output is > 2k_min in the FASTPT universe.')
                 print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_old[0]}')
+        else:
+            self.n_pad = 0
 
         self.k = k
         self.k_size = k.size
@@ -174,7 +181,7 @@ class FASTPT:
         self.eta_m = omega * self.m
 
         self.verbose = verbose
-        self.n_pad = n_pad
+        self.n_pad = int(self.n_pad) if self.n_pad is not None else 0  # Ensure n_pad is an int
 
         # define l and tau_l
         self.n_l = self.m.size + self.m.size - 1
@@ -569,8 +576,7 @@ class FASTPT:
     ### Top-level functions to output final quantities ###
     
     def one_loop_dd(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
-        nu = -2
+        #self.validate_params(P, P_window=P_window, C_window=C_window)
 
         # routine for one-loop spt calculations
 
@@ -608,11 +614,15 @@ class FASTPT:
 
         return P_1loop, Ps
 
+    # def get_P1loop(self, P, P_window=None, C_window=None):
+    #     P22 = np.sum(P22_mat, 1)
+    #     P13 = P_13_reg(self.k_old, Ps)
+    #     P_1loop = P22 + P13
+
 
     
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        nu = -2
 
         # routine for one-loop spt calculations
 
@@ -644,7 +654,6 @@ class FASTPT:
     
     def one_loop_dd_bias_b3nl(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        nu = -2
 
         # routine for one-loop spt calculations
 
@@ -671,7 +680,6 @@ class FASTPT:
     
     def one_loop_dd_bias_lpt_NL(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        nu_arr = -2
 
         # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
         # get the matrix for each J_k component
@@ -763,17 +771,35 @@ class FASTPT:
 
     
     def IA_ta(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        P_deltaE1 = self.get_P_deltaE1(P, P_window=P_window, C_window=C_window)
+        P_deltaE2 = self.get_P_deltaE2(P)
+        P_0E0E = self.get_P_0E0E(P, P_window=P_window, C_window=C_window)
+        P_0B0B = self.get_P_0B0B(P, P_window=P_window, C_window=C_window)
+        return P_deltaE1, P_deltaE2, P_0E0E, P_0B0B
+    
+    def get_P_deltaE1(self, P, P_window=None, C_window=None):
+        if "P_deltaE1" in self.term_cache: return self.term_cache["P_deltaE1"]
         P_deltaE1, A = self._compute_J_k_tensor(P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window)
         P_deltaE1 = self._apply_extrapolation(P_deltaE1)
-
+        self.term_cache["P_deltaE1"] = 2 * P_deltaE1
+        return 2 * P_deltaE1
+    def get_P_deltaE2(self, P):
+        if "P_deltaE2" in self.term_cache: return self.term_cache["P_deltaE2"]
         P_deltaE2 = P_IA_deltaE2(self.k_original, P)
-
+        self.term_cache["P_deltaE2"] = 2 * P_deltaE2
+        return 2 * P_deltaE2
+    def get_P_0E0E(self, P, P_window=None, C_window=None):
+        if "P_0E0E" in self.term_cache: return self.term_cache["P_0E0E"]
         P_0E0E, A = self._compute_J_k_tensor(P, self.X_IA_0E0E, P_window=P_window, C_window=C_window)
+        P_0E0E = self._apply_extrapolation(P_0E0E)
+        self.term_cache["P_0E0E"] = P_0E0E
+        return P_0E0E
+    def get_P_0B0B(self, P, P_window=None, C_window=None):
+        if "P_0B0B" in self.term_cache: return self.term_cache["P_0B0B"]
         P_0B0B, A = self._compute_J_k_tensor(P, self.X_IA_0B0B, P_window=P_window, C_window=C_window)
-        P_0B0B, P_0E0E = self._apply_extrapolation(P_0B0B, P_0E0E)
-
-        return 2. * P_deltaE1, 2. * P_deltaE2, P_0E0E, P_0B0B
+        P_0B0B = self._apply_extrapolation(P_0B0B)
+        self.term_cache["P_0B0B"] = P_0B0B
+        return P_0B0B
 
     ## eq 12 (line 2); eq 12 (line 3); eq 15 EE; eq 15 BB
 
@@ -1059,8 +1085,7 @@ class FASTPT:
 
 
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
-        from numpy.fft import ifft, rfft, irfft
-        from scipy.signal import fftconvolve
+        from numpy.fft import ifft, irfft
 
         pf, p, g_m, g_n, two_part_l, h_l = X
 
