@@ -756,26 +756,57 @@ class FASTPT:
     
     def IA_tt(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
+        P_E = self.get_P_E(P, P_window=P_window, C_window=C_window)
+        P_B = self.get_P_B(P, P_window=P_window, C_window=C_window)
+        return P_E, P_B
+    
+    def get_P_E(self, P, P_window=None, C_window=None):
+        if "P_E" in self.term_cache: return self.term_cache["P_E"]
         P_E, A = self._compute_J_k_tensor(P, self.X_IA_E, P_window=P_window, C_window=C_window)
+        P_E = self._apply_extrapolation(P_E)
+        self.term_cache["P_E"] = 2 * P_E
+        return 2 * P_E
+    def get_P_B(self, P, P_window=None, C_window=None):
+        if "P_B" in self.term_cache: return self.term_cache["P_B"]
         P_B, A = self._compute_J_k_tensor(P, self.X_IA_B, P_window=P_window, C_window=C_window)
-        P_B, P_E = self._apply_extrapolation(P_B, P_E)
-        return 2. * P_E, 2. * P_B
+        P_B = self._apply_extrapolation(P_B)
+        self.term_cache["P_B"] = 2 * P_B
+        return 2 * P_B
 
     ## eq 21 EE; eq 21 BB
 
     
     def IA_mix(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
+        P_A = self.get_P_A(P, P_window=P_window, C_window=C_window)
+        P_Btype2 = self.get_P_Btype2(P)
+        P_DEE = self.get_P_DEE(P, P_window=P_window, C_window=C_window)
+        P_DBB = self.get_P_DBB(P, P_window=P_window, C_window=C_window)
+        return P_A, P_Btype2, P_DEE, P_DBB
+    
+    def get_P_A(self, P, P_window=None, C_window=None):
+        if "P_A" in self.term_cache: return self.term_cache["P_A"]
         P_A, A = self._compute_J_k_tensor(P, self.X_IA_A, P_window=P_window, C_window=C_window)
         P_A = self._apply_extrapolation(P_A)
-
+        self.term_cache["P_A"] = 2 * P_A
+        return 2 * P_A
+    def get_P_Btype2(self, P):
+        if "P_Btype2" in self.term_cache: return self.term_cache["P_Btype2"]
         P_Btype2 = P_IA_B(self.k_original, P)
-
+        self.term_cache["P_Btype2"] = 4 * P_Btype2
+        return 4 * P_Btype2
+    def get_P_DEE(self, P, P_window=None, C_window=None):
+        if "P_DEE" in self.term_cache: return self.term_cache["P_DEE"]
         P_DEE, A = self._compute_J_k_tensor(P, self.X_IA_DEE, P_window=P_window, C_window=C_window)
+        P_DEE = self._apply_extrapolation(P_DEE)
+        self.term_cache["P_DEE"] = 2 * P_DEE
+        return 2 * P_DEE
+    def get_P_DBB(self, P, P_window=None, C_window=None):
+        if "P_DBB" in self.term_cache: return self.term_cache["P_DBB"]
         P_DBB, A = self._compute_J_k_tensor(P, self.X_IA_DBB, P_window=P_window, C_window=C_window)
-        P_DBB, P_DEE = self._apply_extrapolation(P_DBB, P_DEE)
-
-        return 2 * P_A, 4 * P_Btype2, 2 * P_DEE, 2 * P_DBB
+        P_DBB = self._apply_extrapolation(P_DBB)
+        self.term_cache["P_DBB"] = 2 * P_DBB
+        return 2 * P_DBB
 
     ## eq 18; eq 19; eq 27 EE; eq 27 BB
 
@@ -816,11 +847,13 @@ class FASTPT:
 
     
     def IA_der(self, P, P_window=None, C_window=None):
+        if "P_der" in self.term_cache: return self.term_cache["P_der"]
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_der = (self.k_original**2)*P
+        self.term_cache["P_der"] = P_der
         return P_der
     
-    
+    #STILL NEED TO BREAK DOWN
     def IA_ct(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_feG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
@@ -856,77 +889,156 @@ class FASTPT:
     
     def IA_ctbias(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
+        P_d2tE = self.get_P_d2tE(P, P_window=P_window, C_window=C_window)
+        #P_13S2F2 = P_IA_13S2F2(self.k_original, P)
+        P_s2tE= self.get_P_s2tE(P, P_window=P_window, C_window=C_window)
+        return P_d2tE, P_s2tE
+    
+    def get_P_d2tE(self, P, P_window=None, C_window=None):
+        if "P_d2tE" in self.term_cache: return self.term_cache["P_d2tE"]
         P_F2, A = self._compute_J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         P_G2, A = self._compute_J_k_tensor(P,self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
         P_F2, P_G2 = self._apply_extrapolation(P_F2, P_G2)
         P_d2tE = P_G2-P_F2
+        self.term_cache["P_d2tE"] = 2*P_d2tE
+        return 2*P_d2tE
+    def get_P_s2tE(self, P, P_window=None, C_window=None):
+        if "P_s2tE" in self.term_cache: return self.term_cache["P_s2tE"]
         P_S2F2, A = self._compute_J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
-
-        #P_13S2F2 = P_IA_13S2F2(self.k_original, P)
-
         P_S2G2, A = self._compute_J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
         P_S2F2, P_S2G2 = self._apply_extrapolation(P_S2F2, P_S2G2)
         P_s2tE=P_S2G2-P_S2F2
-
-        return 2*P_d2tE,2*P_s2tE
-    
+        self.term_cache["P_s2tE"] = 2*P_s2tE
+        return 2*P_s2tE
 
     
     def IA_gb2(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_fe, A = self._compute_J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
-        P_he, A = self._compute_J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
+        P_gb2sij = self.get_P_gb2sij(P, P_window=P_window, C_window=C_window)
+        P_gb2sij2 = self.get_P_gb2sij2(P, P_window=P_window, C_window=C_window)
+        P_gb2dsij = self.get_P_gb2dsij(P, P_window=P_window, C_window=C_window)
+        return P_gb2sij, P_gb2dsij, P_gb2sij2
+    
+    def get_P_gb2sij(self, P, P_window=None, C_window=None):
+        if "P_gb2sij" in self.term_cache: return self.term_cache["P_gb2sij"]
         P_F2, A = self._compute_J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
-        P_fe, P_he, P_F2 = self._apply_extrapolation(P_fe, P_he, P_F2)
-        sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
-        P_gb2sij = P_F2
-        P_gb2sij2 = P_he
-        P_gb2dsij = P_fe
-        return 2*P_gb2sij, 2*P_gb2dsij, 2*P_gb2sij2
+        P_F2 = self._apply_extrapolation(P_F2)
+        #P_gb2sij = P_F2
+        self.term_cache["P_gb2sij"] = 2*P_F2
+        return 2*P_F2
+    def get_P_gb2dsij(self, P, P_window=None, C_window=None):
+        if "P_gb2sij" in self.term_cache: return self.term_cache["P_gb2sij"]
+        P_fe, A = self._compute_J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
+        P_fe = self._apply_extrapolation(P_fe)
+        #P_gb2dsij = P_fe
+        self.term_cache["P_gb2dsij"] = 2*P_fe
+        return 2*P_fe
+    def get_P_gb2sij2(self, P, P_window=None, C_window=None):
+        if "P_gb2sij2" in self.term_cache: return self.term_cache["P_gb2sij2"]
+        P_he, A = self._compute_J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
+        P_he = self._apply_extrapolation(P_he)
+        #P_gb2sij2 = P_he
+        self.term_cache["P_gb2sij2"] = 2*P_he
+        return 2*P_he
     
-    
+
     def IA_d2(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_fe, A = self._compute_J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
-        P_he, A = self._compute_J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
-        P_F2, A = self._compute_J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
-        P_fe, P_he, P_F2 = self._apply_extrapolation(P_fe, P_he, P_F2)
-        sig4 = np.trapz(self.k_original ** 3 * P ** 2, x=np.log(self.k_original)) / (2. * pi ** 2)
-        P_d2E = P_F2
-        P_d20E = P_he
-        P_d2E2 = P_fe
-        return 2*P_d2E, 2*P_d20E, 2*P_d2E2
+        P_d2E = self.get_P_d2E(P, P_window=P_window, C_window=C_window)
+        P_d20E = self.get_P_d20E(P, P_window=P_window, C_window=C_window)
+        P_d2E2 = self.get_P_d2E2(P, P_window=P_window, C_window=C_window)
+        return P_d2E, P_d20E, P_d2E2
     
+    def get_P_d2E(self, P, P_window=None, C_window=None):
+        if "P_d2E" in self.term_cache: return self.term_cache["P_d2E"]
+        P_F2, A = self._compute_J_k_tensor(P,self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
+        P_F2 = self._apply_extrapolation(P_F2)
+        #P_d2E = P_F2
+        self.term_cache["P_d2E"] = 2*P_F2
+        return 2*P_F2
+    def get_P_d20E(self, P, P_window=None, C_window=None):
+        if "P_d20E" in self.term_cache: return self.term_cache["P_d20E"]
+        P_he, A = self._compute_J_k_tensor(P,self.X_IA_gb2_he, P_window=P_window, C_window=C_window)
+        P_he = self._apply_extrapolation(P_he)
+        #P_d20E = P_he
+        self.term_cache["P_d20E"] = 2*P_he
+        return 2*P_he
+    def get_P_d2E2(self, P, P_window=None, C_window=None):
+        if "P_d2E2" in self.term_cache: return self.term_cache["P_d2E2"]
+        P_fe, A = self._compute_J_k_tensor(P,self.X_IA_gb2_fe, P_window=P_window, C_window=C_window)
+        P_fe = self._apply_extrapolation(P_fe)
+        #P_d2E2 = P_fe
+        self.term_cache["P_d2E2"] = 2*P_fe
+        return 2*P_fe
     
     def IA_s2(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
+        P_s2E = self.get_P_s2E(P, P_window=P_window, C_window=C_window)
+        P_s20E = self.get_P_s20E(P, P_window=P_window, C_window=C_window)
+        P_s2E2 = self.get_P_s2E2(P, P_window=P_window, C_window=C_window)
+        return P_s2E, P_s20E, P_s2E2
+    
+    def get_P_s2E(self, P, P_window=None, C_window=None):
+        if "P_s2E" in self.term_cache: return self.term_cache["P_s2E"]
         P_S2F2, A = self._compute_J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         #P_13S2F2 = P_IA_13S2F2(self.k_original, P)
-
+        P_S2F2 = self._apply_extrapolation(P_S2F2)
+        #P_s2E = P_S2F2+2*P_13S2F2
+        self.term_cache["P_s2E"] = 2*P_S2F2
+        return 2*P_S2F2
+    def get_P_s20E(self, P, P_window=None, C_window=None):
+        if "P_s20E" in self.term_cache: return self.term_cache["P_s20E"]
         P_S2fe, A = self._compute_J_k_tensor(P, self.X_IA_gb2_S2fe, P_window=P_window, C_window=C_window)
+        P_S2fe = self._apply_extrapolation(P_S2fe)
+        #P_s20E = P_S2fe
+        self.term_cache["P_s20E"] = 2*P_S2fe
+        return 2*P_S2fe
+    def get_P_s2E2(self, P, P_window=None, C_window=None):
+        if "P_s2E2" in self.term_cache: return self.term_cache["P_s2E2"]
         P_S2he, A = self._compute_J_k_tensor(P, self.X_IA_gb2_S2he, P_window=P_window, C_window=C_window)
-        P_S2F2, P_S2fe, P_S2he = self._apply_extrapolation(P_S2F2, P_S2fe, P_S2he)
-        #THIS LINE RIGHT HERE
-        P_s2E=P_S2F2#+2*P_13S2F2
-        P_s20E=P_S2fe
-        P_s2E2=P_S2he
-        return 2*P_s2E, 2*P_s20E, 2*P_s2E2
+        P_S2he = self._apply_extrapolation(P_S2he)
+        #P_s2E2 = P_S2he
+        self.term_cache["P_s2E2"] = 2*P_S2he
+        return 2*P_S2he
 
     
     def OV(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
+        if "P_OV" in self.term_cache: return self.term_cache["P_OV"]
         P, A = self._compute_J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
         P = self._apply_extrapolation(P)
+        self.term_cache["P_OV"] = P * (2 * pi) ** 2
         return P * (2 * pi) ** 2
 
     
     def kPol(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P1, A = self._compute_J_k_tensor(P, self.X_kP1, P_window=P_window, C_window=C_window)
-        P2, A = self._compute_J_k_tensor(P, self.X_kP2, P_window=P_window, C_window=C_window)
-        P3, A = self._compute_J_k_tensor(P, self.X_kP3, P_window=P_window, C_window=C_window)
-        P1, P2, P3 = self._apply_extrapolation(P1, P2, P3)
-        return P1 / (80 * pi ** 2), P2 / (160 * pi ** 2), P3 / (80 * pi ** 2)
+        P1 = self.get_P_kP1(P, P_window=P_window, C_window=C_window)
+        P2 = self.get_P_kP2(P, P_window=P_window, C_window=C_window)
+        P3 = self.get_P_kP3(P, P_window=P_window, C_window=C_window)
+        return P1, P2, P3
+    
+    def get_P_kP1(self, P, P_window=None, C_window=None):
+        if "P_kP1" in self.term_cache: return self.term_cache["P_kP1"]
+        P_kP1, A = self._compute_J_k_tensor(P, self.X_kP1, P_window=P_window, C_window=C_window)
+        P_kP1 = self._apply_extrapolation(P_kP1)
+        P_kP1 = P_kP1 / (80 * pi ** 2)
+        self.term_cache["P_kP1"] = P_kP1
+        return P_kP1
+    def get_P_kP2(self, P, P_window=None, C_window=None):
+        if "P_kP2" in self.term_cache: return self.term_cache["P_kP2"]
+        P_kP2, A = self._compute_J_k_tensor(P, self.X_kP2, P_window=P_window, C_window=C_window)
+        P_kP2 = self._apply_extrapolation(P_kP2)
+        P_kP2 = P_kP2 / (160 * pi ** 2)
+        self.term_cache["P_kP2"] = P_kP2
+        return P_kP2
+    def get_P_kP3(self, P, P_window=None, C_window=None):
+        if "P_kP3" in self.term_cache: return self.term_cache["P_kP3"]
+        P_kP3, A = self._compute_J_k_tensor(P, self.X_kP3, P_window=P_window, C_window=C_window)
+        P_kP3 = self._apply_extrapolation(P_kP3)
+        P_kP3 = P_kP3 / (80 * pi ** 2)
+        self.term_cache["P_kP3"] = P_kP3
+        return P_kP3
 
 
     def RSD_components(self, P, f, P_window=None, C_window=None):
