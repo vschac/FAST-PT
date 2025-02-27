@@ -57,7 +57,7 @@ def test_init_padding(fpt):
     k = np.logspace(-3, 1, 200)
 
     # Test with no padding
-    fpt1 = FASTPT(k, n_pad=None)
+    fpt1 = FASTPT(k, to_do=['skip'], n_pad=None)
     assert fpt1.n_pad == 0
             
     # Test with padding
@@ -79,11 +79,11 @@ def test_skip_todo(fpt):
     """Test to make sure skip is faster (doesn't initialize anything)"""
     from time import time
     t0 = time()
-    slowPT = FASTPT(fpt.k, to_do=['all'])
+    slowPT = FASTPT(fpt.k_original, to_do=['all'])
     t1 = time()
     diff1 = t1 - t0
     t2 = time()
-    fastPT = FASTPT(fpt.k, to_do=['skip'])
+    fastPT = FASTPT(fpt.k_original, to_do=['skip'])
     t3 = time()
     diff2 = t3 - t2
     assert diff2 < diff1
@@ -111,13 +111,12 @@ def test_validate_params(fpt):
         fpt.one_loop_dd(half_P)
         
     # Test 3: Zero power spectrum
-    k = fpt.k
     P_zero = np.zeros_like(fpt.k_original)
     with pytest.raises(ValueError, match=r'Your input power spectrum array is all zeros'):
         fpt.one_loop_dd(P_zero)
     
     # Test 4: P_window validation
-    max_window = (np.log(fpt.k[-1]) - np.log(fpt.k[0])) / 2
+    max_window = (np.log(fpt.k_final[-1]) - np.log(fpt.k_final[0])) / 2
     Max_P_window = np.array([max_window, max_window])
     assert fpt.one_loop_dd(P, P_window=Max_P_window / 2) is not None
     

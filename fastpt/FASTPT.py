@@ -55,7 +55,6 @@ from .RSD import RSDA, RSDB
 from . import RSD_ItypeII
 from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
-import functools
 
 log2 = log(2.)
 
@@ -93,7 +92,7 @@ class FASTPT:
         
         self.cache = {} #Used for storing JK tensor and scalar values
         self.c_cache = {} #Used for storing c_m, c_n, and c_l values
-        self.term_cache = {} #Usef for storing individual terms from all FAST-PT functions
+        self.term_cache = {} #Used for storing individual terms from all FAST-PT functions
         self.__k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
@@ -105,8 +104,7 @@ class FASTPT:
 
         self.low_extrap = low_extrap
         self.high_extrap = high_extrap
-        self.n_pad = 0
-        self.k_old = k
+        self.__k_extrap = k #K extrapolation not padded
 
         # if no to_do list is given, default to fastpt_simple SPT case
         if (to_do is None):
@@ -141,7 +139,7 @@ class FASTPT:
             print(f'the power spectrum has {n_pad} zeros added to both ends of the power spectrum')
 
 
-        # print(self.k_old.size, 'k size')
+        # print(self.k_extrap.size, 'k size')
         # size of input array must be an even number
         if (k.size % 2 != 0):
             raise ValueError('Input array must contain an even number of elements.')
@@ -166,11 +164,12 @@ class FASTPT:
                 print('*** Warning ***')
                 print(f'You should consider increasing your zero padding to at least {n_pad_check}')
                 print('to ensure that the minimum k_output is > 2k_min in the FASTPT universe.')
-                print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_old[0]}')
+                print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_extrap[0]}')
         else:
+            print("WARNING: N_pad is recommended but none has been provided, defaulting to 0.")
             self.n_pad = 0
 
-        self.k = k
+        self.__k_final = k #log spaced k, with padding and extrap
         self.k_size = k.size
         # self.scalar_nu=-2
         self.N = k.size
@@ -181,7 +180,6 @@ class FASTPT:
         self.eta_m = omega * self.m
 
         self.verbose = verbose
-        self.n_pad = int(self.n_pad) if self.n_pad is not None else 0  # Ensure n_pad is an int
 
         # define l and tau_l
         self.n_l = self.m.size + self.m.size - 1
@@ -277,6 +275,14 @@ class FASTPT:
     @property
     def k_original(self):
         return self.__k_original
+    
+    @property
+    def k_extrap(self):
+        return self.__k_extrap
+    
+    @property
+    def k_final(self):
+        return self.__k_final
 
     @cached_property
     def X_spt(self):
@@ -481,7 +487,7 @@ class FASTPT:
         if (len(P) == 0):
             raise ValueError('You must provide an input power spectrum array.')
         if (len(P) != len(self.k_original)):
-            raise ValueError(f'Input k and P arrays must have the same size. P:{len(P)}, K:{len(self.k)}')
+            raise ValueError(f'Input k and P arrays must have the same size. P:{len(P)}, K:{len(self.k_final)}')
             
         if (np.all(P == 0.0)):
             raise ValueError('Your input power spectrum array is all zeros.')
@@ -490,11 +496,11 @@ class FASTPT:
         C_window = kwargs.get('C_window', None)
 
         if P_window is not None and P_window.size > 0:
-            maxP = (log(self.k[-1]) - log(self.k[0])) / 2
+            maxP = (log(self.k_final[-1]) - log(self.k_final[0])) / 2
             if len(P_window) != 2:
                 raise ValueError(f'P_window must be a tuple of two values.')
             if P_window[0] > maxP or P_window[1] > maxP:
-                raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k[-1]) - log(self.k[0])) / 2} to avoid over tapering.')
+                raise ValueError(f'P_window value is too large. Decrease to less than {(log(self.k_final[-1]) - log(self.k_final[0])) / 2} to avoid over tapering.')
 
         if C_window is not None:
             if C_window < 0 or C_window > 1:
@@ -527,7 +533,7 @@ class FASTPT:
     
         P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
         P22 = np.sum(P22_mat, 1)
-        P13 = P_13_reg(self.k_old, Ps)
+        P13 = P_13_reg(self.k_extrap, Ps)
         P_1loop = P22 + P13
 
         return P_1loop, Ps, mat
@@ -576,7 +582,7 @@ class FASTPT:
     ### Top-level functions to output final quantities ###
     
     def one_loop_dd(self, P, P_window=None, C_window=None):
-        #self.validate_params(P, P_window=P_window, C_window=C_window)
+        self.validate_params(P, P_window=P_window, C_window=C_window)
 
         # routine for one-loop spt calculations
 
@@ -595,7 +601,7 @@ class FASTPT:
             # Returns relevant correlations (including contraction factors),
             # but WITHOUT bias values and other pre-factors.
             # Uses standard "full initialization" of J terms
-            sig4 = np.trapz(self.k_old ** 3 * Ps ** 2, x=np.log(self.k_old)) / (2. * pi ** 2)
+            sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
             self.sig4 = sig4
             # sig4 much more accurate when calculated in logk, especially for low-res input.
             Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
@@ -616,7 +622,7 @@ class FASTPT:
 
     # def get_P1loop(self, P, P_window=None, C_window=None):
     #     P22 = np.sum(P22_mat, 1)
-    #     P13 = P_13_reg(self.k_old, Ps)
+    #     P13 = P_13_reg(self.k_extrap, Ps)
     #     P_1loop = P22 + P13
 
 
@@ -636,7 +642,7 @@ class FASTPT:
         # Returns relevant correlations (including contraction factors),
         # but WITHOUT bias values and other pre-factors.
         # Uses standard "full initialization" of J terms
-        sig4 = np.trapz(self.k_old ** 3 * Ps ** 2, x=np.log(self.k_old)) / (2. * pi ** 2)
+        sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
         Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
         Pd2d2 = 2. * (mat[0, :])
         Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
@@ -661,7 +667,7 @@ class FASTPT:
         # get the matrix for each J_k component
         P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
 
-        sig4 = np.trapz(self.k_old ** 3 * Ps ** 2, x=np.log(self.k_old)) / (2. * pi ** 2)
+        sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
         Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
         Pd2d2 = 2. * (mat[0, :])
         Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
@@ -670,7 +676,7 @@ class FASTPT:
                                                                                                                       :])
         Pd2s2 = 2. * (2. / 3 * mat[1, :])
         Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
-        sig3nl = Y1_reg_NL(self.k_old, Ps)
+        sig3nl = Y1_reg_NL(self.k_extrap, Ps)
 
         Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig3nl = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig3nl)
 
@@ -691,7 +697,7 @@ class FASTPT:
         P22 = 2. * ((1219. / 1470.) * j000 + (671. / 1029.) * j002 + (32. / 1715.) * j004 + (1. / 3.) * j2n22 + (
                 62. / 35.) * j1n11 + (8. / 35.) * j1n13 + (1. / 6.) * j2n20)
 
-        sig4 = np.trapz(self.k_old ** 3 * Ps ** 2, x=np.log(self.k_old)) / (2. * pi ** 2)
+        sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
 
         X1 = ((144. / 245.) * j000 - (176. / 343.) * j002 - (128. / 1715.) * j004 + (16. / 35.) * j1n11 - (
                 16. / 35.) * j1n13)
@@ -700,8 +706,8 @@ class FASTPT:
         X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
         X5 = j000
 
-        Y1 = Y1_reg_NL(self.k_old, Ps)
-        Y2 = Y2_reg_NL(self.k_old, Ps)
+        Y1 = Y1_reg_NL(self.k_extrap, Ps)
+        Y2 = Y2_reg_NL(self.k_extrap, Ps)
 
         Pb1L = X1 + Y1
         Pb1L_2 = X2 + Y2
@@ -734,14 +740,14 @@ class FASTPT:
         FQs2 = (-4./15.)*j000 + (20./21.)*j002 - (24./35.)*j004
 
 
-        FR1 = cleft_Z1(self.k_old, Ps)
-        FR2 = cleft_Z2(self.k_old, Ps)
+        FR1 = cleft_Z1(self.k_extrap, Ps)
+        FR2 = cleft_Z2(self.k_extrap, Ps)
 
         # ipdb.set_trace()
 
         Ps_ep, FQ1_ep, FQ2_ep, FQ5_ep, FQ8_ep, FQs2_ep, FR1_ep, FR2_ep = self._apply_extrapolation(Ps, FQ1, FQ2, FQ5, FQ8, FQs2, FR1, FR2)
 
-        return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_old,FR1,FR2
+        return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_extrap,FR1,FR2
 
     
     def IA_tt(self, P, P_window=None, C_window=None):
@@ -786,6 +792,7 @@ class FASTPT:
     def get_P_deltaE2(self, P):
         if "P_deltaE2" in self.term_cache: return self.term_cache["P_deltaE2"]
         P_deltaE2 = P_IA_deltaE2(self.k_original, P)
+        #Add extrap?
         self.term_cache["P_deltaE2"] = 2 * P_deltaE2
         return 2 * P_deltaE2
     def get_P_0E0E(self, P, P_window=None, C_window=None):
@@ -1095,7 +1102,7 @@ class FASTPT:
         if (self.high_extrap is not None):
             P = self.EK.extrap_P_high(P)
 
-        P_b = P * self.k_old ** (-nu)
+        P_b = P * self.k_extrap ** (-nu)
 
         if (self.n_pad is not None):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
@@ -1115,12 +1122,12 @@ class FASTPT:
             C_l = np.hstack((c_plus[:-1], c_minus))
             A_k = ifft(C_l) * C_l.size  # multiply by size to get rid of the normalization in ifft
 
-            A_out[i, :] = np.real(A_k[::2]) * pf[i] * self.k ** (-p[i] - 2)
+            A_out[i, :] = np.real(A_k[::2]) * pf[i] * self.k_final ** (-p[i] - 2)
         # note that you have to take every other element
         # in A_k, due to the extended array created from the
         # discrete convolution
 
-        P_out = irfft(c_m[self.m >= 0]) * self.k ** nu * float(self.N)
+        P_out = irfft(c_m[self.m >= 0]) * self.k_final ** nu * float(self.N)
         if (self.n_pad is not None):
             # get rid of the elements created from padding
             P_out = P_out[self.id_pad]
@@ -1147,8 +1154,8 @@ class FASTPT:
 
         for i in range(pf.size):
 
-            P_b1 = P * self.k_old ** (-nu1[i])
-            P_b2 = P * self.k_old ** (-nu2[i])
+            P_b1 = P * self.k_extrap ** (-nu1[i])
+            P_b2 = P * self.k_extrap ** (-nu2[i])
 
             if (P_window is not None):
                 # window the input power spectrum, so that at high and low k
@@ -1157,7 +1164,7 @@ class FASTPT:
 
                 if (self.verbose):
                     print('windowing biased power spectrum')
-                W = p_window(self.k_old, P_window[0], P_window[1])
+                W = p_window(self.k_extrap, P_window[0], P_window[1])
                 P_b1 = P_b1 * W
                 P_b2 = P_b2 * W
 
@@ -1177,7 +1184,7 @@ class FASTPT:
             C_l = np.hstack((c_plus[:-1], c_minus))
             A_k = ifft(C_l) * C_l.size  # multiply by size to get rid of the normalization in ifft
 
-            A_out[i, :] = np.real(A_k[::2]) * pf[i] * self.k ** (p[i])
+            A_out[i, :] = np.real(A_k[::2]) * pf[i] * self.k_final ** (p[i])
             # note that you have to take every other element
             # in A_k, due to the extended array created from the
             # discrete convolution
