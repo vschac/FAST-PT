@@ -44,13 +44,13 @@ def test_init_extrapolation_ranges():
     k = np.logspace(-3, 1, 200)
             
     # Test valid extrapolation
-    fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
+    fpt = FASTPT(k, to_do=['skip'], low_extrap=-5, high_extrap=3)
     assert fpt.low_extrap == -5
     assert fpt.high_extrap == 3
             
     # Test invalid extrapolation
     with pytest.raises(ValueError):
-        FASTPT(k, low_extrap=3, high_extrap=-5)  # Invalid range
+        FASTPT(k, to_do=['skip'], low_extrap=3, high_extrap=-5)  # Invalid range
 
 def test_init_padding(fpt):
     """Test initialization with different padding values"""

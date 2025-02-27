@@ -90,6 +90,23 @@ class FASTPT:
         
         if nu: print("Warning: nu is no longer needed for FAST-PT initialization.")
         
+
+        # if no to_do list is given, default to fastpt_simple SPT case
+        if (to_do is None):
+            if (verbose):
+                print(
+                    'Note: You are using an earlier call structure for FASTPT. Your code will still run correctly, calling FASTPT_simple. See user manual.')
+            if (nu is None):  # give a warning if nu=None that a default value is being used.
+                print('WARNING: No value for nu is given. FASTPT_simple is being called with a default of nu=-2')
+                nu = -2  # this is the default value for P22+P13 and bias calculation
+            print("WARNING: No to_do list is given therefore calling FASTPT_simple. FASTPT_simple will soon be DEPRECATED.")
+            self.pt_simple = fastpt_simple.FASTPT(k, nu, param_mat=param_mat, low_extrap=low_extrap,
+                                                  high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
+            return None
+        # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
+        
+
+
         self.cache = {} #Used for storing JK tensor and scalar values
         self.c_cache = {} #Used for storing c_m, c_n, and c_l values
         self.term_cache = {} #Used for storing individual terms from all FAST-PT functions
@@ -106,19 +123,6 @@ class FASTPT:
         self.high_extrap = high_extrap
         self.__k_extrap = k #K extrapolation not padded
 
-        # if no to_do list is given, default to fastpt_simple SPT case
-        if (to_do is None):
-            if (verbose):
-                print(
-                    'Note: You are using an earlier call structure for FASTPT. Your code will still run correctly, calling FASTPT_simple. See user manual.')
-            if (nu is None):  # give a warning if nu=None that a default value is being used.
-                print('WARNING: No value for nu is given. FASTPT_simple is being called with a default of nu=-2')
-                nu = -2  # this is the default value for P22+P13 and bias calculation
-            print("WARNING: No to_do list is given therefore calling FASTPT_simple. FASTPT_simple will soon be DEPRECATED.")
-            self.pt_simple = fastpt_simple.FASTPT(k, nu, param_mat=param_mat, low_extrap=low_extrap,
-                                                  high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
-            return None
-        # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
         
         # check for log spacing
         # print('Initializing k-grid quantities...')
@@ -1104,7 +1108,7 @@ class FASTPT:
 
         P_b = P * self.k_extrap ** (-nu)
 
-        if (self.n_pad is not None):
+        if (self.n_pad != 0):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
 
         c_m = self._cache_fourier_coefficients(P_b, C_window)
@@ -1128,7 +1132,7 @@ class FASTPT:
         # discrete convolution
 
         P_out = irfft(c_m[self.m >= 0]) * self.k_final ** nu * float(self.N)
-        if (self.n_pad is not None):
+        if (self.n_pad != 0):
             # get rid of the elements created from padding
             P_out = P_out[self.id_pad]
             A_out = A_out[:, self.id_pad]
