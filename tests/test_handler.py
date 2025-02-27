@@ -11,8 +11,6 @@ P_window = np.array([0.2, 0.2])
 fpt = FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip'])
 handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
 term = handler.get("P_deltaE1")
-func_term = fpt.IA_ta(P=P, P_window=P_window, C_window=C_window)[0]
-print(np.allclose(term, func_term))
 
 @pytest.fixture
 def fpt():
