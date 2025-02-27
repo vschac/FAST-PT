@@ -53,7 +53,7 @@ def test_invalid_p_window(fpt):
         FPTHandler(fpt, P=P, P_window=np.array([1.0]))
 
 def test_cache_functionality(fpt):
-    handler = FPTHandler(fpt, P=P)
+    handler = FPTHandler(fpt, do_cache=True, P=P)
     handler.run('one_loop_dd')  # First run
     cache_size_before = len(handler.cache)
     handler.run('one_loop_dd')  # Should use cache
@@ -63,7 +63,7 @@ def test_cache_functionality(fpt):
 
 def test_cache_with_other_params(fpt):
     """Test caching behavior with various parameter combinations"""
-    handler = FPTHandler(fpt)
+    handler = FPTHandler(fpt, do_cache=True)
     
     # Test parameters that should result in different cache entries
     param_combinations = [
@@ -120,7 +120,7 @@ def test_missing_required_params(fpt):
         handler.run('RSD_components')
 
 def test_clear_specific_cache(fpt):
-    handler = FPTHandler(fpt, P=P)
+    handler = FPTHandler(fpt, do_cache=True, P=P)
     handler.run('one_loop_dd')
     handler.run('one_loop_dd_bias')
     handler.clear_cache('one_loop_dd')
