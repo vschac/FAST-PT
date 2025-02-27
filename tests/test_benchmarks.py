@@ -78,6 +78,10 @@ def test_IA_ctbias(fpt):
     bmark = np.transpose(fpt.IA_ctbias(P, C_window=C_window))
     assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IA_ctbias_benchmark.txt'))
 
+def test_IA_gb2(fpt):
+    bmark = np.transpose(fpt.IA_gb2(P, C_window=C_window))
+    assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IA_gb2_benchmark.txt'))
+
 def test_IA_d2(fpt):
     bmark = np.transpose(fpt.IA_d2(P, C_window=C_window))
     assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IA_d2_benchmark.txt'))

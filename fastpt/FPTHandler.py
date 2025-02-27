@@ -12,6 +12,87 @@ class FPTHandler:
         #Explain somewhere that caching is an option though not necessarily needed
         self.do_cache = do_cache
         self.max_cache_entries = max_cache_entries
+
+        #Commented out terms have not been implemented yet
+        self.term_sources = {
+            # "P_1loop": ("one_loop_dd", 0),
+            # "Ps": ("one_loop_dd", 1),
+            # "Pd1d2": ("one_loop_dd_bias", 2),  
+            # "Pd2d2": ("one_loop_dd_bias", 3),
+            # "Pd1s2": ("one_loop_dd_bias", 4),
+            # "Pd2s2": ("one_loop_dd_bias", 5),
+            # "Ps2s2": ("one_loop_dd_bias", 6),
+            # "sig4": ("one_loop_dd_bias", 7),
+        
+            # "sig3nl": ("one_loop_dd_bias_b3nl", 8),
+        
+            # "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
+            # "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
+            # "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
+            # "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
+            # "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
+        
+            "P_E": ("IA_tt", "X_IA_E"),
+            "P_B": ("IA_tt", "X_IA_B"),
+        
+            "P_A": ("IA_mix", "X_IA_A"),
+            "P_Btype2": ("IA_mix", None),
+            "P_DEE": ("IA_mix", "X_IA_DEE"),
+            "P_DBB": ("IA_mix", "X_IA_DBB"),
+        
+            "P_deltaE1": ("IA_ta", "X_IA_deltaE1"),
+            "P_deltaE2": ("IA_ta", None),
+            "P_0E0E": ("IA_ta", "X_IA_0E0E"),
+            "P_0B0B": ("IA_ta", "X_IA_0B0B"),
+        
+            "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2"),
+            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_he"),
+            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_fe"),
+
+            "P_der": ("IA_der", None),
+
+            # "P_0tE": ("IA_ct", 0),
+            # "P_0EtE": ("IA_ct", 1),
+            # "P_E2tE": ("IA_ct", 2),
+            # "P_tEtE": ("IA_ct", 3),
+        
+            "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2, X_IA_gb2_G2")),
+            "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2, X_IA_gb2_S2G2")),
+        
+            "P_s2E": ("IA_s2", "X_IA_gb2_S2F2"),
+            "P_s20E": ("IA_s2", "X_IA_gb2_S2fe"),
+            "P_s2E2": ("IA_s2", "X_IA_gb2_S2he"),
+        
+            "P_d2E": ("IA_d2", "X_IA_gb2_F2"),
+            "P_d20E": ("IA_d2", "X_IA_gb2_he"),
+            "P_d2E2": ("IA_d2", "X_IA_gb2_fe"),
+        
+            "P_OV": ("OV", None),
+        
+            "P_kP1": ("kPol", "X_kP1"),
+            "P_kP2": ("kPol", "X_kP2"),
+            "P_kP3": ("kPol", "X_kP3"),
+        
+            # "A1": ("RSD_components", 0),
+            # "A3": ("RSD_components", 1),
+            # "A5": ("RSD_components", 2),
+            # "B0": ("RSD_components", 3),
+            # "B2": ("RSD_components", 4),
+            # "B4": ("RSD_components", 5),
+            # "B6": ("RSD_components", 6),
+            # "P_Ap1": ("RSD_components", 7),
+            # "P_Ap3": ("RSD_components", 8),
+            # "P_Ap5": ("RSD_components", 9),
+        
+            # "ABsum_mu2": ("RSD_ABsum_components", 0),
+            # "ABsum_mu4": ("RSD_ABsum_components", 1),
+            # "ABsum_mu6": ("RSD_ABsum_components", 2),
+            # "ABsum_mu8": ("RSD_ABsum_components", 3),
+        
+            # "ABsum": ("RSD_ABsum_components", 0),
+
+            # "P_IRres": ("IRres", 0),
+        }
  
 
     def _validate_params(self, **params):
@@ -123,14 +204,14 @@ class FPTHandler:
     
     #Not saving any time by caching this function because the individual terms
     #are already cached in FASTPT
-    def get(self, *args, **override_kwargs):
+    def get(self, *terms, **override_kwargs):
         """Allows for quick access to a specific term from a function."""
         output = {}
-        for arg in args:
-            if not hasattr(self.fastpt, f"get_{arg}"):
-                raise ValueError(f"Term '{arg}' not found in FASTPT.")
+        for term in terms:
+            if term not in self.term_sources:
+                raise ValueError(f"Term '{term}' not found in FASTPT.")
         
-            func_name = f"get_{arg}"
+            func_name = self.term_sources[term][0]
             func = getattr(self.fastpt, func_name)
             params_info = self._get_function_params(func)
 
@@ -144,10 +225,13 @@ class FPTHandler:
                             f"Please recall with the missing parameters.")
 
             passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
-            result = func(**passing_params)
-            output[arg] = result
+            #WRITE EXCEPTIONS FOR: P_Btype2, P_deltaE2, IA_der, OV
+            # ctbias and others will use multiple Xtracers, 
+            compute_func = getattr(self.fastpt, "_compute_term")
+            result = compute_func(term, **passing_params) #<<<<< BE conscious of order of params
+            output[term] = result
         # If only one term was requested, return just that value
-        if len(output) == 1 and len(args) == 1:
+        if len(output) == 1 and len(terms) == 1:
             return output[list(output.keys())[0]]
         return output
 
@@ -183,90 +267,10 @@ class FPTHandler:
         dict
             Dictionary mapping function names to their available terms
         """
-        #Commented out terms have not been implemented yet
-        term_sources = {
-            # "P_1loop": ("one_loop_dd", 0),
-            # "Ps": ("one_loop_dd", 1),
-            # "Pd1d2": ("one_loop_dd_bias", 2),  
-            # "Pd2d2": ("one_loop_dd_bias", 3),
-            # "Pd1s2": ("one_loop_dd_bias", 4),
-            # "Pd2s2": ("one_loop_dd_bias", 5),
-            # "Ps2s2": ("one_loop_dd_bias", 6),
-            # "sig4": ("one_loop_dd_bias", 7),
-        
-            # "sig3nl": ("one_loop_dd_bias_b3nl", 8),
-        
-            # "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
-            # "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
-            # "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
-            # "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
-            # "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
-        
-            "P_E": ("IA_tt", 0),
-            "P_B": ("IA_tt", 1),
-        
-            "P_A": ("IA_mix", 0),
-            "P_Btype2": ("IA_mix", 1),
-            "P_DEE": ("IA_mix", 2),
-            "P_DBB": ("IA_mix", 3),
-        
-            "P_deltaE1": ("IA_ta", 0),
-            "P_deltaE2": ("IA_ta", 1),
-            "P_0E0E": ("IA_ta", 2),
-            "P_0B0B": ("IA_ta", 3),
-        
-            "P_gb2sij": ("IA_gb2", 0),
-            "P_gb2dsij": ("IA_gb2", 1),
-            "P_gb2sij2": ("IA_gb2", 2),
-
-            "P_der": ("IA_der", 0),
-
-            "P_0tE": ("IA_ct", 0),
-            "P_0EtE": ("IA_ct", 1),
-            "P_E2tE": ("IA_ct", 2),
-            "P_tEtE": ("IA_ct", 3),
-        
-            "P_d2tE": ("IA_ctbias", 0),
-            "P_s2tE": ("IA_ctbias", 1),
-        
-            "P_s2E": ("IA_s2", 0),
-            "P_s20E": ("IA_s2", 1),
-            "P_s2E2": ("IA_s2", 2),
-        
-            "P_d2E": ("IA_d2", 0),
-            "P_d20E": ("IA_d2", 1),
-            "P_d2E2": ("IA_d2", 2),
-        
-            "P_OV": ("OV", 0),
-        
-            "P_kP1": ("kPol", 0),
-            "P_kP2": ("kPol", 1),
-            "P_kP3": ("kPol", 2),
-        
-            # "A1": ("RSD_components", 0),
-            # "A3": ("RSD_components", 1),
-            # "A5": ("RSD_components", 2),
-            # "B0": ("RSD_components", 3),
-            # "B2": ("RSD_components", 4),
-            # "B4": ("RSD_components", 5),
-            # "B6": ("RSD_components", 6),
-            # "P_Ap1": ("RSD_components", 7),
-            # "P_Ap3": ("RSD_components", 8),
-            # "P_Ap5": ("RSD_components", 9),
-        
-            # "ABsum_mu2": ("RSD_ABsum_components", 0),
-            # "ABsum_mu4": ("RSD_ABsum_components", 1),
-            # "ABsum_mu6": ("RSD_ABsum_components", 2),
-            # "ABsum_mu8": ("RSD_ABsum_components", 3),
-        
-            # "ABsum": ("RSD_ABsum_components", 0),
-
-            # "P_IRres": ("IRres", 0),
-        }
     
         # Organize by function
         organized = {}
-        for term, (func, _) in term_sources.items():
+        for term, (func, _) in self.term_sources.items():
             if func not in organized:
                 organized[func] = []
             organized[func].append(term)

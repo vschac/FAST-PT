@@ -265,6 +265,14 @@ def test_IA_ctbias(fpt):
     for term in result:
         assert term.shape == P.shape
 
+def test_IA_gb2(fpt):
+    """Test the IA_gb2 function"""
+    result = fpt.IA_gb2(P)
+    assert isinstance(result, tuple)
+    assert len(result) == 3
+    for term in result:
+        assert term.shape == P.shape
+
 def test_IA_d2(fpt):
     """Test the IA_d2 function"""
     result = fpt.IA_d2(P)
