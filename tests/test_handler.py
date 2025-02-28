@@ -6,11 +6,16 @@ import os
 
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
 P = np.loadtxt(data_path)[:, 1]
+k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-fpt = FASTPT(np.loadtxt(data_path)[:,0], to_do=['skip'])
-handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-term = handler.get("P_deltaE1")
+# fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
+# handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+# t1 = handler.get("P_deltaE1")
+# t2 = fpt.IA_ta(P, P_window=P_window, C_window=C_window)[0]
+# print(t1)
+# print(t2)
+# print(np.allclose(t1, t2))
 
 @pytest.fixture
 def fpt():
@@ -272,3 +277,119 @@ def test_handler_function_equality(fpt):
                 
         except Exception as e:
             pytest.fail(f"Function {func_name} comparison failed with error: {str(e)}")
+
+
+########### GET METHOD TESTING ############
+def test_get_method_basics(fpt):
+        """Test the basic functionality of the get method"""
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Test single term retrieval
+        p_deltaE1 = handler.get("P_deltaE1")
+        p_deltaE1_direct = fpt.IA_ta(P=P, P_window=P_window, C_window=C_window)[0]
+        assert np.array_equal(p_deltaE1, p_deltaE1_direct)
+        
+        # Test multiple terms retrieval
+        terms = handler.get("P_deltaE1", "P_0E0E")
+        assert "P_deltaE1" in terms
+        assert "P_0E0E" in terms
+        assert np.array_equal(terms["P_deltaE1"], p_deltaE1_direct)
+        assert np.array_equal(terms["P_0E0E"], fpt.IA_ta(P=P, P_window=P_window, C_window=C_window)[2])
+
+#STILL NEED TO ADD ONE LOOP, CT, AND RSD
+@pytest.mark.parametrize("term_name", ["P_E", "P_B",
+                                       "P_A", "P_deltaE2", "P_DEE", "P_DBB",
+                                       "P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B",
+                                       "P_gb2sij", "P_gb2dsij", "P_gb2sij2"
+                                       "P_der",
+                                       "P_d2tE", "P_s2tE",
+                                       "P_s2E", "P_s20E", "P_s2E2",
+                                       "P_OV",
+                                       "P_kP1", "P_kP2", "P_kP3"])                   
+def test_get_all_terms(fpt, term_name):
+    pass
+
+def test_get_with_caching(fpt):
+        """Test get method with caching enabled"""
+        handler = FPTHandler(fpt, do_cache=True, P=P, P_window=P_window, C_window=C_window)
+        
+        # First call - should compute
+        result1 = handler.get("P_deltaE1")
+        
+        # Second call - should use cache
+        result2 = handler.get("P_deltaE1")
+        
+        assert np.array_equal(result1, result2)
+        
+        # Check that different terms create different cache entries
+        handler.clear_cache()
+        handler.get("P_deltaE1")
+        cache_size = len(handler.cache)
+        handler.get("P_0E0E")
+        assert len(handler.cache) > cache_size
+
+def test_get_with_different_params(fpt):
+        """Test get method with different parameter combinations"""
+        handler = FPTHandler(fpt)
+        
+        # Test with parameters provided at runtime
+        result1 = handler.get("P_deltaE1", P=P, P_window=P_window, C_window=C_window)
+        
+        # Test with default parameters
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        result2 = handler.get("P_deltaE1")
+        
+        assert np.array_equal(result1, result2)
+        
+        # Test with override parameters
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        new_P = P * 1.1
+        result3 = handler.get("P_deltaE1", P=new_P)
+        
+        assert not np.array_equal(result1, result3)
+
+def test_get_invalid_term(fpt):
+    """Test get method with invalid term name"""
+    handler = FPTHandler(fpt, P=P)
+        
+    with pytest.raises(ValueError, match="Term 'nonexistent_term' not found in FASTPT"):
+        handler.get("nonexistent_term")
+
+def test_get_missing_params(fpt):
+        """Test get method with missing required parameters"""
+        handler = FPTHandler(fpt)
+        
+        with pytest.raises(ValueError, match="Missing required parameters"):
+            handler.get("P_deltaE1")  # P is required
+
+def test_get_special_terms(fpt):
+    """Test get method with special terms that have their own functions"""
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+    # Test P_Btype2 which has its own function
+    p_btype2 = handler.get("P_Btype2")
+    p_btype2_direct = fpt.get_P_Btype2(P)
+        
+    assert np.array_equal(p_btype2, p_btype2_direct)
+        
+    # Test P_deltaE2 which has its own function
+    p_deltaE2 = handler.get("P_deltaE2")
+    p_deltaE2_direct = fpt.get_P_deltaE2(P)
+        
+    assert np.array_equal(p_deltaE2, p_deltaE2_direct)
+
+def test_get_term_caching_behavior(fpt):
+        """Test caching behavior of the get method for specific terms"""
+        handler = FPTHandler(fpt, do_cache=True, P=P, P_window=P_window, C_window=C_window)
+        
+        # First call should compute
+        handler.get("P_deltaE1")
+        cache_size = len(handler.cache)
+        
+        # Call with same parameters should use cache
+        handler.get("P_deltaE1")
+        assert len(handler.cache) == cache_size
+        
+        # Call with different parameters should create new cache entry
+        handler.get("P_deltaE1", P=P*1.01)
+        assert len(handler.cache) > cache_size

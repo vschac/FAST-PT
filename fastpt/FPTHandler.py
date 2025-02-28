@@ -1,7 +1,7 @@
 import numpy as np
-from numpy import log
 import inspect
 from fastpt import FASTPT
+from numpy import pi, log
 
 class FPTHandler:
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, max_cache_entries=500, **params):
@@ -32,46 +32,46 @@ class FPTHandler:
             # "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
             # "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
         
-            "P_E": ("IA_tt", "X_IA_E"),
-            "P_B": ("IA_tt", "X_IA_B"),
+            "P_E": ("IA_tt", "X_IA_E", lambda x: 2 * x),
+            "P_B": ("IA_tt", "X_IA_B", lambda x: 2 * x),
         
-            "P_A": ("IA_mix", "X_IA_A"),
-            "P_Btype2": ("IA_mix", None),
-            "P_DEE": ("IA_mix", "X_IA_DEE"),
-            "P_DBB": ("IA_mix", "X_IA_DBB"),
+            "P_A": ("IA_mix", "X_IA_A", lambda x: 2 * x),
+            #"P_Btype2": ("IA_mix", None),
+            "P_DEE": ("IA_mix", "X_IA_DEE", lambda x: 2 * x),
+            "P_DBB": ("IA_mix", "X_IA_DBB", lambda x: 2 * x),
         
-            "P_deltaE1": ("IA_ta", "X_IA_deltaE1"),
-            "P_deltaE2": ("IA_ta", None),
-            "P_0E0E": ("IA_ta", "X_IA_0E0E"),
-            "P_0B0B": ("IA_ta", "X_IA_0B0B"),
+            "P_deltaE1": ("IA_ta", "X_IA_deltaE1", lambda x: 2 * x),
+            #"P_deltaE2": ("IA_ta", None),
+            "P_0E0E": ("IA_ta", "X_IA_0E0E", None),
+            "P_0B0B": ("IA_ta", "X_IA_0B0B", None),
         
-            "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2"),
-            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_he"),
-            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_fe"),
+            "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
+            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
+            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
 
-            "P_der": ("IA_der", None),
+            #"P_der": ("IA_der", None),
 
             # "P_0tE": ("IA_ct", 0),
             # "P_0EtE": ("IA_ct", 1),
             # "P_E2tE": ("IA_ct", 2),
             # "P_tEtE": ("IA_ct", 3),
         
-            "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2, X_IA_gb2_G2")),
-            "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2, X_IA_gb2_S2G2")),
+            "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2, X_IA_gb2_G2"), lambda results: 2 * (results[1] - results[0])),
+            "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2, X_IA_gb2_S2G2"), lambda results: 2 * (results[1] - results[0])),
         
-            "P_s2E": ("IA_s2", "X_IA_gb2_S2F2"),
-            "P_s20E": ("IA_s2", "X_IA_gb2_S2fe"),
-            "P_s2E2": ("IA_s2", "X_IA_gb2_S2he"),
+            "P_s2E": ("IA_s2", "X_IA_gb2_S2F2", lambda x: 2 * x),
+            "P_s20E": ("IA_s2", "X_IA_gb2_S2fe", lambda x: 2 * x),
+            "P_s2E2": ("IA_s2", "X_IA_gb2_S2he", lambda x: 2 * x),
         
-            "P_d2E": ("IA_d2", "X_IA_gb2_F2"),
-            "P_d20E": ("IA_d2", "X_IA_gb2_he"),
-            "P_d2E2": ("IA_d2", "X_IA_gb2_fe"),
+            "P_d2E": ("IA_d2", "X_IA_gb2_F2", lambda x: 2 * x),
+            "P_d20E": ("IA_d2", "X_IA_gb2_he", lambda x: 2 * x),
+            "P_d2E2": ("IA_d2", "X_IA_gb2_fe", lambda x: 2 * x),
         
-            "P_OV": ("OV", None),
+            #"P_OV": ("OV", None),
         
-            "P_kP1": ("kPol", "X_kP1"),
-            "P_kP2": ("kPol", "X_kP2"),
-            "P_kP3": ("kPol", "X_kP3"),
+            "P_kP1": ("kPol", "X_kP1", lambda x: x / (80 * pi ** 2)),
+            "P_kP2": ("kPol", "X_kP2", lambda x: x / (160 * pi ** 2)),
+            "P_kP3": ("kPol", "X_kP3",lambda x: x / (80 * pi ** 2)),
         
             # "A1": ("RSD_components", 0),
             # "A3": ("RSD_components", 1),
@@ -170,6 +170,24 @@ class FPTHandler:
             else:
                 hashable_params.append((k, v))
         return tuple(sorted(hashable_params))
+    
+    def _prepare_function_params(self, func, override_kwargs):
+        """Prepares and validates parameters for a FASTPT function."""
+        if override_kwargs: 
+            self._validate_params(**override_kwargs)
+    
+        merged_params = {**self.default_params, **override_kwargs}
+
+        params_info = self._get_function_params(func)
+        missing_params = [p for p in params_info['required'] if p not in merged_params]
+    
+        if missing_params:
+            raise ValueError(f"Missing required parameters for '{func.__name__}': {missing_params}. "
+                        f"Please recall with the missing parameters.")
+
+        # Return only the params the function actually needs
+        passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
+        return passing_params, params_info
 
 
     def run(self, function_name, **override_kwargs):
@@ -178,19 +196,7 @@ class FPTHandler:
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
 
         func = getattr(self.fastpt, function_name)
-        params_info = self._get_function_params(func)
-
-        if (override_kwargs): 
-            self._validate_params(**override_kwargs)
-        merged_params = {**self.default_params, **override_kwargs}
-
-        missing_params = [p for p in params_info['required'] if p not in merged_params]
-        if missing_params:
-            raise ValueError(f"Missing required parameters for '{function_name}': {missing_params}. "
-                         f"Please recall with the missing parameters.")
-    
-        # Remove unneeded default params EX: f not needed in one_loop_dd
-        passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
+        passing_params, _ = self._prepare_function_params(func, override_kwargs)
         
         if self.do_cache:
             cache_key = self._convert_to_hashable(passing_params)
@@ -205,31 +211,46 @@ class FPTHandler:
     #Not saving any time by caching this function because the individual terms
     #are already cached in FASTPT
     def get(self, *terms, **override_kwargs):
-        """Allows for quick access to a specific term from a function."""
+        """Allows for quick access to a specific term or terms from a FASTPT function."""
         output = {}
         for term in terms:
             if term not in self.term_sources:
                 raise ValueError(f"Term '{term}' not found in FASTPT.")
-        
-            func_name = self.term_sources[term][0]
-            func = getattr(self.fastpt, func_name)
-            params_info = self._get_function_params(func)
+            if term in ("P_Btype2", "P_deltaE2", "IA_der", "OV"): #Terms that have their own unique functions
+                exceptions = {
+                    "P_Btype2": "get_P_Btype2",
+                    "P_deltaE2": "get_P_deltaE2",
+                    "P_IA_der": "IA_der",
+                    "P_OV": "OV"
+                }
+                func_name = exceptions[term]
+                func = getattr(self.fastpt, func_name)
+            
+                passing_params, _ = self._prepare_function_params(func, override_kwargs)
+                result = func(**passing_params)
+            else:
+                func_name = self.term_sources[term][0]
+                func = getattr(self.fastpt, func_name)
+                passing_params, params_info = self._prepare_function_params(func, override_kwargs)
 
-            if (override_kwargs): 
-                self._validate_params(**override_kwargs)
-            merged_params = {**self.default_params, **override_kwargs}
+                compute_func = getattr(self.fastpt, "compute_term")
 
-            missing_params = [p for p in params_info['required'] if p not in merged_params]
-            if missing_params:
-                raise ValueError(f"Missing required parameters for '{func_name}': {missing_params}. "
-                            f"Please recall with the missing parameters.")
+                X_source = self.term_sources[term][1]
+                operation = self.term_sources[term][2]
 
-            passing_params = {k: v for k, v in merged_params.items() if k in params_info['all']}
-            #WRITE EXCEPTIONS FOR: P_Btype2, P_deltaE2, IA_der, OV
-            # ctbias and others will use multiple Xtracers, 
-            compute_func = getattr(self.fastpt, "_compute_term")
-            result = compute_func(term, **passing_params) #<<<<< BE conscious of order of params
+                # Handle case where we need multiple X terms (like for ctbias)
+                if isinstance(X_source, tuple):
+                    X_names = [name.strip() for name in X_source[0].split(',')]
+                    X_terms = tuple(getattr(self.fastpt, name.strip()) for name in X_names)
+                
+                    result = compute_func(term, X_terms, operation=operation, **passing_params)
+                else:
+                    # Standard case with a single X tracer
+                    X_term = getattr(self.fastpt, X_source)
+                    result = compute_func(term, X_term, operation=operation, **passing_params)                
+                
             output[term] = result
+
         # If only one term was requested, return just that value
         if len(output) == 1 and len(terms) == 1:
             return output[list(output.keys())[0]]
@@ -245,7 +266,7 @@ class FPTHandler:
             print("Cache cleared for all functions.")
 
     def show_cache_info(self):
-        """Display cache using info pprint"""
+        """Display cache information"""
         num_entries = len(self.cache)
         print({
             "num_entries": num_entries,
@@ -259,14 +280,7 @@ class FPTHandler:
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("__")])
 
     def list_available_terms(self):
-        """
-        List all available power spectrum terms that can be requested via get()
-    
-        Returns:
-        --------
-        dict
-            Dictionary mapping function names to their available terms
-        """
+        """List all available power spectrum terms that can be requested via get()"""
     
         # Organize by function
         organized = {}

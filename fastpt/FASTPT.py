@@ -170,8 +170,9 @@ class FASTPT:
                 print('to ensure that the minimum k_output is > 2k_min in the FASTPT universe.')
                 print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_extrap[0]}')
         else:
-            print("WARNING: N_pad is recommended but none has been provided, defaulting to 0.")
-            self.n_pad = int(0.5*len(k))
+            print("WARNING: N_pad is recommended but none has been provided, defaulting to 0.5*len(k).")
+            #self.n_pad = int(0.5*len(k))
+            self.n_pad = 0
 
         self.__k_final = k #log spaced k, with padding and extrap
         self.k_size = k.size
@@ -581,12 +582,11 @@ class FASTPT:
         self.cache[cache_key] = result
         return result
     
-    def _compute_term(self, term, P, X, P_window=None, C_window=None, operation=None):
+    def compute_term(self, term, X, operation=None, P=None, P_window=None, C_window=None):
         """Computes the individual terms of Fast-PT functions with caching"""
+        if P is None: raise ValueError('Compute term requires an input power spectrum array.')
         if term in self.term_cache:
             result = self.term_cache[term]
-            if operation:
-                return operation(result)
             return result
     
         # Handle case where X is a tuple of multiple X parameters
@@ -792,23 +792,23 @@ class FASTPT:
     
     def IA_tt(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_E = self._compute_term("P_E", P, self.X_IA_E, P_window=P_window, C_window=C_window,
-                                 operation=lambda x: 2 * x)
-        P_B = self._compute_term("P_B", P, self.X_IA_B, P_window=P_window, C_window=C_window,
-                                 operation=lambda x: 2 * x)
+        P_E = self.compute_term("P_E", self.X_IA_E, operation=lambda x: 2 * x, 
+                                 P=P, P_window=P_window, C_window=C_window)
+        P_B = self.compute_term("P_B", self.X_IA_B, operation=lambda x: 2 * x,
+                                 P=P, P_window=P_window, C_window=C_window)
         return P_E, P_B
 
     ## eq 21 EE; eq 21 BB
     
     def IA_mix(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_A = self._compute_term("P_A", P, self.X_IA_A, P_window=P_window, C_window=C_window,
-                                 operation=lambda x: 2 * x)
-        P_Btype2 = self.get_P_Btype2(P) #Calculated differently then other terms, can't use _compute_term
-        P_DEE = self._compute_term("P_DEE", P, self.X_IA_DEE, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
-        P_DBB = self._compute_term("P_DBB", P, self.X_IA_DBB, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
+        P_A = self.compute_term("P_A", self.X_IA_A, operation=lambda x: 2 * x, 
+                                 P=P, P_window=P_window, C_window=C_window)
+        P_Btype2 = self.get_P_Btype2(P) #Calculated differently then other terms, can't use compute_term
+        P_DEE = self.compute_term("P_DEE", self.X_IA_DEE, operation=lambda x: 2 * x, 
+                                   P=P, P_window=P_window, C_window=C_window)
+        P_DBB = self.compute_term("P_DBB", self.X_IA_DBB, operation=lambda x: 2 * x,
+                                   P=P, P_window=P_window, C_window=C_window)
         return P_A, P_Btype2, P_DEE, P_DBB
     
     def get_P_Btype2(self, P):
@@ -822,11 +822,11 @@ class FASTPT:
     
     def IA_ta(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_deltaE1 = self._compute_term("P_deltaE1", P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window,
-                                       operation=lambda x: 2 * x)
-        P_deltaE2 = self.get_P_deltaE2(P) #Calculated differently then other terms, can't use _compute_term
-        P_0E0E = self._compute_term("P_0E0E", P, self.X_IA_0E0E, P_window=P_window, C_window=C_window)
-        P_0B0B = self._compute_term("P_0B0B", P, self.X_IA_0B0B, P_window=P_window, C_window=C_window)
+        P_deltaE1 = self.compute_term("P_deltaE1", self.X_IA_deltaE1, operation=lambda x: 2 * x, 
+                                       P=P, P_window=P_window, C_window=C_window)
+        P_deltaE2 = self.get_P_deltaE2(P) #Calculated differently then other terms, can't use compute_term
+        P_0E0E = self.compute_term("P_0E0E", self.X_IA_0E0E, P=P, P_window=P_window, C_window=C_window)
+        P_0B0B = self.compute_term("P_0B0B", self.X_IA_0B0B, P=P, P_window=P_window, C_window=C_window)
         return P_deltaE1, P_deltaE2, P_0E0E, P_0B0B
     
     def get_P_deltaE2(self, P):
@@ -883,55 +883,55 @@ class FASTPT:
     def IA_ctbias(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         #Old Commnet: P_13S2F2 = P_IA_13S2F2(self.k_original, P)
-        P_d2tE = self._compute_term(
-            "P_d2tE", 
-            P, 
-            (self.X_IA_gb2_F2, self.X_IA_gb2_G2), 
+        P_d2tE = self.compute_term(
+            "P_d2tE",  
+            (self.X_IA_gb2_F2, self.X_IA_gb2_G2),
+            operation=lambda results: 2 * (results[1] - results[0]),
+            P=P,
             P_window=P_window, 
-            C_window=C_window,
-            operation=lambda results: 2 * (results[1] - results[0])
+            C_window=C_window
         )
-        P_s2tE = self._compute_term(
-            "P_s2tE", 
-            P, 
+        P_s2tE = self.compute_term(
+            "P_s2tE",  
             (self.X_IA_gb2_S2F2, self.X_IA_gb2_S2G2), 
+            operation=lambda results: 2 * (results[1] - results[0]),
+            P=P,
             P_window=P_window, 
             C_window=C_window,
-            operation=lambda results: 2 * (results[1] - results[0])
         )
         return P_d2tE, P_s2tE
 
     
     def IA_gb2(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_gb2sij = self._compute_term("P_gb2sij", P, self.X_IA_gb2_F2, P_window=P_window, C_window=C_window,
-                                       operation=lambda x: 2 * x)
-        P_gb2sij2 = self._compute_term("P_gb2sij2", P, self.X_IA_gb2_he, P_window=P_window, C_window=C_window,
-                                       operation=lambda x: 2 * x)
-        P_gb2dsij = self._compute_term("P_gb2dsij", P, self.X_IA_gb2_fe, P_window=P_window, C_window=C_window,
-                                       operation=lambda x: 2 * x)
+        P_gb2sij = self.compute_term("P_gb2sij", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
+                                      P=P, P_window=P_window, C_window=C_window)
+        P_gb2sij2 = self.compute_term("P_gb2sij2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
+                                       P=P, P_window=P_window, C_window=C_window)
+        P_gb2dsij = self.compute_term("P_gb2dsij", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
+                                       P=P, P_window=P_window, C_window=C_window)
         return P_gb2sij, P_gb2dsij, P_gb2sij2
     
 
     def IA_d2(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_d2E = self._compute_term("P_d2E", P, self.X_IA_gb2_F2, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
-        P_d20E = self._compute_term("P_d20E", P, self.X_IA_gb2_he, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
-        P_d2E2 = self._compute_term("P_d2E2", P, self.X_IA_gb2_fe, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
+        P_d2E = self.compute_term("P_d2E", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
+                                   P=P, P_window=P_window, C_window=C_window)
+        P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_he, operation=lambda x: 2 * x,
+                                    P=P, P_window=P_window, C_window=C_window)
+        P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
+                                    P=P, P_window=P_window, C_window=C_window)
         return P_d2E, P_d20E, P_d2E2
 
     
     def IA_s2(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_s2E = self._compute_term("P_s2E", P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
-        P_s20E = self._compute_term("P_s20E", P, self.X_IA_gb2_S2fe, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
-        P_s2E2 = self._compute_term("P_s2E2", P, self.X_IA_gb2_S2he, P_window=P_window, C_window=C_window,
-                                   operation=lambda x: 2 * x)
+        P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
+                                   P=P, P_window=P_window, C_window=C_window)
+        P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
+                                    P=P, P_window=P_window, C_window=C_window)
+        P_s2E2 = self.compute_term("P_s2E2", self.X_IA_gb2_S2he, operation=lambda x: 2 * x,
+                                    P=P, P_window=P_window, C_window=C_window)
         return P_s2E, P_s20E, P_s2E2
 
     
@@ -946,12 +946,12 @@ class FASTPT:
     
     def kPol(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P1 = self._compute_term("P_kP1", P, self.X_kP1, P_window=P_window, C_window=C_window,
-                                operation=lambda x: x / (80 * pi ** 2))
-        P2 = self._compute_term("P_kP2", P, self.X_kP2, P_window=P_window, C_window=C_window,
-                                operation=lambda x: x / (160 * pi ** 2))
-        P3 = self._compute_term("P_kP3", P, self.X_kP3, P_window=P_window, C_window=C_window,
-                                operation=lambda x: x / (80 * pi ** 2))
+        P1 = self.compute_term("P_kP1", self.X_kP1, operation=lambda x: x / (80 * pi ** 2),
+                                P=P, P_window=P_window, C_window=C_window)
+        P2 = self.compute_term("P_kP2", self.X_kP2, operation=lambda x: x / (160 * pi ** 2),
+                                P=P, P_window=P_window, C_window=C_window)
+        P3 = self.compute_term("P_kP3", self.X_kP3, operation=lambda x: x / (80 * pi ** 2),
+                                P=P, P_window=P_window, C_window=C_window)
         return P1, P2, P3
 
 
@@ -1081,7 +1081,7 @@ class FASTPT:
         if C_window is not None:
             if self.verbose:
                 print('windowing the Fourier coefficients')
-            c_m = c_m * c_window(self.m, int(C_window * self.N // 2.))
+            c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
     
         # Cache and return
         self.c_cache[cache_key] = c_m
