@@ -298,16 +298,103 @@ def test_get_method_basics(fpt):
 
 #STILL NEED TO ADD ONE LOOP, CT, AND RSD
 @pytest.mark.parametrize("term_name", ["P_E", "P_B",
-                                       "P_A", "P_deltaE2", "P_DEE", "P_DBB",
+                                       "P_A", "P_Btype2", "P_DEE", "P_DBB",
                                        "P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B",
-                                       "P_gb2sij", "P_gb2dsij", "P_gb2sij2"
+                                       "P_gb2sij", "P_gb2dsij", "P_gb2sij2",
                                        "P_der",
                                        "P_d2tE", "P_s2tE",
                                        "P_s2E", "P_s20E", "P_s2E2",
+                                       "P_d2E", "P_d20E", "P_d2E2",
                                        "P_OV",
                                        "P_kP1", "P_kP2", "P_kP3"])                   
 def test_get_all_terms(fpt, term_name):
-    pass
+    term_sources = {
+            # "P_1loop": ("one_loop_dd", 0),
+            # "Ps": ("one_loop_dd", 1),
+            # "Pd1d2": ("one_loop_dd_bias", 2),  
+            # "Pd2d2": ("one_loop_dd_bias", 3),
+            # "Pd1s2": ("one_loop_dd_bias", 4),
+            # "Pd2s2": ("one_loop_dd_bias", 5),
+            # "Ps2s2": ("one_loop_dd_bias", 6),
+            # "sig4": ("one_loop_dd_bias", 7),
+        
+            # "sig3nl": ("one_loop_dd_bias_b3nl", 8),
+        
+            # "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
+            # "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
+            # "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
+            # "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
+            # "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
+        
+            "P_E": ("IA_tt", 0),
+            "P_B": ("IA_tt", 1),
+        
+            "P_A": ("IA_mix", 0),
+            "P_Btype2": ("IA_mix", 1),
+            "P_DEE": ("IA_mix", 2),
+            "P_DBB": ("IA_mix", 3),
+        
+            "P_deltaE1": ("IA_ta", 0),
+            "P_deltaE2": ("IA_ta", 1),
+            "P_0E0E": ("IA_ta", 2),
+            "P_0B0B": ("IA_ta", 3),
+        
+            "P_gb2sij": ("IA_gb2", 0),
+            "P_gb2dsij": ("IA_gb2", 1),
+            "P_gb2sij2": ("IA_gb2", 2),
+
+            "P_der": ("IA_der", 0),
+
+            # "P_0tE": ("IA_ct", 0),
+            # "P_0EtE": ("IA_ct", 1),
+            # "P_E2tE": ("IA_ct", 2),
+            # "P_tEtE": ("IA_ct", 3),
+        
+            "P_d2tE": ("IA_ctbias", 0),
+            "P_s2tE": ("IA_ctbias", 1),
+        
+            "P_s2E": ("IA_s2", 0),
+            "P_s20E": ("IA_s2", 1),
+            "P_s2E2": ("IA_s2", 2),
+        
+            "P_d2E": ("IA_d2", 0),
+            "P_d20E": ("IA_d2", 1),
+            "P_d2E2": ("IA_d2", 2),
+        
+            "P_OV": ("OV", 0),
+        
+            "P_kP1": ("kPol", 0),
+            "P_kP2": ("kPol", 1),
+            "P_kP3": ("kPol", 2),
+        
+            # "A1": ("RSD_components", 0),
+            # "A3": ("RSD_components", 1),
+            # "A5": ("RSD_components", 2),
+            # "B0": ("RSD_components", 3),
+            # "B2": ("RSD_components", 4),
+            # "B4": ("RSD_components", 5),
+            # "B6": ("RSD_components", 6),
+            # "P_Ap1": ("RSD_components", 7),
+            # "P_Ap3": ("RSD_components", 8),
+            # "P_Ap5": ("RSD_components", 9),
+        
+            # "ABsum_mu2": ("RSD_ABsum_components", 0),
+            # "ABsum_mu4": ("RSD_ABsum_components", 1),
+            # "ABsum_mu6": ("RSD_ABsum_components", 2),
+            # "ABsum_mu8": ("RSD_ABsum_components", 3),
+        
+            # "ABsum": ("RSD_ABsum_components", 0),
+
+            # "P_IRres": ("IRres", 0),
+        }
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    term_source = term_sources[term_name]
+    result = handler.get(term_name)
+    result_direct = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)[term_source[1]]
+    assert np.allclose(result, result_direct) #Compares the cached result
+    fpt.term_cache = {}
+    result_direct2 = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)[term_source[1]]
+    assert np.allclose(result, result_direct2) #Compares the calculated result
 
 def test_get_with_caching(fpt):
         """Test get method with caching enabled"""
@@ -393,3 +480,35 @@ def test_get_term_caching_behavior(fpt):
         # Call with different parameters should create new cache entry
         handler.get("P_deltaE1", P=P*1.01)
         assert len(handler.cache) > cache_size
+
+def test_get_edge_cases(fpt):
+    """Test edge cases for the get method"""
+    # Test with empty parameters
+    handler = FPTHandler(fpt)
+    
+    # Test with empty term list
+    with pytest.raises(ValueError, match="you must provide at least one term"):
+        handler.get()
+    
+    # Test with required parameters passed directly at call
+    result = handler.get("P_E", P=P, P_window=P_window, C_window=C_window)
+    assert result is not None
+    
+    # Test with mixed valid and invalid terms
+    with pytest.raises(ValueError, match="not found in FASTPT"):
+        handler.get("P_E", "nonexistent_term", P=P, P_window=P_window, C_window=C_window)
+    
+    # Test parameter validation - P length must match k length
+    with pytest.raises(ValueError):
+        handler.get("P_E", P=np.ones(10))
+    
+    # Test parameter validation - C_window must be between 0 and 1
+    with pytest.raises(ValueError):
+        handler.get("P_E", P=P, C_window=1.5)
+    
+    # Test with overridden default parameters
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    new_P = P * 1.1
+    result1 = handler.get("P_E")
+    result2 = handler.get("P_E", P=new_P)
+    assert not np.array_equal(result1, result2)
