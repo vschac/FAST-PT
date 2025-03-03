@@ -36,28 +36,28 @@ class FPTHandler:
             "P_B": ("IA_tt", "X_IA_B", lambda x: 2 * x),
         
             "P_A": ("IA_mix", "X_IA_A", lambda x: 2 * x),
-            #"P_Btype2": ("IA_mix", None),
+            "P_Btype2": ("IA_mix", None),
             "P_DEE": ("IA_mix", "X_IA_DEE", lambda x: 2 * x),
             "P_DBB": ("IA_mix", "X_IA_DBB", lambda x: 2 * x),
         
             "P_deltaE1": ("IA_ta", "X_IA_deltaE1", lambda x: 2 * x),
-            #"P_deltaE2": ("IA_ta", None),
+            "P_deltaE2": ("IA_ta", None),
             "P_0E0E": ("IA_ta", "X_IA_0E0E", None),
             "P_0B0B": ("IA_ta", "X_IA_0B0B", None),
         
             "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
-            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
-            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
+            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
+            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
 
-            #"P_der": ("IA_der", None),
+            "P_der": ("IA_der", None),
 
             # "P_0tE": ("IA_ct", 0),
             # "P_0EtE": ("IA_ct", 1),
             # "P_E2tE": ("IA_ct", 2),
             # "P_tEtE": ("IA_ct", 3),
         
-            "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2, X_IA_gb2_G2"), lambda results: 2 * (results[1] - results[0])),
-            "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2, X_IA_gb2_S2G2"), lambda results: 2 * (results[1] - results[0])),
+            "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2", "X_IA_gb2_G2"), lambda results: 2 * (results[1] - results[0])),
+            "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2", "X_IA_gb2_S2G2"), lambda results: 2 * (results[1] - results[0])),
         
             "P_s2E": ("IA_s2", "X_IA_gb2_S2F2", lambda x: 2 * x),
             "P_s20E": ("IA_s2", "X_IA_gb2_S2fe", lambda x: 2 * x),
@@ -67,7 +67,7 @@ class FPTHandler:
             "P_d20E": ("IA_d2", "X_IA_gb2_he", lambda x: 2 * x),
             "P_d2E2": ("IA_d2", "X_IA_gb2_fe", lambda x: 2 * x),
         
-            #"P_OV": ("OV", None),
+            "P_OV": ("OV", None),
         
             "P_kP1": ("kPol", "X_kP1", lambda x: x / (80 * pi ** 2)),
             "P_kP2": ("kPol", "X_kP2", lambda x: x / (160 * pi ** 2)),
@@ -212,15 +212,17 @@ class FPTHandler:
     #are already cached in FASTPT
     def get(self, *terms, **override_kwargs):
         """Allows for quick access to a specific term or terms from a FASTPT function."""
+        if not terms:
+            raise ValueError("At least one term must be provided.")
         output = {}
         for term in terms:
             if term not in self.term_sources:
                 raise ValueError(f"Term '{term}' not found in FASTPT.")
-            if term in ("P_Btype2", "P_deltaE2", "IA_der", "OV"): #Terms that have their own unique functions
+            if term in ("P_Btype2", "P_deltaE2", "P_der", "P_OV"): #Terms that have their own unique functions
                 exceptions = {
                     "P_Btype2": "get_P_Btype2",
                     "P_deltaE2": "get_P_deltaE2",
-                    "P_IA_der": "IA_der",
+                    "P_der": "IA_der",
                     "P_OV": "OV"
                 }
                 func_name = exceptions[term]
@@ -240,10 +242,14 @@ class FPTHandler:
 
                 # Handle case where we need multiple X terms (like for ctbias)
                 if isinstance(X_source, tuple):
-                    X_names = [name.strip() for name in X_source[0].split(',')]
-                    X_terms = tuple(getattr(self.fastpt, name.strip()) for name in X_names)
-                
-                    result = compute_func(term, X_terms, operation=operation, **passing_params)
+                    X_names = X_source
+                    X_terms = []
+                    for name in X_names:
+                        if name in dir(self.fastpt):
+                            X_terms.append(getattr(self.fastpt, name))
+                        else:
+                            raise AttributeError(f"'{name}' not found in FASTPT")
+                    result = compute_func(term, tuple(X_terms), operation=operation, **passing_params)
                 else:
                     # Standard case with a single X tracer
                     X_term = getattr(self.fastpt, X_source)

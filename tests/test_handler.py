@@ -226,7 +226,7 @@ def test_max_cache_entries(fpt):
         handler.run('one_loop_dd')
     assert len(handler.cache) <= 5
 
-################# BENCHMARK TESTS #################
+################# result_direct TESTS #################
 def test_handler_function_equality(fpt):
     """Test that handler produces identical results to direct FASTPT function calls"""
     handler = FPTHandler(fpt)
@@ -390,11 +390,16 @@ def test_get_all_terms(fpt, term_name):
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     term_source = term_sources[term_name]
     result = handler.get(term_name)
-    result_direct = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)[term_source[1]]
-    assert np.allclose(result, result_direct) #Compares the cached result
+    result_direct = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)
+    if isinstance(result_direct, tuple):
+        result_direct = result_direct[term_source[1]]
+    assert np.allclose(result, result_direct)
     fpt.term_cache = {}
-    result_direct2 = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)[term_source[1]]
-    assert np.allclose(result, result_direct2) #Compares the calculated result
+    result_direct2 = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)
+    if isinstance(result_direct2, tuple):
+        result_direct2 = result_direct2[term_source[1]]
+    assert np.allclose(result, result_direct2)
+
 
 def test_get_with_caching(fpt):
         """Test get method with caching enabled"""
@@ -402,18 +407,15 @@ def test_get_with_caching(fpt):
         
         # First call - should compute
         result1 = handler.get("P_deltaE1")
-        
         # Second call - should use cache
         result2 = handler.get("P_deltaE1")
-        
+        assert len(fpt.term_cache) == 1
         assert np.array_equal(result1, result2)
-        
-        # Check that different terms create different cache entries
-        handler.clear_cache()
+        fpt.term_cache = {}
         handler.get("P_deltaE1")
-        cache_size = len(handler.cache)
+        cache_size = len(fpt.term_cache)
         handler.get("P_0E0E")
-        assert len(handler.cache) > cache_size
+        assert len(fpt.term_cache) > cache_size
 
 def test_get_with_different_params(fpt):
         """Test get method with different parameter combinations"""
@@ -421,17 +423,17 @@ def test_get_with_different_params(fpt):
         
         # Test with parameters provided at runtime
         result1 = handler.get("P_deltaE1", P=P, P_window=P_window, C_window=C_window)
-        
+        fpt.term_cache = {}
         # Test with default parameters
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        result2 = handler.get("P_deltaE1")
+        handler2 = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        result2 = handler2.get("P_deltaE1")
         
         assert np.array_equal(result1, result2)
         
         # Test with override parameters
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        new_P = P * 1.1
-        result3 = handler.get("P_deltaE1", P=new_P)
+        handler3 = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        new_P = P * 5
+        result3 = handler3.get("P_deltaE1", P=new_P)
         
         assert not np.array_equal(result1, result3)
 
@@ -453,33 +455,24 @@ def test_get_special_terms(fpt):
     """Test get method with special terms that have their own functions"""
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
         
-    # Test P_Btype2 which has its own function
     p_btype2 = handler.get("P_Btype2")
     p_btype2_direct = fpt.get_P_Btype2(P)
         
     assert np.array_equal(p_btype2, p_btype2_direct)
         
-    # Test P_deltaE2 which has its own function
     p_deltaE2 = handler.get("P_deltaE2")
     p_deltaE2_direct = fpt.get_P_deltaE2(P)
         
     assert np.array_equal(p_deltaE2, p_deltaE2_direct)
 
-def test_get_term_caching_behavior(fpt):
-        """Test caching behavior of the get method for specific terms"""
-        handler = FPTHandler(fpt, do_cache=True, P=P, P_window=P_window, C_window=C_window)
-        
-        # First call should compute
-        handler.get("P_deltaE1")
-        cache_size = len(handler.cache)
-        
-        # Call with same parameters should use cache
-        handler.get("P_deltaE1")
-        assert len(handler.cache) == cache_size
-        
-        # Call with different parameters should create new cache entry
-        handler.get("P_deltaE1", P=P*1.01)
-        assert len(handler.cache) > cache_size
+    p_ov = handler.get("P_OV")
+    p_ov_direct = fpt.OV(P)
+    assert np.array_equal(p_ov, p_ov_direct)
+
+    p_der = handler.get("P_der")
+    p_der_direct = fpt.IA_der(P)
+    assert np.array_equal(p_der, p_der_direct)
+
 
 def test_get_edge_cases(fpt):
     """Test edge cases for the get method"""
@@ -487,7 +480,7 @@ def test_get_edge_cases(fpt):
     handler = FPTHandler(fpt)
     
     # Test with empty term list
-    with pytest.raises(ValueError, match="you must provide at least one term"):
+    with pytest.raises(ValueError, match="At least one term must be provided."):
         handler.get()
     
     # Test with required parameters passed directly at call

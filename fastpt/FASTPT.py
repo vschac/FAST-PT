@@ -522,10 +522,23 @@ class FASTPT:
     
     def _hash_arrays(self, arrays):
         """Helper function to create a hash from multiple numpy arrays or scalars"""
-        if isinstance(arrays, tuple):
-            return tuple(hash(arr.tobytes()) if isinstance(arr, np.ndarray) else hash(arr) 
-                        for arr in arrays)
-        return hash(arrays.tobytes()) if isinstance(arrays, np.ndarray) else hash(arrays)
+        if isinstance(arrays, (tuple, list)):
+            # Handle elements that could be arrays, tuples of arrays, or other objects
+            result = []
+            for item in arrays:
+                if isinstance(item, np.ndarray):
+                    result.append(hash(item.tobytes()))
+                elif isinstance(item, (tuple, list)):
+                    # Handle nested tuples/lists recursively
+                    result.append(self._hash_arrays(item))
+                else:
+                    result.append(hash(item))
+            return tuple(result)
+    
+        # Single item case
+        if isinstance(arrays, np.ndarray):
+            return hash(arrays.tobytes())
+        return hash(arrays)
 
 
     def _compute_one_loop_terms(self, P, X, P_window=None, C_window=None):
@@ -585,8 +598,13 @@ class FASTPT:
     def compute_term(self, term, X, operation=None, P=None, P_window=None, C_window=None):
         """Computes the individual terms of Fast-PT functions with caching"""
         if P is None: raise ValueError('Compute term requires an input power spectrum array.')
-        if term in self.term_cache:
-            result = self.term_cache[term]
+        
+        p_hash = self._hash_arrays(P)
+        pwin_hash = self._hash_arrays(P_window)
+        cache_key = (term, p_hash, pwin_hash, C_window)
+
+        if cache_key in self.term_cache:
+            result = self.term_cache[cache_key]
             return result
     
         # Handle case where X is a tuple of multiple X parameters
@@ -599,10 +617,10 @@ class FASTPT:
         
             if operation:
                 final_result = operation(results)
-                self.term_cache[term] = final_result
+                self.term_cache[cache_key] = final_result
                 return final_result
         
-            self.term_cache[term] = results
+            self.term_cache[cache_key] = results
             return results
     
         # Single X parameter case
@@ -611,10 +629,10 @@ class FASTPT:
     
         if operation:
             final_result = operation(result)
-            self.term_cache[term] = final_result
+            self.term_cache[cache_key] = final_result
             return final_result
     
-        self.term_cache[term] = result
+        self.term_cache[cache_key] = result
         return result
 
 
@@ -906,9 +924,9 @@ class FASTPT:
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_gb2sij = self.compute_term("P_gb2sij", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
                                       P=P, P_window=P_window, C_window=C_window)
-        P_gb2sij2 = self.compute_term("P_gb2sij2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
-                                       P=P, P_window=P_window, C_window=C_window)
         P_gb2dsij = self.compute_term("P_gb2dsij", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
+                                        P=P, P_window=P_window, C_window=C_window)
+        P_gb2sij2 = self.compute_term("P_gb2sij2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
                                        P=P, P_window=P_window, C_window=C_window)
         return P_gb2sij, P_gb2dsij, P_gb2sij2
     
