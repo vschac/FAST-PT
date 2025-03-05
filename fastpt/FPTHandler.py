@@ -51,10 +51,10 @@ class FPTHandler:
 
             "P_der": ("IA_der", None),
 
-            # "P_0tE": ("IA_ct", 0),
-            # "P_0EtE": ("IA_ct", 1),
-            # "P_E2tE": ("IA_ct", 2),
-            # "P_tEtE": ("IA_ct", 3),
+            "P_0tE": ("IA_ct", None),
+            "P_0EtE": ("IA_ct", None),
+            "P_E2tE": ("IA_ct", None),
+            "P_tEtE": ("IA_ct", None),
         
             "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2", "X_IA_gb2_G2"), lambda results: 2 * (results[1] - results[0])),
             "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2", "X_IA_gb2_S2G2"), lambda results: 2 * (results[1] - results[0])),
@@ -218,12 +218,16 @@ class FPTHandler:
         for term in terms:
             if term not in self.term_sources:
                 raise ValueError(f"Term '{term}' not found in FASTPT.")
-            if term in ("P_Btype2", "P_deltaE2", "P_der", "P_OV"): #Terms that have their own unique functions
+            if term in ("P_Btype2", "P_deltaE2", "P_der", "P_OV", "P_0tE", "P_0EtE", "P_E2tE", "P_tEtE"): #Terms that have their own unique functions
                 exceptions = {
                     "P_Btype2": "get_P_Btype2",
                     "P_deltaE2": "get_P_deltaE2",
                     "P_der": "IA_der",
-                    "P_OV": "OV"
+                    "P_OV": "OV",
+                    "P_0tE": "get_P_0tE",
+                    "P_0EtE": "get_P_0EtE",
+                    "P_E2tE": "get_P_E2tE",
+                    "P_tEtE": "get_P_tEtE"
                 }
                 func_name = exceptions[term]
                 func = getattr(self.fastpt, func_name)

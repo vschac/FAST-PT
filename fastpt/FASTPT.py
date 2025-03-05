@@ -864,19 +864,17 @@ class FASTPT:
         self.term_cache["P_der"] = P_der
         return P_der
     
-    #STILL NEED TO BREAK DOWN
     def IA_ct(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_feG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
-        P_heG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
-        P_F2F2, A = self._compute_J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
-        P_G2G2, A = self._compute_J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
-        P_F2G2, A = self._compute_J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
-        P_feG2, P_heG2, P_F2F2, P_G2G2, P_F2G2 = self._apply_extrapolation(P_feG2, P_heG2, P_F2F2, P_G2G2, P_F2G2)
-        P_A00E,A,B,C = self.IA_ta(P, P_window=P_window, C_window=C_window)
-        P_A0E2,D,E,F = self.IA_mix(P,P_window=P_window, C_window=C_window)
-        P_13F = P_IA_13F(self.k_original, P)
-        P_13G = P_IA_13G(self.k_original,P,)
+        P_0tE = self.get_P_0tE(P, P_window=P_window, C_window=C_window)
+        P_0EtE = self.get_P_0EtE(P, P_window=P_window, C_window=C_window)
+        P_E2tE = self.get_P_E2tE(P, P_window=P_window, C_window=C_window)
+        P_tEtE = self.get_P_tEtE(P, P_window=P_window, C_window=C_window)
+        return P_0tE,P_0EtE,P_E2tE,P_tEtE
+    
+    def get_P_0tE(self, P, P_window=None, C_window=None):
+        cache_key = ("P_0tE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
         nu=-2
         Ps, mat = self._compute_J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
         one_loop_coef = np.array(
@@ -890,13 +888,44 @@ class FASTPT:
         P22G_mat = np.multiply(one_loop_coefG, np.transpose(matG))
         P_22G = np.sum(P22G_mat, 1)
         P_22F, P_22G = self._apply_extrapolation(P_22F, P_22G)
-        P_tEtE = P_F2F2+P_G2G2-2*P_F2G2
+        P_13G = P_IA_13G(self.k_original,P,)
+        P_13F = P_IA_13F(self.k_original, P)
         P_0tE = P_22G-P_22F+P_13G-P_13F
-        P_0EtE = np.subtract(P_feG2,(1/2)*P_A00E)
-        P_E2tE = np.subtract(P_heG2,(1/2)*P_A0E2)
-            
-        return 2*P_0tE,2*P_0EtE,2*P_E2tE,2*P_tEtE
+        self.term_cache[cache_key] = 2*P_0tE
+        return 2*P_0tE
     
+    def get_P_0EtE(self, P, P_window=None, C_window=None):
+        cache_key = ("P_0EtE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        P_feG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
+        P_feG2 = self._apply_extrapolation(P_feG2)
+        P_A00E = self.compute_term("P_deltaE1", self.X_IA_deltaE1, operation=lambda x: 2 * x, 
+                                       P=P, P_window=P_window, C_window=C_window) #OG: P_A00E, _, _, _ = self.IA_ta()
+        P_0EtE = np.subtract(P_feG2,(1/2)*P_A00E)
+        self.term_cache[cache_key] = 2*P_0EtE
+        return 2*P_0EtE
+    
+    def get_P_E2tE(self, P, P_window=None, C_window=None):
+        cache_key = ("P_E2tE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        P_heG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
+        P_heG2 = self._apply_extrapolation(P_heG2)
+        P_A0E2 = self.compute_term("P_A", self.X_IA_A, operation=lambda x: 2 * x, 
+                                 P=P, P_window=P_window, C_window=C_window) #OG: P_A0E2, _, _, _ = self.IA_mix()
+        P_E2tE = np.subtract(P_heG2,(1/2)*P_A0E2)
+        self.term_cache[cache_key] = 2*P_E2tE
+        return 2*P_E2tE
+    
+    def get_P_tEtE(self, P, P_window=None, C_window=None):
+        cache_key = ("P_tEtE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        P_F2F2, A = self._compute_J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
+        P_G2G2, A = self._compute_J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
+        P_F2G2, A = self._compute_J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
+        P_F2F2, P_G2G2, P_F2G2 = self._apply_extrapolation(P_F2F2, P_G2G2, P_F2G2)
+        P_tEtE = P_F2F2+P_G2G2-2*P_F2G2
+        self.term_cache[cache_key] = 2*P_tEtE
+        return 2*P_tEtE
     
     def IA_ctbias(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)

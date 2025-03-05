@@ -296,12 +296,13 @@ def test_get_method_basics(fpt):
         assert np.array_equal(terms["P_deltaE1"], p_deltaE1_direct)
         assert np.array_equal(terms["P_0E0E"], fpt.IA_ta(P=P, P_window=P_window, C_window=C_window)[2])
 
-#STILL NEED TO ADD ONE LOOP, CT, AND RSD
+#STILL NEED TO ADD ONE LOOP AND RSD
 @pytest.mark.parametrize("term_name", ["P_E", "P_B",
                                        "P_A", "P_Btype2", "P_DEE", "P_DBB",
                                        "P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B",
                                        "P_gb2sij", "P_gb2dsij", "P_gb2sij2",
                                        "P_der",
+                                       "P_0tE", "P_0EtE", "P_E2tE", "P_tEtE",
                                        "P_d2tE", "P_s2tE",
                                        "P_s2E", "P_s20E", "P_s2E2",
                                        "P_d2E", "P_d20E", "P_d2E2",
@@ -345,10 +346,10 @@ def test_get_all_terms(fpt, term_name):
 
             "P_der": ("IA_der", 0),
 
-            # "P_0tE": ("IA_ct", 0),
-            # "P_0EtE": ("IA_ct", 1),
-            # "P_E2tE": ("IA_ct", 2),
-            # "P_tEtE": ("IA_ct", 3),
+            "P_0tE": ("IA_ct", 0),
+            "P_0EtE": ("IA_ct", 1),
+            "P_E2tE": ("IA_ct", 2),
+            "P_tEtE": ("IA_ct", 3),
         
             "P_d2tE": ("IA_ctbias", 0),
             "P_s2tE": ("IA_ctbias", 1),
