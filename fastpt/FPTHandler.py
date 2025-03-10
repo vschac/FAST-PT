@@ -15,22 +15,22 @@ class FPTHandler:
 
         #Commented out terms have not been implemented yet
         self.term_sources = {
-            # "P_1loop": ("one_loop_dd", 0),
-            # "Ps": ("one_loop_dd", 1),
-            # "Pd1d2": ("one_loop_dd_bias", 2),  
-            # "Pd2d2": ("one_loop_dd_bias", 3),
-            # "Pd1s2": ("one_loop_dd_bias", 4),
-            # "Pd2s2": ("one_loop_dd_bias", 5),
-            # "Ps2s2": ("one_loop_dd_bias", 6),
-            # "sig4": ("one_loop_dd_bias", 7),
+            "P_1loop": ("one_loop_dd", None),
+            "Ps": ("one_loop_dd", None),
+            "Pd1d2": ("one_loop_dd_bias", None),  
+            "Pd2d2": ("one_loop_dd_bias", None),
+            "Pd1s2": ("one_loop_dd_bias", None),
+            "Pd2s2": ("one_loop_dd_bias", None),
+            "Ps2s2": ("one_loop_dd_bias", None),
+            "sig4": ("one_loop_dd_bias", None),
         
-            # "sig3nl": ("one_loop_dd_bias_b3nl", 8),
+            "sig3nl": ("one_loop_dd_bias_b3nl", None),
         
-            # "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
-            # "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
-            # "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
-            # "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
-            # "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
+            "Pb1L": ("one_loop_dd_bias_lpt_NL", None),
+            "Pb1L_2": ("one_loop_dd_bias_lpt_NL", None),
+            "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", None),
+            "Pb2L": ("one_loop_dd_bias_lpt_NL", None),
+            "Pb2L_2": ("one_loop_dd_bias_lpt_NL", None),
         
             "P_E": ("IA_tt", "X_IA_E", lambda x: 2 * x),
             "P_B": ("IA_tt", "X_IA_B", lambda x: 2 * x),
@@ -215,11 +215,7 @@ class FPTHandler:
         if not terms:
             raise ValueError("At least one term must be provided.")
         output = {}
-        for term in terms:
-            if term not in self.term_sources:
-                raise ValueError(f"Term '{term}' not found in FASTPT.")
-            if term in ("P_Btype2", "P_deltaE2", "P_der", "P_OV", "P_0tE", "P_0EtE", "P_E2tE", "P_tEtE"): #Terms that have their own unique functions
-                exceptions = {
+        unique_funcs = {
                     "P_Btype2": "get_P_Btype2",
                     "P_deltaE2": "get_P_deltaE2",
                     "P_der": "IA_der",
@@ -227,13 +223,37 @@ class FPTHandler:
                     "P_0tE": "get_P_0tE",
                     "P_0EtE": "get_P_0EtE",
                     "P_E2tE": "get_P_E2tE",
-                    "P_tEtE": "get_P_tEtE"
+                    "P_tEtE": "get_P_tEtE",
+                    "P_1loop": "one_loop_dd",
+                    "Ps": "one_loop_dd",
+                    "Pd1d2": "get_Pd1d2",
+                    "Pd2d2": "get_Pd2d2",
+                    "Pd1s2": "get_Pd1s2",
+                    "Pd2s2": "get_Pd2s2",
+                    "Ps2s2": "get_Ps2s2",
+                    "sig4": "get_sig4",
+                    "sig3nl": "get_sig3nl",
+                    "Pb1L": "get_Pb1L",
+                    "Pb1L_2": "get_Pb1L_2",
+                    "Pb1L_b2L": "get_Pb1L_b2L",
+                    "Pb2L": "get_Pb2L",
+                    "Pb2L_2": "get_Pb2L_2"
                 }
-                func_name = exceptions[term]
+        for term in terms:
+            if term not in self.term_sources:
+                raise ValueError(f"Term '{term}' not found in FASTPT.")
+            if term in unique_funcs.keys(): #Terms that have their own unique functions
+                func_name = unique_funcs[term]
                 func = getattr(self.fastpt, func_name)
             
                 passing_params, _ = self._prepare_function_params(func, override_kwargs)
                 result = func(**passing_params)
+
+                # Special handling for P_1loop and Ps terms which come from one_loop_dd, only func that returns a tuple
+                if term == "P_1loop" and isinstance(result, tuple):
+                    result = result[0]
+                elif term == "Ps" and isinstance(result, tuple):
+                    result = result[1]
             else:
                 func_name = self.term_sources[term][0]
                 func = getattr(self.fastpt, func_name)

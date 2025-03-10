@@ -522,6 +522,7 @@ class FASTPT:
     
     def _hash_arrays(self, arrays):
         """Helper function to create a hash from multiple numpy arrays or scalars"""
+        if arrays is None: return None
         if isinstance(arrays, (tuple, list)):
             # Handle elements that could be arrays, tuples of arrays, or other objects
             result = []
@@ -540,21 +541,6 @@ class FASTPT:
             return hash(arrays.tobytes())
         return hash(arrays)
 
-
-    def _compute_one_loop_terms(self, P, X, P_window=None, C_window=None):
-        """ Computes the one-loop power spectrum terms """
-        nu = -2
-        one_loop_coef = np.array([2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 
-                                2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
-    
-        Ps, mat = self._compute_J_k_scalar(P, X, nu, P_window=P_window, C_window=C_window)
-    
-        P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
-        P22 = np.sum(P22_mat, 1)
-        P13 = P_13_reg(self.k_extrap, Ps)
-        P_1loop = P22 + P13
-
-        return P_1loop, Ps, mat
 
     def _compute_J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         """Wrapper function to compute J_k_scalar with caching"""
@@ -639,145 +625,202 @@ class FASTPT:
 
     ### Top-level functions to output final quantities ###
     
-    def one_loop_dd(self, P, P_window=None, C_window=None):
+    def one_loop_dd(self, P, P_window=None, C_window=None): #Acts as its own get function (like IA_der)
         self.validate_params(P, P_window=P_window, C_window=C_window)
-
-        # routine for one-loop spt calculations
-
-        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
-        # get the matrix for each J_k component
-        P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
-
-        
-
-        if (self.todo_dict['dd_bias']):
-            # if dd_bias is in to_do, this function acts like one_loop_dd_bias
-
-            # Quadraric bias Legendre components
-            # See eg section B of Baldauf+ 2012 (arxiv: 1201.4827)
-            # Note pre-factor convention is not standardized
-            # Returns relevant correlations (including contraction factors),
-            # but WITHOUT bias values and other pre-factors.
-            # Uses standard "full initialization" of J terms
-            sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
-            self.sig4 = sig4
-            # sig4 much more accurate when calculated in logk, especially for low-res input.
-            Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
-            Pd2d2 = 2. * (mat[0, :])
-            Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
-                                                                                                         :] + 16. / 245 * mat[
-                                                                                                                          2,
-                                                                                                                          :])
-            Pd2s2 = 2. * (2. / 3 * mat[1, :])
-            Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
-            Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2 = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2)
-
-            return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4
-
-        P_1loop, Ps = self._apply_extrapolation(P_1loop, Ps)
-
-        return P_1loop, Ps
-
-    # def get_P1loop(self, P, P_window=None, C_window=None):
-    #     P22 = np.sum(P22_mat, 1)
-    #     P13 = P_13_reg(self.k_extrap, Ps)
-    #     P_1loop = P22 + P13
-
-
+        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Ps = self._apply_extrapolation(Ps)
+        cache_key = ("one_loop_dd", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key], Ps
+        P22 = self.get_P22(P, P_window=P_window, C_window=C_window)
+        P13 = self.get_P13(P, P_window=P_window, C_window=C_window)
+        P_1loop = P22 + P13
+        P_1loop = self._apply_extrapolation(P_1loop)
+        self.term_cache[cache_key] = P_1loop
+        return P_1loop, Ps #This return is going to be different than the original bc the original return is 
+                        # different depending on the todo list which is going to be deprecated.
     
+    def get_P22(self, P, P_window=None, C_window=None):
+        cache_key = ("P22", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        P22_coef = np.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
+        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        P22_mat = np.multiply(P22_coef, np.transpose(mat))
+        P22 = np.sum(P22_mat, axis=1)
+        self.term_cache[cache_key] = P22
+        return P22
+
+    def get_P13(self, P, P_window=None, C_window=None):
+        cache_key = ("P13", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        P13 = P_13_reg(self.k_extrap, Ps)
+        self.term_cache[cache_key] = P13
+        return P13
+
+
+    #TODO add comments back explaining math behind one loop
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
-
-        # routine for one-loop spt calculations
-
-        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
-        # get the matrix for each J_k component
-        P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
-
-        # Quadraric bias Legendre components
-        # See eg section B of Baldauf+ 2012 (arxiv: 1201.4827)
-        # Note pre-factor convention is not standardized
-        # Returns relevant correlations (including contraction factors),
-        # but WITHOUT bias values and other pre-factors.
-        # Uses standard "full initialization" of J terms
+        P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
+        Pd1d2 = self.get_Pd1d2(P, P_window=P_window, C_window=C_window)
+        Pd2d2 = self.get_Pd2d2(P, P_window=P_window, C_window=C_window)
+        Pd1s2 = self.get_Pd1s2(P, P_window=P_window, C_window=C_window)
+        Pd2s2 = self.get_Pd2s2(P, P_window=P_window, C_window=C_window)
+        Ps2s2 = self.get_Ps2s2(P, P_window=P_window, C_window=C_window)
+        sig4 = self.get_sig4(P, P_window=P_window, C_window=C_window)
+        return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4
+    
+    def get_sig4(self, P, P_window=None, C_window=None):
+        cache_key = ("sig4", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
+        self.term_cache[cache_key] = sig4
+        return sig4
+
+    def get_Pd1d2(self, P, P_window=None, C_window=None):
+        cache_key = ("Pd1d2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
+        Pd1d2 = self._apply_extrapolation(Pd1d2)
+        self.term_cache[cache_key] = Pd1d2
+        return Pd1d2
+    
+    def get_Pd2d2(self, P, P_window=None, C_window=None):
+        cache_key = ("Pd2d2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2d2 = 2. * (mat[0, :])
+        Pd2d2 = self._apply_extrapolation(Pd2d2)
+        self.term_cache[cache_key] = Pd2d2
+        return Pd2d2
+    
+    def get_Pd1s2(self, P, P_window=None, C_window=None):
+        cache_key = ("Pd1s2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
                                                                                                      :] + 16. / 245 * mat[
                                                                                                                       2,
                                                                                                                       :])
+        Pd1s2 = self._apply_extrapolation(Pd1s2)
+        self.term_cache[cache_key] = Pd1s2
+        return Pd1s2
+    
+    def get_Pd2s2(self, P, P_window=None, C_window=None):
+        cache_key = ("Pd2s2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2s2 = 2. * (2. / 3 * mat[1, :])
-        Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
-
-        Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2 = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2)
-
-        #			return P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, Ps #original
-        return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4  # new,for consistency
+        Pd2s2 = self._apply_extrapolation(Pd2s2)
+        self.term_cache[cache_key] = Pd2s2
+        return Pd2s2
+    
+    def get_Ps2s2(self, P, P_window=None, C_window=None):
+        cache_key = ("Ps2s2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Pd2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
+        Pd2s2 = self._apply_extrapolation(Pd2s2)
+        self.term_cache[cache_key] = Pd2s2
+        return Pd2s2
 
     
     def one_loop_dd_bias_b3nl(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-
-        # routine for one-loop spt calculations
-
-        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
-        # get the matrix for each J_k component
-        P_1loop, Ps, mat = self._compute_one_loop_terms(P, self.X_spt, P_window=P_window, C_window=C_window)
-
-        sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
-        Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
-        Pd2d2 = 2. * (mat[0, :])
-        Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
-                                                                                                     :] + 16. / 245 * mat[
-                                                                                                                      2,
-                                                                                                                      :])
-        Pd2s2 = 2. * (2. / 3 * mat[1, :])
-        Ps2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
+        P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
+        Pd1d2 = self.get_Pd1d2(P, P_window=P_window, C_window=C_window)
+        Pd2d2 = self.get_Pd2d2(P, P_window=P_window, C_window=C_window)
+        Pd1s2 = self.get_Pd1s2(P, P_window=P_window, C_window=C_window)
+        Pd2s2 = self.get_Pd2s2(P, P_window=P_window, C_window=C_window)
+        Ps2s2 = self.get_Ps2s2(P, P_window=P_window, C_window=C_window)
+        sig4 = self.get_sig4(P, P_window=P_window, C_window=C_window)
+        sig3nl = self.get_sig3nl(P, P_window=P_window, C_window=C_window)
+        return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl
+    
+    def get_sig3nl(self, P, P_window=None, C_window=None):
+        cache_key = ("sig3nl", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         sig3nl = Y1_reg_NL(self.k_extrap, Ps)
-
-        Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig3nl = self._apply_extrapolation(Ps, P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig3nl)
-
-        #			return P_1loop, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, Ps #original
-        return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl  # new,for consistency
+        sig3nl = self._apply_extrapolation(sig3nl)
+        self.term_cache[cache_key] = sig3nl
+        return sig3nl
 
     
     def one_loop_dd_bias_lpt_NL(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-
-        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
-        # get the matrix for each J_k component
-        _, Ps, mat = self._compute_one_loop_terms(P, self.X_lpt, P_window=P_window, C_window=C_window)
-
+        _, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
+        Pb1L = self.get_Pb1L(P, P_window=P_window, C_window=C_window)
+        Pb1L_2 = self.get_Pb1L_2(P, P_window=P_window, C_window=C_window)
+        Pb1L_b2L = self.get_Pb1L_b2L(P, P_window=P_window, C_window=C_window)
+        Pb2L = self.get_Pb2L(P, P_window=P_window, C_window=C_window)
+        Pb2L_2 = self.get_Pb2L_2(P, P_window=P_window, C_window=C_window)
+        sig4 = self.get_sig4(P, P_window=P_window, C_window=C_window)
+        return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
+    
+    def get_Pb1L(self, P, P_window=None, C_window=None):
+        cache_key = ("Pb1L", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
-
-        P22 = 2. * ((1219. / 1470.) * j000 + (671. / 1029.) * j002 + (32. / 1715.) * j004 + (1. / 3.) * j2n22 + (
-                62. / 35.) * j1n11 + (8. / 35.) * j1n13 + (1. / 6.) * j2n20)
-
-        sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
-
         X1 = ((144. / 245.) * j000 - (176. / 343.) * j002 - (128. / 1715.) * j004 + (16. / 35.) * j1n11 - (
                 16. / 35.) * j1n13)
-        X2 = ((16. / 21.) * j000 - (16. / 21.) * j002 + (16. / 35.) * j1n11 - (16. / 35.) * j1n13)
-        X3 = (50. / 21.) * j000 + 2. * j1n11 - (8. / 21.) * j002
-        X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
-        X5 = j000
-
         Y1 = Y1_reg_NL(self.k_extrap, Ps)
-        Y2 = Y2_reg_NL(self.k_extrap, Ps)
-
         Pb1L = X1 + Y1
+        Pb1L = self._apply_extrapolation(Pb1L)
+        self.term_cache[cache_key] = Pb1L
+        return Pb1L
+    
+    def get_Pb1L_2(self, P, P_window=None, C_window=None):
+        cache_key = ("Pb1L_2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
+                                                          mat[5, :], mat[6, :]]
+        X2 = ((16. / 21.) * j000 - (16. / 21.) * j002 + (16. / 35.) * j1n11 - (16. / 35.) * j1n13)
+        Y2 = Y2_reg_NL(self.k_extrap, Ps)
         Pb1L_2 = X2 + Y2
+        Pb1L_2 = self._apply_extrapolation(Pb1L_2)
+        self.term_cache[cache_key] = Pb1L_2
+        return Pb1L_2
+
+    def get_Pb1L_b2L(self, P, P_window=None, C_window=None):
+        cache_key = ("Pb1L_b2L", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
+                                                          mat[5, :], mat[6, :]]
+        X3 = (50. / 21.) * j000 + 2. * j1n11 - (8. / 21.) * j002
         Pb1L_b2L = X3
+        Pb1L_b2L = self._apply_extrapolation(Pb1L_b2L)
+        self.term_cache[cache_key] = Pb1L_b2L
+        return Pb1L_b2L
+    
+    def get_Pb2L(self, P, P_window=None, C_window=None):
+        cache_key = ("Pb2L", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
+                                                          mat[5, :], mat[6, :]]
+        X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
         Pb2L = X4
+        Pb2L = self._apply_extrapolation(Pb2L)
+        self.term_cache[cache_key] = Pb2L
+        return Pb2L
+    
+    def get_Pb2L_2(self, P, P_window=None, C_window=None):
+        cache_key = ("Pb2L_2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
+        if cache_key in self.term_cache: return self.term_cache[cache_key]
+        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
+                                                          mat[5, :], mat[6, :]]
+        X5 = j000
         Pb2L_2 = X5
-
-        Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2 = self._apply_extrapolation(Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2)
-        X1, X2, X3, X4, X5, Y1, Y2 = self._apply_extrapolation(X1, X2, X3, X4, X5, Y1, Y2)
-
-        return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
-
+        Pb2L_2 = self._apply_extrapolation(Pb2L_2)
+        self.term_cache[cache_key] = Pb2L_2
+        return Pb2L_2
     
     def cleft_Q_R(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)

@@ -20,7 +20,7 @@ def test_one_loop_dd(fpt):
     bmark = np.transpose(fpt.one_loop_dd(P, C_window=C_window)[0])
     assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_dd_benchmark.txt'))
 
-def test_one_lood_dd_bias(fpt):
+def test_one_loop_dd_bias(fpt):
     bmark = list(fpt.one_loop_dd_bias(P, C_window=C_window))
     new_array = np.zeros(3000)
     new_array[0] = bmark[7]

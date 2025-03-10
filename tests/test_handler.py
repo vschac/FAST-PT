@@ -9,13 +9,11 @@ P = np.loadtxt(data_path)[:, 1]
 k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-# fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
-# handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-# t1 = handler.get("P_deltaE1")
-# t2 = fpt.IA_ta(P, P_window=P_window, C_window=C_window)[0]
-# print(t1)
-# print(t2)
-# print(np.allclose(t1, t2))
+fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
+handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+# r1 = handler.run("one_loop_dd_bias_b3nl")
+r1 = fpt.one_loop_dd_bias_b3nl(P, P_window=P_window, C_window=C_window)
+print(r1[7])
 
 @pytest.fixture
 def fpt():
@@ -296,8 +294,11 @@ def test_get_method_basics(fpt):
         assert np.array_equal(terms["P_deltaE1"], p_deltaE1_direct)
         assert np.array_equal(terms["P_0E0E"], fpt.IA_ta(P=P, P_window=P_window, C_window=C_window)[2])
 
-#STILL NEED TO ADD ONE LOOP AND RSD
-@pytest.mark.parametrize("term_name", ["P_E", "P_B",
+@pytest.mark.parametrize("term_name", ["P_1loop", "Ps", 
+                                       "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
+                                       "sig3nl",
+                                       "Pb1L", "Pb1L_2", "Pb1L_b2L", "Pb2L", "Pb2L_2",
+                                       "P_E", "P_B",
                                        "P_A", "P_Btype2", "P_DEE", "P_DBB",
                                        "P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B",
                                        "P_gb2sij", "P_gb2dsij", "P_gb2sij2",
@@ -310,22 +311,22 @@ def test_get_method_basics(fpt):
                                        "P_kP1", "P_kP2", "P_kP3"])                   
 def test_get_all_terms(fpt, term_name):
     term_sources = {
-            # "P_1loop": ("one_loop_dd", 0),
-            # "Ps": ("one_loop_dd", 1),
-            # "Pd1d2": ("one_loop_dd_bias", 2),  
-            # "Pd2d2": ("one_loop_dd_bias", 3),
-            # "Pd1s2": ("one_loop_dd_bias", 4),
-            # "Pd2s2": ("one_loop_dd_bias", 5),
-            # "Ps2s2": ("one_loop_dd_bias", 6),
-            # "sig4": ("one_loop_dd_bias", 7),
+            "P_1loop": ("one_loop_dd", 0),
+            "Ps": ("one_loop_dd", 1),
+            "Pd1d2": ("one_loop_dd_bias", 2),  
+            "Pd2d2": ("one_loop_dd_bias", 3),
+            "Pd1s2": ("one_loop_dd_bias", 4),
+            "Pd2s2": ("one_loop_dd_bias", 5),
+            "Ps2s2": ("one_loop_dd_bias", 6),
+            "sig4": ("one_loop_dd_bias", 7),
         
-            # "sig3nl": ("one_loop_dd_bias_b3nl", 8),
+            "sig3nl": ("one_loop_dd_bias_b3nl", 8),
         
-            # "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
-            # "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
-            # "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
-            # "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
-            # "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
+            "Pb1L": ("one_loop_dd_bias_lpt_NL", 1),
+            "Pb1L_2": ("one_loop_dd_bias_lpt_NL", 2),
+            "Pb1L_b2L": ("one_loop_dd_bias_lpt_NL", 3),
+            "Pb2L": ("one_loop_dd_bias_lpt_NL", 4),
+            "Pb2L_2": ("one_loop_dd_bias_lpt_NL", 5),
         
             "P_E": ("IA_tt", 0),
             "P_B": ("IA_tt", 1),
