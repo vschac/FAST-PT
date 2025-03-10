@@ -197,8 +197,47 @@ def test_one_loop_dd_bias_b3nl(fpt):
         
     # Verify consistency between b3nl and standard bias results
     result_bias = fpt.one_loop_dd_bias(P)
+    # for i in range(min(len(result), len(result_bias))):
+    #     assert np.allclose(result[i], result_bias[i])
+    # Enhanced debugging for the failing comparison
     for i in range(min(len(result), len(result_bias))):
-        assert np.allclose(result[i], result_bias[i])
+        try:
+            assert np.allclose(result[i], result_bias[i])
+        except AssertionError:
+            # Provide detailed debugging information
+            print(f"\n==== Detailed Comparison for Index {i} ====")
+            print(f"Shape of result[{i}]: {len(result[i])}, Shape of result_bias[{i}]: {len(result_bias[i])}")
+            
+            if isinstance(result[i], np.ndarray) and isinstance(result_bias[i], np.ndarray):
+                # Calculate statistics about the differences
+                abs_diff = np.abs(result[i] - result_bias[i])
+                rel_diff = abs_diff / np.abs(result_bias[i])
+                rel_diff = np.where(np.isfinite(rel_diff), rel_diff, 0)
+                
+                print(f"Maximum absolute difference: {np.max(abs_diff)}")
+                print(f"Mean absolute difference: {np.mean(abs_diff)}")
+                print(f"Maximum relative difference: {np.max(rel_diff)}")
+                print(f"Mean relative difference: {np.mean(rel_diff)}")
+                
+                # Print some sample values where differences are largest
+                max_diff_idx = np.argmax(abs_diff)
+                print(f"\nAt index of max difference ({max_diff_idx}):")
+                print(f"  result[{i}][{max_diff_idx}] = {result[i][max_diff_idx]}")
+                print(f"  result_bias[{i}][{max_diff_idx}] = {result_bias[i][max_diff_idx]}")
+                
+                # If the arrays are small enough, print all non-matching elements
+                if len(result[i]) < 20:
+                    print("\nAll elements comparison:")
+                    for j in range(len(result[i])):
+                        if not np.isclose(result[i][j], result_bias[i][j]):
+                            print(f"  Index {j}: {result[i][j]} vs {result_bias[i][j]}")
+            
+            # Print the full arrays if scalar values
+            else:
+                print(f"Full values: {result[i]} vs {result_bias[i]}")
+            
+            # Re-raise the assertion with more context
+            raise AssertionError(f"Arrays at index {i} are not equal within tolerance")
 
 def test_one_loop_dd_bias_lpt_NL(fpt):
     """Test the one_loop_dd_bias_lpt_NL function"""
