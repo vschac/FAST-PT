@@ -541,45 +541,6 @@ class FASTPT:
             return hash(arrays.tobytes())
         return hash(arrays)
 
-
-    def _compute_J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
-        """Wrapper function to compute J_k_scalar with caching"""
-        p_hash = self._hash_arrays(P)
-        x_hash = self._hash_arrays(X)
-    
-        if P_window is not None:
-            p_window_hash = self._hash_arrays(P_window)
-        else:
-            p_window_hash = None
-        
-        cache_key = ("J_k_scalar", p_hash, x_hash, nu, p_window_hash, C_window)
-    
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-
-        result = self.J_k_scalar(P, X, nu, P_window, C_window)
-        self.cache[cache_key] = result
-        return result
-
-    def _compute_J_k_tensor(self, P, X, P_window=None, C_window=None):
-        """Wrapper function to compute J_k_tensor with caching"""
-        # Create hashable versions of arrays and tuples
-        p_hash = self._hash_arrays(P)
-        x_hash = self._hash_arrays(X)
-    
-        if P_window is not None:
-            p_window_hash = self._hash_arrays(P_window)
-        else:
-            p_window_hash = None
-        
-        cache_key = ("J_k_tensor", p_hash, x_hash, p_window_hash, C_window)
-    
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-
-        result = self.J_k_tensor(P, X, P_window, C_window)
-        self.cache[cache_key] = result
-        return result
     
     def compute_term(self, term, X, operation=None, P=None, P_window=None, C_window=None):
         """Computes the individual terms of Fast-PT functions with caching"""
@@ -597,7 +558,7 @@ class FASTPT:
         if isinstance(X, tuple) and all(isinstance(x, tuple) for x in X):
             results = []
             for x in X:
-                res, _ = self._compute_J_k_tensor(P, x, P_window=P_window, C_window=C_window)
+                res, _ = self.J_k_tensor(P, x, P_window=P_window, C_window=C_window)
                 res = self._apply_extrapolation(res)
                 results.append(res)
         
@@ -610,7 +571,7 @@ class FASTPT:
             return results
     
         # Single X parameter case
-        result, _ = self._compute_J_k_tensor(P, X, P_window=P_window, C_window=C_window)
+        result, _ = self.J_k_tensor(P, X, P_window=P_window, C_window=C_window)
         result = self._apply_extrapolation(result)
     
         if operation:
@@ -627,7 +588,7 @@ class FASTPT:
     
     def one_loop_dd(self, P, P_window=None, C_window=None): #Acts as its own get function (like IA_der)
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Ps = self._apply_extrapolation(Ps)
         cache_key = ("one_loop_dd", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key], Ps
@@ -643,7 +604,7 @@ class FASTPT:
         cache_key = ("P22", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
         P22_coef = np.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
-        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P22_mat = np.multiply(P22_coef, np.transpose(mat))
         P22 = np.sum(P22_mat, axis=1)
         self.term_cache[cache_key] = P22
@@ -652,7 +613,7 @@ class FASTPT:
     def get_P13(self, P, P_window=None, C_window=None):
         cache_key = ("P13", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P13 = P_13_reg(self.k_extrap, Ps)
         self.term_cache[cache_key] = P13
         return P13
@@ -672,7 +633,7 @@ class FASTPT:
     def get_sig4(self, P, P_window=None, C_window=None):
         cache_key = ("sig4", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
         self.term_cache[cache_key] = sig4
         return sig4
@@ -680,7 +641,7 @@ class FASTPT:
     def get_Pd1d2(self, P, P_window=None, C_window=None):
         cache_key = ("Pd1d2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
         Pd1d2 = self._apply_extrapolation(Pd1d2)
         self.term_cache[cache_key] = Pd1d2
@@ -689,7 +650,7 @@ class FASTPT:
     def get_Pd2d2(self, P, P_window=None, C_window=None):
         cache_key = ("Pd2d2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2d2 = 2. * (mat[0, :])
         Pd2d2 = self._apply_extrapolation(Pd2d2)
         self.term_cache[cache_key] = Pd2d2
@@ -698,7 +659,7 @@ class FASTPT:
     def get_Pd1s2(self, P, P_window=None, C_window=None):
         cache_key = ("Pd1s2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
                                                                                                      :] + 16. / 245 * mat[
                                                                                                                       2,
@@ -710,7 +671,7 @@ class FASTPT:
     def get_Pd2s2(self, P, P_window=None, C_window=None):
         cache_key = ("Pd2s2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2s2 = 2. * (2. / 3 * mat[1, :])
         Pd2s2 = self._apply_extrapolation(Pd2s2)
         self.term_cache[cache_key] = Pd2s2
@@ -719,7 +680,7 @@ class FASTPT:
     def get_Ps2s2(self, P, P_window=None, C_window=None):
         cache_key = ("Ps2s2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        _, mat = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
         Pd2s2 = self._apply_extrapolation(Pd2s2)
         self.term_cache[cache_key] = Pd2s2
@@ -741,7 +702,7 @@ class FASTPT:
     def get_sig3nl(self, P, P_window=None, C_window=None):
         cache_key = ("sig3nl", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, _ = self._compute_J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         sig3nl = Y1_reg_NL(self.k_extrap, Ps)
         sig3nl = self._apply_extrapolation(sig3nl)
         self.term_cache[cache_key] = sig3nl
@@ -762,7 +723,7 @@ class FASTPT:
     def get_Pb1L(self, P, P_window=None, C_window=None):
         cache_key = ("Pb1L", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
         X1 = ((144. / 245.) * j000 - (176. / 343.) * j002 - (128. / 1715.) * j004 + (16. / 35.) * j1n11 - (
@@ -776,7 +737,7 @@ class FASTPT:
     def get_Pb1L_2(self, P, P_window=None, C_window=None):
         cache_key = ("Pb1L_2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
         X2 = ((16. / 21.) * j000 - (16. / 21.) * j002 + (16. / 35.) * j1n11 - (16. / 35.) * j1n13)
@@ -789,7 +750,7 @@ class FASTPT:
     def get_Pb1L_b2L(self, P, P_window=None, C_window=None):
         cache_key = ("Pb1L_b2L", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
         X3 = (50. / 21.) * j000 + 2. * j1n11 - (8. / 21.) * j002
@@ -801,7 +762,7 @@ class FASTPT:
     def get_Pb2L(self, P, P_window=None, C_window=None):
         cache_key = ("Pb2L", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
         X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
@@ -813,7 +774,7 @@ class FASTPT:
     def get_Pb2L_2(self, P, P_window=None, C_window=None):
         cache_key = ("Pb2L_2", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        Ps, mat = self._compute_J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
+        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
                                                           mat[5, :], mat[6, :]]
         X5 = j000
@@ -919,7 +880,7 @@ class FASTPT:
         cache_key = ("P_0tE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
         nu=-2
-        Ps, mat = self._compute_J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
+        Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
         one_loop_coef = np.array(
             [2 * 1219 / 1470., 2 * 671 / 1029., 2 * 32 / 1715., 2 * 1 / 3., 2 * 62 / 35., 2 * 8 / 35., 1 / 3.])
         P22_mat = np.multiply(one_loop_coef, np.transpose(mat))
@@ -927,7 +888,7 @@ class FASTPT:
 
         one_loop_coefG= np.array(
             [2*1003/1470, 2*803/1029, 2*64/1715, 2*1/3, 2*58/35, 2*12/35, 1/3])
-        PsG, matG = self._compute_J_k_scalar(P, self.X_sptG, nu, P_window=P_window, C_window=C_window)
+        PsG, matG = self.J_k_scalar(P, self.X_sptG, nu, P_window=P_window, C_window=C_window)
         P22G_mat = np.multiply(one_loop_coefG, np.transpose(matG))
         P_22G = np.sum(P22G_mat, 1)
         P_22F, P_22G = self._apply_extrapolation(P_22F, P_22G)
@@ -940,7 +901,7 @@ class FASTPT:
     def get_P_0EtE(self, P, P_window=None, C_window=None):
         cache_key = ("P_0EtE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        P_feG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
+        P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
         P_feG2 = self._apply_extrapolation(P_feG2)
         P_A00E = self.compute_term("P_deltaE1", self.X_IA_deltaE1, operation=lambda x: 2 * x, 
                                        P=P, P_window=P_window, C_window=C_window) #OG: P_A00E, _, _, _ = self.IA_ta()
@@ -951,7 +912,7 @@ class FASTPT:
     def get_P_E2tE(self, P, P_window=None, C_window=None):
         cache_key = ("P_E2tE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        P_heG2, A = self._compute_J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
+        P_heG2, A = self.J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
         P_heG2 = self._apply_extrapolation(P_heG2)
         P_A0E2 = self.compute_term("P_A", self.X_IA_A, operation=lambda x: 2 * x, 
                                  P=P, P_window=P_window, C_window=C_window) #OG: P_A0E2, _, _, _ = self.IA_mix()
@@ -962,9 +923,9 @@ class FASTPT:
     def get_P_tEtE(self, P, P_window=None, C_window=None):
         cache_key = ("P_tEtE", self._hash_arrays(P), self._hash_arrays(P_window), C_window)
         if cache_key in self.term_cache: return self.term_cache[cache_key]
-        P_F2F2, A = self._compute_J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
-        P_G2G2, A = self._compute_J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
-        P_F2G2, A = self._compute_J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
+        P_F2F2, A = self.J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
+        P_G2G2, A = self.J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
+        P_F2G2, A = self.J_k_tensor(P,self.X_IA_tij_F2G2, P_window=P_window, C_window=C_window)
         P_F2F2, P_G2G2, P_F2G2 = self._apply_extrapolation(P_F2F2, P_G2G2, P_F2G2)
         P_tEtE = P_F2F2+P_G2G2-2*P_F2G2
         self.term_cache[cache_key] = 2*P_tEtE
@@ -1028,7 +989,7 @@ class FASTPT:
     def OV(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         if "P_OV" in self.term_cache: return self.term_cache["P_OV"]
-        P, A = self._compute_J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
+        P, A = self.J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
         P = self._apply_extrapolation(P)
         self.term_cache["P_OV"] = P * (2 * pi) ** 2
         return P * (2 * pi) ** 2
@@ -1047,13 +1008,13 @@ class FASTPT:
 
     def RSD_components(self, P, f, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        _, A = self._compute_J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
+        _, A = self.J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
 
         A1 = np.dot(self.A_coeff[:, 0], A) + f * np.dot(self.A_coeff[:, 1], A) + f ** 2 * np.dot(self.A_coeff[:, 2], A)
         A3 = np.dot(self.A_coeff[:, 3], A) + f * np.dot(self.A_coeff[:, 4], A) + f ** 2 * np.dot(self.A_coeff[:, 5], A)
         A5 = np.dot(self.A_coeff[:, 6], A) + f * np.dot(self.A_coeff[:, 7], A) + f ** 2 * np.dot(self.A_coeff[:, 8], A)
 
-        _, B = self._compute_J_k_tensor(P, self.X_RSDB, P_window=P_window, C_window=C_window)
+        _, B = self.J_k_tensor(P, self.X_RSDB, P_window=P_window, C_window=C_window)
 
         B0 = np.dot(self.B_coeff[:, 0], B) + f * np.dot(self.B_coeff[:, 1], B) + f ** 2 * np.dot(self.B_coeff[:, 2], B)
         B2 = np.dot(self.B_coeff[:, 3], B) + f * np.dot(self.B_coeff[:, 4], B) + f ** 2 * np.dot(self.B_coeff[:, 5], B)
@@ -1212,6 +1173,8 @@ class FASTPT:
 
 
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
+        cache_key = ("J_k_scalar", self._hash_arrays(P), self._hash_arrays(X), nu, C_window)
+        if cache_key in self.cache: return self.cache[cache_key]
         from numpy.fft import ifft, irfft
 
         pf, p, g_m, g_n, two_part_l, h_l = X
@@ -1253,12 +1216,14 @@ class FASTPT:
             P_out = P_out[self.id_pad]
             A_out = A_out[:, self.id_pad]
 
+        self.cache[cache_key] = P_out, A_out
         return P_out, A_out
 
     
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
-        from scipy.signal import fftconvolve
-        from numpy.fft import ifft, rfft
+        cache_key = ("J_k_tensor", self._hash_arrays(P), self._hash_arrays(X), self._hash_arrays(P_window), C_window)
+        if cache_key in self.cache: return self.cache[cache_key]
+        from numpy.fft import ifft
 
         pf, p, nu1, nu2, g_m, g_n, h_l = X
 
@@ -1316,6 +1281,7 @@ class FASTPT:
             A_out = A_out[:, self.id_pad]
             P_fin = P_fin[self.id_pad]
 
+        self.cache[cache_key] = P_fin, A_out
         return P_fin, A_out
 
 
