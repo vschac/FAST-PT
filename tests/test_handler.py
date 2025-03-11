@@ -393,7 +393,7 @@ def test_get_all_terms(fpt, term_name):
     if isinstance(result_direct, tuple):
         result_direct = result_direct[term_source[1]]
     assert np.allclose(result, result_direct)
-    fpt._cache.clear()
+    fpt.cache.clear()
     result_direct2 = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)
     if isinstance(result_direct2, tuple):
         result_direct2 = result_direct2[term_source[1]]
@@ -408,29 +408,29 @@ def test_get_with_caching(fpt):
     result1 = handler.get("P_deltaE1")
     
     # Check cache statistics before second call
-    initial_hits = fpt._cache.hits
-    initial_misses = fpt._cache.misses
+    initial_hits = fpt.cache.hits
+    initial_misses = fpt.cache.misses
     
     # Second call - should use cache
     result2 = handler.get("P_deltaE1")
     
     # Verify cache was used (hits increased)
-    assert fpt._cache.hits > initial_hits
-    assert fpt._cache.misses == initial_misses
+    assert fpt.cache.hits > initial_hits
+    assert fpt.cache.misses == initial_misses
     assert np.array_equal(result1, result2)
     
     # Clear the cache
-    fpt._cache.clear()
+    fpt.cache.clear()
     
     # After clearing, the next call should recompute (miss)
-    pre_miss_count = fpt._cache.misses
+    pre_miss_count = fpt.cache.misses
     handler.get("P_deltaE1")
-    assert fpt._cache.misses > pre_miss_count
+    assert fpt.cache.misses > pre_miss_count
     
     # Check that multiple different calculations create different cache entries
-    pre_cache_count = len(fpt._cache.cache)
+    pre_cache_count = len(fpt.cache.cache)
     handler.get("P_0E0E")  # Different calculation
-    assert len(fpt._cache.cache) > pre_cache_count
+    assert len(fpt.cache.cache) > pre_cache_count
 
 def test_get_with_different_params(fpt):
     """Test get method with different parameter combinations"""
@@ -438,7 +438,7 @@ def test_get_with_different_params(fpt):
         
     # Test with parameters provided at runtime
     result1 = handler.get("P_deltaE1", P=P, P_window=P_window, C_window=C_window)
-    fpt._cache.clear()
+    fpt.cache.clear()
     # Test with default parameters
     handler2 = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     result2 = handler2.get("P_deltaE1")
@@ -471,24 +471,24 @@ def test_get_special_terms(fpt):
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
         
     p_btype2 = handler.get("P_Btype2")
-    fpt._cache.clear()
+    fpt.cache.clear()
     p_btype2_direct = fpt.get_P_Btype2(P)
         
     assert np.array_equal(p_btype2, p_btype2_direct)
         
     p_deltaE2 = handler.get("P_deltaE2")
-    fpt._cache.clear()
+    fpt.cache.clear()
     p_deltaE2_direct = fpt.get_P_deltaE2(P)
         
     assert np.array_equal(p_deltaE2, p_deltaE2_direct)
     
     p_ov = handler.get("P_OV")
-    fpt._cache.clear()
+    fpt.cache.clear()
     p_ov_direct = fpt.OV(P)
     assert np.allclose(p_ov, p_ov_direct, rtol=1e-4, atol=1e-4), "P_OV results differ significantly"
 
     p_der = handler.get("P_der")
-    fpt._cache.clear()
+    fpt.cache.clear()
     p_der_direct = fpt.IA_der(P)
     assert np.array_equal(p_der, p_der_direct)
 
