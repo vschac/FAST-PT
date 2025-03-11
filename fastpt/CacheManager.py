@@ -120,3 +120,50 @@ class CacheManager:
             'items': len(self.cache),
             'hit_rate': self.hits / (self.hits + self.misses) if (self.hits + self.misses) > 0 else 0
         }
+    
+    def __repr__(self):
+        """Return a string representation of the cache"""
+        stats = self.stats()
+        result = [
+            f"CacheManager: {stats['size_mb']:.2f}MB/{stats['max_size_mb']:.2f}MB used",
+            f"Items: {stats['items']}, Hit rate: {stats['hit_rate']:.2%}"
+        ]
+        
+        if stats['items'] > 0:
+            result.append("\nCached items:")
+            for key, value in self.cache.items():
+                category, args_hash = key
+                
+                # Format the value representation
+                if isinstance(value, np.ndarray):
+                    shape_str = f"shape={value.shape}"
+                    dtype_str = f"dtype={value.dtype}"
+                    if value.size > 5:
+                        # For large arrays, show a few elements and shape/dtype
+                        val_repr = f"ndarray({shape_str}, {dtype_str}, first few: {value.flat[:3]}...)"
+                    else:
+                        # For small arrays, show all values
+                        val_repr = f"ndarray({shape_str}, {dtype_str}, values: {value})"
+                elif isinstance(value, (list, tuple)):
+                    val_type = type(value).__name__
+                    length = len(value)
+                    if length > 3:
+                        first_items = []
+                        for i, item in enumerate(value[:2]):
+                            if isinstance(item, np.ndarray):
+                                first_items.append(f"ndarray(shape={item.shape})")
+                            else:
+                                first_items.append(str(item))
+                        val_repr = f"{val_type} of {length} items: [{', '.join(first_items)}...]"
+                    else:
+                        val_repr = f"{val_type} of {length} items"
+                else:
+                    val_repr = str(value)
+                
+                # Truncate representation if too long
+                if len(val_repr) > 100:
+                    val_repr = val_repr[:97] + "..."
+                
+                result.append(f"  • {category}: {val_repr}")
+        
+        return "\n".join(result)

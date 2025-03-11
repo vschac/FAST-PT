@@ -74,7 +74,7 @@ def cached_property(method):
 class FASTPT:
 
     def __init__(self, k, nu=None, to_do=None, param_mat=None, low_extrap=None, high_extrap=None, n_pad=None,
-                 verbose=False, max_cache_size_mb=1000):
+                 verbose=False, max_cache_size_mb=500):
 
         ''' inputs:
 				* k grid
@@ -108,9 +108,6 @@ class FASTPT:
         
 
         self.cache = CacheManager(max_size_mb=max_cache_size_mb)
-        # self.cache = {} #Used for storing JK tensor and scalar values
-        # self.c_cache = {} #Used for storing c_m, c_n, and c_l values
-        # self.term_cache = {} #Used for storing individual terms from all FAST-PT functions
         self.__k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):

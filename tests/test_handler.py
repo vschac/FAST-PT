@@ -9,8 +9,13 @@ P = np.loadtxt(data_path)[:, 1]
 k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-# fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
-# handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
+handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+handler.get('P_E')
+handler.get('P_B')
+handler.run('IA_tt')
+print(fpt.cache)
+
 
 @pytest.fixture
 def fpt():
