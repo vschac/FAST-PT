@@ -1,13 +1,15 @@
 import numpy as np
+import sys
 
 class CacheManager:
     """Unified cache manager for FASTPT with memory efficiency features"""
     
-    def __init__(self, max_size_mb=1000):
+    def __init__(self, max_size_mb=500):
         """Initialize cache with optional maximum size in MB"""
         self.cache = {}
         self.cache_size = 0
         self.max_size_bytes = max_size_mb * 1024 * 1024
+        #^^ 1000 MB = 1000*1024 KB = 1000*1024*1024 bytes (1024 instead of 1000 due to binary memory 2^10=1024)
         self.hits = 0
         self.misses = 0
     
@@ -55,7 +57,14 @@ class CacheManager:
     def set(self, value, category, *args):
         """Store an item in cache using category and arguments as key"""
         key = self._create_key(category, *args)
-        
+        old_size = 0
+        if key in self.cache.keys(): # Check if we're replacing an existing entry
+            old_val = self.cache[key]
+            if isinstance(old_val, np.ndarray):
+                old_size = self._get_array_size(old_val)
+            elif isinstance(old_val, (list, tuple)):
+                for item in old_val:
+                    old_size += self._get_array_size(item)
         # Calculate size of new entry
         size = 0
         if isinstance(value, np.ndarray):
@@ -70,13 +79,15 @@ class CacheManager:
         
         # Store item and update size
         self.cache[key] = value
+        self.cache_size -= old_size
         self.cache_size += size
         return value
     
     def _evict(self, required_size):
         """Evict items from cache until there's room for required_size"""
-        # Simple LRU could be implemented with an OrderedDict or with timestamps
-        # For now, we just remove random items until there's enough space
+        # Would LRU be better? 
+        # Pros: Keeps frequently used items in cache
+        # Cons: Requires additional bookkeeping, may not be worth it for small cache sizes
         items = list(self.cache.items())
         np.random.shuffle(items)
         
