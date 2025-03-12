@@ -21,33 +21,35 @@ class CacheManager:
     
     def _create_key(self, category, *args):
         """Create unified cache key from category and arguments"""
-        # Hash numpy arrays, pass through other hashable types
         hashed_args = []
         for arg in args:
-            if arg is None:
-                hashed_args.append(None)
-            elif isinstance(arg, np.ndarray):
-                hashed_args.append(hash(arg.tobytes()))
-            elif isinstance(arg, (list, tuple)):
-                # Handle nested structures
-                hashed_args.append(self._hash_nested(arg))
-            else:
-                hashed_args.append(hash(arg))
+            hashed_args.append(self._hash_arrays(arg))
         
         return (category, tuple(hashed_args))
     
-    def _hash_nested(self, obj):
-        """Hash nested lists or tuples containing arrays"""
-        if isinstance(obj, (list, tuple)):
-            return tuple(self._hash_nested(item) for item in obj)
-        elif isinstance(obj, np.ndarray):
-            return hash(obj.tobytes())
-        else:
-            return hash(obj)
+    def _hash_arrays(self, arrays):
+        """Helper function to create a hash from multiple numpy arrays or scalars"""
+        if arrays is None: return None
+        if isinstance(arrays, (tuple, list)):
+            result = []
+            for item in arrays:
+                if isinstance(item, np.ndarray):
+                    result.append(hash(item.tobytes()))
+                elif isinstance(item, (tuple, list)):
+                    result.append(self._hash_arrays(item))
+                else:
+                    result.append(hash(item))
+            return tuple(result)
+    
+        # Single item case
+        if isinstance(arrays, np.ndarray):
+            return hash(arrays.tobytes())
+        return hash(arrays)
     
     def get(self, category, *args):
         """Get an item from cache using category and arguments as key"""
-        key = self._create_key(category, *args)
+        #key = self._create_key(category, *args)
+        key = (category, args)
         if key in self.cache:
             self.hits += 1
             return self.cache[key]
@@ -56,7 +58,8 @@ class CacheManager:
     
     def set(self, value, category, *args):
         """Store an item in cache using category and arguments as key"""
-        key = self._create_key(category, *args)
+        #key = self._create_key(category, *args)
+        key = (category, args)
         old_size = 0
         if key in self.cache.keys(): # Check if we're replacing an existing entry
             old_val = self.cache[key]
