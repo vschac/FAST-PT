@@ -30,10 +30,16 @@ def test_init_custom_size():
     cm = CacheManager(max_size_mb=100)
     assert cm.max_size_bytes == 100 * 1024 * 1024  # 100 MB
 
+<<<<<<< HEAD
 def test_init_unlimited_cache(sample_arrays):
     """Test initialization with unlimited cache size"""
     cm = CacheManager(max_size_mb=0)
     cm.set(sample_arrays[2], "category", "key")
+=======
+def test_init_unlimited_cache():
+    """Test initialization with unlimited cache size"""
+    cm = CacheManager(max_size_mb=0)
+>>>>>>> 229a55ec634661789f8d76e52f4350f48b2aaee3
     assert cm.max_size_bytes == 0  # No limit
 
 ####################KEY CREATION TESTS####################

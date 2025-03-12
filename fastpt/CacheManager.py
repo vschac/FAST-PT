@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import sys
 
 class CacheManager:
     """Unified cache manager for FASTPT with memory efficiency features"""
@@ -9,6 +10,7 @@ class CacheManager:
         self.cache = {}
         self.cache_size = 0
         self.max_size_bytes = max_size_mb * 1024 * 1024
+        #^^ 1000 MB = 1000*1024 KB = 1000*1024*1024 bytes (1024 instead of 1000 due to binary memory 2^10=1024)
         #^^ 1000 MB = 1000*1024 KB = 1000*1024*1024 bytes (1024 instead of 1000 due to binary memory 2^10=1024)
         self.hits = 0
         self.misses = 0
@@ -83,11 +85,15 @@ class CacheManager:
         # Store item and update size
         self.cache[key] = value
         self.cache_size -= old_size
+        self.cache_size -= old_size
         self.cache_size += size
         return value
     
     def _evict(self, required_size):
         """Evict items from cache until there's room for required_size"""
+        # Would LRU be better? 
+        # Pros: Keeps frequently used items in cache
+        # Cons: Requires additional bookkeeping, may not be worth it for small cache sizes
         # Would LRU be better? 
         # Pros: Keeps frequently used items in cache
         # Cons: Requires additional bookkeeping, may not be worth it for small cache sizes
