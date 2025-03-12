@@ -30,62 +30,11 @@ def test_init_custom_size():
     cm = CacheManager(max_size_mb=100)
     assert cm.max_size_bytes == 100 * 1024 * 1024  # 100 MB
 
-<<<<<<< HEAD
 def test_init_unlimited_cache(sample_arrays):
     """Test initialization with unlimited cache size"""
     cm = CacheManager(max_size_mb=0)
     cm.set(sample_arrays[2], "category", "key")
-=======
-def test_init_unlimited_cache():
-    """Test initialization with unlimited cache size"""
-    cm = CacheManager(max_size_mb=0)
->>>>>>> 229a55ec634661789f8d76e52f4350f48b2aaee3
     assert cm.max_size_bytes == 0  # No limit
-
-####################KEY CREATION TESTS####################
-def test_create_key_simple():
-    """Test key creation with simple types"""
-    cm = CacheManager()
-    key = cm._create_key('test', 1, 'abc', 3.14)
-    assert key == ('test', (hash(1), hash('abc'), hash(3.14)))
-
-def test_create_key_with_arrays(sample_arrays):
-    """Test key creation with numpy arrays"""
-    small_array, _, _ = sample_arrays
-    cm = CacheManager()
-    key1 = cm._create_key('test', small_array)
-    key2 = cm._create_key('test', small_array.copy())  # Same content, different array
-    
-    # Keys should be the same for arrays with identical content
-    assert key1 == key2
-
-def test_create_key_with_different_arrays(sample_arrays):
-    """Test key creation with different arrays"""
-    small_array, _, _ = sample_arrays
-    cm = CacheManager()
-    key1 = cm._create_key('test', small_array)
-    modified_array = small_array.copy()
-    modified_array[0, 0] = 99  # Modify one element
-    key2 = cm._create_key('test', modified_array)
-    
-    # Keys should be different for arrays with different content
-    assert key1 != key2
-
-def test_create_key_with_nested_structures(sample_arrays):
-    """Test key creation with nested lists/tuples containing arrays"""
-    small_array, _, _ = sample_arrays
-    cm = CacheManager()
-    key1 = cm._create_key('test', [small_array, 10], (small_array, 'abc'))
-    key2 = cm._create_key('test', [small_array.copy(), 10], (small_array.copy(), 'abc'))
-    
-    # Keys should be the same for nested structures with identical content
-    assert key1 == key2
-
-def test_create_key_with_none():
-    """Test key creation with None values"""
-    cm = CacheManager()
-    key = cm._create_key('test', None, 1, None)
-    assert key == ('test', (None, hash(1), None))
 
 ####################GET/SET TESTS####################
 def test_get_set_simple(cache_manager):
@@ -322,19 +271,3 @@ def test_set_non_array_value(cache_manager):
     
     # Verify no size was added
     assert cache_manager.cache_size == 0
-
-def test_hash_nested_complex_structures(cache_manager):
-    """Test hashing of complex nested structures"""
-    # Create complex nested structures
-    a = np.array([1, 2, 3])
-    b = np.array([4, 5, 6])
-    
-    structure1 = [a, (b, "string"), [1, 2, [a]]]
-    structure2 = [a.copy(), (b.copy(), "string"), [1, 2, [a.copy()]]]
-    
-    # Create keys for both structures
-    key1 = cache_manager._create_key("category", structure1)
-    key2 = cache_manager._create_key("category", structure2)
-    
-    # Keys should be identical
-    assert key1 == key2

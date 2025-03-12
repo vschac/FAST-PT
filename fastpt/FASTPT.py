@@ -1131,7 +1131,6 @@ class FASTPT:
 
         # compute Sigma^2 and the tree-level IR-resummed PS
         import scipy.integrate as integrate
-        import scipy.integrate as integrate
 
         Sigma = integrate.quad(lambda x: (4 * pi) * psmooth(x) * (
                 1 - 3 * (2 * rbao * x * cos(x * rbao) + (-2 + rbao ** 2 * x ** 2) * sin(rbao * x)) / (

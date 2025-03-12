@@ -9,12 +9,24 @@ P = np.loadtxt(data_path)[:, 1]
 k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
-handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-handler.get('P_E')
-handler.get('P_B')
-handler.run('IA_tt')
-print(fpt.cache)
+# fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
+# handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+# handler.run('one_loop_dd')
+# handler.run('one_loop_dd_bias')
+# handler.run('one_loop_dd_bias_b3nl')
+# handler.run('one_loop_dd_bias_lpt_NL')
+# handler.run('IA_tt')
+# handler.run('IA_mix')
+# handler.run('IA_ta')
+# handler.run('IA_der')
+# handler.run('IA_ct')
+# handler.run('IA_ctbias')
+# handler.run('IA_gb2')
+# handler.run('IA_d2')
+# handler.run('IA_s2')
+# handler.run('OV')
+# handler.run('kPol')
+# print(fpt.cache)
 
 
 @pytest.fixture

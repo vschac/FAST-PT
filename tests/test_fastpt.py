@@ -374,8 +374,182 @@ def test_IRres(fpt):
     assert isinstance(result, np.ndarray)
     assert result.shape == P.shape
 
-def test_J_K_scalar(fpt):
-    assert True
+def test_hash_none(fpt):
+    """Test hashing None values"""
+    result = fpt._hash_arrays(None)
+    assert result is None
 
-def test_J_K_tensor(fpt):
-    assert True
+def test_hash_numpy_array(fpt):
+    """Test hashing numpy arrays"""
+    # 1D array
+    arr1d = np.array([1, 2, 3, 4, 5])
+    result1d = fpt._hash_arrays(arr1d)
+    assert isinstance(result1d, int)
+    
+    # 2D array
+    arr2d = np.array([[1, 2], [3, 4]])
+    result2d = fpt._hash_arrays(arr2d)
+    assert isinstance(result2d, int)
+    
+    # Array with different dtype
+    arr_float = np.array([1.1, 2.2, 3.3])
+    result_float = fpt._hash_arrays(arr_float)
+    assert isinstance(result_float, int)
+    
+    # Test that identical arrays produce the same hash
+    arr_copy = np.copy(arr1d)
+    result_copy = fpt._hash_arrays(arr_copy)
+    assert result1d == result_copy
+    
+    # Test that different arrays produce different hashes
+    arr_diff = np.array([1, 2, 3, 4, 6])  # Changed last element
+    result_diff = fpt._hash_arrays(arr_diff)
+    assert result1d != result_diff
+
+def test_hash_tuple_list(fpt):
+    """Test hashing tuples and lists of items"""
+    # Simple tuple of scalars
+    tuple_result = fpt._hash_arrays((1, 2, 3))
+    assert isinstance(tuple_result, tuple)
+    assert len(tuple_result) == 3
+    
+    # Simple list of scalars
+    list_result = fpt._hash_arrays([1, 2, 3])
+    assert isinstance(list_result, tuple)  # Note: returns a tuple
+    assert len(list_result) == 3
+    
+    # Mixed list
+    mixed_list = [1, "string", True]
+    mixed_result = fpt._hash_arrays(mixed_list)
+    assert isinstance(mixed_result, tuple)
+    assert len(mixed_result) == 3
+
+def test_hash_X_parameters(fpt):
+    """Test hashing X parameter tuples (like X_spt, X_lpt, etc.)"""
+    # Create a mock X parameter tuple similar to what's returned by scalar_stuff
+    mock_pf = np.array([1.0, 2.0, 3.0])
+    mock_p = np.array([0.5, 1.5, 2.5])
+    mock_g_m = np.array([[1+2j, 3+4j], [5+6j, 7+8j]])
+    mock_g_n = np.array([[9+10j, 11+12j], [13+14j, 15+16j]])
+    mock_two_part_l = np.array([[17+18j, 19+20j], [21+22j, 23+24j]])
+    mock_h_l = np.array([[25+26j, 27+28j], [29+30j, 31+32j]])
+    
+    mock_X = (mock_pf, mock_p, mock_g_m, mock_g_n, mock_two_part_l, mock_h_l)
+    X_hash = fpt._hash_arrays(mock_X)
+    
+    assert isinstance(X_hash, tuple)
+    assert len(X_hash) == 6
+    
+    # Each element should be a hash integer
+    for h in X_hash:
+        if isinstance(h, np.ndarray):
+            for sub_h in h:
+                assert isinstance(sub_h, int)
+        else:
+            assert isinstance(h, int)
+
+def test_hash_consistency(fpt):
+    """Test that the same input always produces the same hash"""
+    # Array
+    arr = np.array([1, 2, 3, 4, 5])
+    hash1 = fpt._hash_arrays(arr)
+    hash2 = fpt._hash_arrays(arr)
+    assert hash1 == hash2
+    
+    # Complex structure
+    complex_struct = ([1, 2, 3], np.array([4, 5, 6]), (7, 8, 9))
+    hash1 = fpt._hash_arrays(complex_struct)
+    hash2 = fpt._hash_arrays(complex_struct)
+    assert hash1 == hash2
+
+def test_hash_uniqueness(fpt):
+    """Test that different inputs produce different hashes"""
+    arr1 = np.array([1, 2, 3])
+    arr2 = np.array([1, 2, 4])  # Just one element different
+    hash1 = fpt._hash_arrays(arr1)
+    hash2 = fpt._hash_arrays(arr2)
+    assert hash1 != hash2
+    
+    # Similar structure but different values
+    struct1 = ([1, 2, 3], np.array([4, 5, 6]))
+    struct2 = ([1, 2, 3], np.array([4, 5, 7]))  # Just one element different
+    hash1 = fpt._hash_arrays(struct1)
+    hash2 = fpt._hash_arrays(struct2)
+    assert hash1 != hash2
+
+def test_hash_power_spectrum(fpt, monkeypatch):
+    """Test hashing a typical power spectrum"""
+    
+    # Test direct hashing
+    P_hash = fpt._hash_arrays(P)
+    assert isinstance(P_hash, int)
+    
+    # Ensure the hash is used in the cache mechanism
+    # Mock the cache.get method to track calls
+    mock_calls = []
+    original_get = fpt.cache.get
+    
+    def mock_get(*args):
+        mock_calls.append(args)
+        return original_get(*args)
+        
+    monkeypatch.setattr(fpt.cache, 'get', mock_get)
+    
+    # Call a method that uses the hash
+    fpt.one_loop_dd(P)
+    
+    # Verify the P_hash was used in cache calls - fixed by converting to string
+    assert any(str(P_hash) in str(call) for call in mock_calls)
+
+def test_hash_nested_numpy_arrays(fpt):
+    """Test hashing complex nested structures with numpy arrays"""
+    # Create a complex nested structure with numpy arrays
+    arr1 = np.array([1.0, 2.0, 3.0])
+    arr2 = np.array([[4.0, 5.0], [6.0, 7.0]])
+    arr3 = np.array([8.0, 9.0, 10.0])
+    
+    # Create a deep nested structure: tuple -> list -> tuple -> array
+    nested_structure = (
+        [arr1, (arr2, arr3)], 
+        (np.array([11.0, 12.0]), [np.array([13.0]), np.array([[14.0, 15.0]])])
+    )
+    
+    # Hash the nested structure
+    hash_result = fpt._hash_arrays(nested_structure)
+    
+    # Verify structure and types
+    assert isinstance(hash_result, tuple)
+    assert len(hash_result) == 2
+    
+    # First element should be a tuple (converted from list)
+    assert isinstance(hash_result[0], tuple)
+    assert len(hash_result[0]) == 2
+    assert isinstance(hash_result[0][0], int)  # hash of arr1
+    assert isinstance(hash_result[0][1], tuple)  # tuple of hashes
+    
+    # Second element should be a tuple
+    assert isinstance(hash_result[1], tuple) 
+    assert len(hash_result[1]) == 2
+    assert isinstance(hash_result[1][0], int)  # hash of np.array([11.0, 12.0])
+    assert isinstance(hash_result[1][1], tuple)  # tuple of hashes from the list
+    
+    # Test consistency - same structure should hash to same value
+    hash_result2 = fpt._hash_arrays(nested_structure)
+    assert hash_result == hash_result2
+    
+    # Test that modifying a deep nested array changes the hash
+    modified_structure = (
+        [arr1, (arr2, np.array([8.0, 9.0, 10.1]))],  # Changed last value from 10.0 to 10.1
+        (np.array([11.0, 12.0]), [np.array([13.0]), np.array([[14.0, 15.0]])])
+    )
+    modified_hash = fpt._hash_arrays(modified_structure)
+    assert hash_result != modified_hash
+    
+    # Test typical deep nested X parameter scenarios from FAST-PT
+    # X parameters might contain tuples with numpy arrays of complex values
+    complex_arr = np.array([[1+2j, 3+4j], [5+6j, 7+8j]])
+    complex_nested = (arr1, arr2, complex_arr, (arr3, complex_arr))
+    
+    complex_hash = fpt._hash_arrays(complex_nested)
+    assert isinstance(complex_hash, tuple)
+    assert len(complex_hash) == 4
