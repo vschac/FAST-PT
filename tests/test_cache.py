@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import sys
 from fastpt.CacheManager import CacheManager
 
 @pytest.fixture
@@ -33,28 +34,28 @@ def test_init_custom_size():
 def test_init_unlimited_cache(sample_arrays):
     """Test initialization with unlimited cache size"""
     cm = CacheManager(max_size_mb=0)
-    cm.set(sample_arrays[2], "category", "key")
+    cm.set(sample_arrays[2], "category", 12345)  # Using an integer hash key
     assert cm.max_size_bytes == 0  # No limit
 
 ####################GET/SET TESTS####################
 def test_get_set_simple(cache_manager):
     """Test basic get and set operations with simple values"""
-    # Set and get a simple value
-    cache_manager.set("test_value", "category", 1, 2, 3)
-    result = cache_manager.get("category", 1, 2, 3)
+    # Set and get a simple value with an integer hash key
+    cache_manager.set("test_value", "category", 123456)
+    result = cache_manager.get("category", 123456)
     assert result == "test_value"
     
     # Get a non-existent value
-    result = cache_manager.get("category", 4, 5, 6)
+    result = cache_manager.get("category", 789012)
     assert result is None
 
 def test_get_set_array(cache_manager, sample_arrays):
     """Test get and set operations with arrays"""
     small_array, _, _ = sample_arrays
     
-    # Set and get an array
-    cache_manager.set(small_array, "array_category", "key1")
-    result = cache_manager.get("array_category", "key1")
+    # Set and get an array with an integer hash key
+    cache_manager.set(small_array, "array_category", 12345)
+    result = cache_manager.get("array_category", 12345)
     assert np.array_equal(result, small_array)
 
 def test_get_set_list_of_arrays(cache_manager, sample_arrays):
@@ -64,9 +65,9 @@ def test_get_set_list_of_arrays(cache_manager, sample_arrays):
     # Create a list of arrays
     array_list = [small_array, small_array.copy() * 2]
     
-    # Set and get a list of arrays
-    cache_manager.set(array_list, "list_category", "key1")
-    result = cache_manager.get("list_category", "key1")
+    # Set and get a list of arrays with an integer hash key
+    cache_manager.set(array_list, "list_category", 54321)
+    result = cache_manager.get("list_category", 54321)
     
     # Verify result is a list with correct arrays
     assert isinstance(result, list)
@@ -81,18 +82,18 @@ def test_cache_hits_misses(cache_manager):
     assert cache_manager.misses == 0
     
     # First access (miss)
-    cache_manager.get("category", "key1")
+    cache_manager.get("category", 12345)
     assert cache_manager.hits == 0
     assert cache_manager.misses == 1
     
     # Set value and access again (hit)
-    cache_manager.set("value", "category", "key1")
-    cache_manager.get("category", "key1")
+    cache_manager.set("value", "category", 12345)
+    cache_manager.get("category", 12345)
     assert cache_manager.hits == 1
     assert cache_manager.misses == 1
     
     # Another miss
-    cache_manager.get("category", "key2")
+    cache_manager.get("category", 67890)
     assert cache_manager.hits == 1
     assert cache_manager.misses == 2
 
@@ -111,8 +112,29 @@ def test_array_size_calculation(cache_manager, sample_arrays):
     assert medium_size == 80000  # 100x100x8
     assert large_size == 2000000  # 500x500x8
     
-    # Test with non-array
-    assert cache_manager._get_array_size("string") == 0
+    # Test with non-array types (should now return actual size)
+    assert cache_manager._get_array_size("string") == sys.getsizeof("string")
+    assert cache_manager._get_array_size(123) == sys.getsizeof(123)
+    assert cache_manager._get_array_size(None) == sys.getsizeof(None)
+
+def test_complex_data_size_calculation(cache_manager):
+    """Test size calculation for complex nested structures"""
+    # Test with list
+    list_data = [1, 2, 3]
+    list_size = cache_manager._get_array_size(list_data)
+    assert list_size >= sys.getsizeof(list_data)
+    
+    # Test with tuple
+    tuple_data = (1, 2, 3)
+    tuple_size = cache_manager._get_array_size(tuple_data)
+    assert tuple_size >= sys.getsizeof(tuple_data)
+    
+    # Test with nested structure
+    nested = ([1, 2], np.ones(3), "string")
+    nested_size = cache_manager._get_array_size(nested)
+    # Should include the size of the container plus its contents
+    assert nested_size > sum(sys.getsizeof(x) for x in [nested[0], nested[2]])
+    assert nested_size > 24  # minimum bytes for a numpy array
 
 def test_cache_size_tracking(cache_manager, sample_arrays):
     """Test that cache size is correctly tracked when adding arrays"""
@@ -122,12 +144,13 @@ def test_cache_size_tracking(cache_manager, sample_arrays):
     assert cache_manager.cache_size == 0
     
     # Add small array
-    cache_manager.set(small_array, "category", "small")
-    assert cache_manager.cache_size == 800
+    cache_manager.set(small_array, "category", 12345)
+    initial_size = cache_manager.cache_size
+    assert initial_size >= 800  # At least the array size, plus key overhead
     
     # Add medium array
-    cache_manager.set(medium_array, "category", "medium")
-    assert cache_manager.cache_size == 800 + 80000
+    cache_manager.set(medium_array, "category", 67890)
+    assert cache_manager.cache_size > initial_size + 80000
 
 def test_cache_size_tracking_with_list(cache_manager, sample_arrays):
     """Test cache size tracking with lists of arrays"""
@@ -137,8 +160,9 @@ def test_cache_size_tracking_with_list(cache_manager, sample_arrays):
     array_list = [small_array, medium_array]
     
     # Add list to cache
-    cache_manager.set(array_list, "category", "list")
-    assert cache_manager.cache_size == 800 + 80000
+    initial_size = cache_manager.cache_size
+    cache_manager.set(array_list, "category", 54321)
+    assert cache_manager.cache_size > initial_size + 800 + 80000
 
 ####################EVICTION TESTS####################
 def test_eviction_when_full(sample_arrays):
@@ -231,7 +255,16 @@ def test_stats(cache_manager, sample_arrays):
     
     # Verify stats
     assert stats['items'] == 2
-    assert stats['size_mb'] == (800 + 80000) / (1024 * 1024)
+    
+    # Verify size with tolerance for Python object overhead
+    expected_size_mb = (800 + 80000) / (1024 * 1024)
+    actual_size_mb = stats['size_mb']
+    
+    # Allow for a small tolerance (within 5% or 0.001 MB, whichever is greater)
+    tolerance = max(0.001, expected_size_mb * 0.05)
+    assert abs(actual_size_mb - expected_size_mb) <= tolerance, \
+        f"Size {actual_size_mb:.6f}MB differs from expected {expected_size_mb:.6f}MB by more than tolerance {tolerance:.6f}MB"
+    
     assert stats['max_size_mb'] == 10
     assert stats['hit_rate'] == 2/3  # 2 hits, 1 miss
 
@@ -242,7 +275,6 @@ def test_stats_empty_cache(cache_manager):
     assert stats['size_mb'] == 0
     assert stats['hit_rate'] == 0
 
-####################EDGE CASES####################
 def test_overwrite_same_key(cache_manager, sample_arrays):
     """Test overwriting an existing key"""
     small_array, medium_array, _ = sample_arrays
@@ -258,16 +290,13 @@ def test_overwrite_same_key(cache_manager, sample_arrays):
     result = cache_manager.get("category", "key")
     assert np.array_equal(result, medium_array)
     
-    # Verify the size was updated correctly
-    assert cache_manager.cache_size == original_size - 800 + 80000
-
-def test_set_non_array_value(cache_manager):
-    """Test setting a non-array value"""
-    # Set a non-array value
-    cache_manager.set("string value", "category", "string")
+    # Verify the size was updated correctly with tolerance
+    # Since we're only replacing the value but keeping the same key, 
+    # the size change should be approximately (medium_array_size - small_array_size)
+    expected_size_change = 80000 - 800
+    actual_size_change = cache_manager.cache_size - original_size
     
-    # Verify the value was stored
-    assert cache_manager.get("category", "string") == "string value"
-    
-    # Verify no size was added
-    assert cache_manager.cache_size == 0
+    # Allow for a small tolerance in the size difference
+    tolerance = max(100, expected_size_change * 0.01)  # 1% or 100 bytes, whichever is larger
+    assert abs(actual_size_change - expected_size_change) <= tolerance, \
+        f"Size change {actual_size_change} differs from expected {expected_size_change} by more than tolerance {tolerance}"

@@ -108,6 +108,7 @@ class FASTPT:
         
 
         self.cache = CacheManager(max_size_mb=max_cache_size_mb)
+        self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
         self.extrap = False
         if (low_extrap is not None or high_extrap is not None):
@@ -169,8 +170,7 @@ class FASTPT:
                 print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_extrap[0]}')
         else:
             print("WARNING: N_pad is recommended but none has been provided, defaulting to 0.5*len(k).")
-            #self.n_pad = int(0.5*len(k))
-            self.n_pad = 0
+            self.n_pad = int(0.5*len(k))
 
         self.__k_final = k #log spaced k, with padding and extrap
         self.k_size = k.size
@@ -292,196 +292,226 @@ class FASTPT:
         nu = -2
         p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0],
                     [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
-        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_spt'
+        return result
     @cached_property
     def X_lpt(self):
         nu = -2
         p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [2, -2, 2, 0],
                     [1, -1, 1, 0], [1, -1, 3, 0], [0, 0, 4, 0], [2, -2, 0, 1]])
-        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_lpt'
+        return result
     @cached_property
     def X_sptG(self):
         nu = -2
         p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [2, -2, 2, 0],
                         [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
-        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_sptG'
+        return result
     @cached_property
     def X_cleft(self):
         nu = -2
         p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [1, -1, 1, 0], [1, -1, 3, 0], [-1, 1, 1, 0],
                         [-1, 1, 3, 0]])
-        return scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_cleft'
+        return result
     @cached_property
     def X_IA_E(self):
         hE_tab, _ = IA_tt()
         p_mat_E = hE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_E, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_E, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_E'
+        return result
     @cached_property
     def X_IA_B(self):
         _, hB_tab = IA_tt()
         p_mat_B = hB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_B, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_B, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_B'
+        return result
     @cached_property
     def X_IA_A(self):
         IA_A_tab = IA_A()
         p_mat_A = IA_A_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_A, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_A, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_A'
+        return result
     @cached_property
     def X_IA_DEE(self):
         IA_DEE_tab = IA_DEE()
         p_mat_DEE = IA_DEE_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_DEE, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_DEE, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_DEE'
+        return result
     @cached_property
     def X_IA_DBB(self):
         IA_DBB_tab = IA_DBB()
         p_mat_DBB = IA_DBB_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_DBB, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_DBB, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_DBB'
+        return result
     @cached_property
     def X_IA_deltaE1(self):
         IA_deltaE1_tab = IA_deltaE1()
-        return tensor_stuff(IA_deltaE1_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(IA_deltaE1_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_deltaE1'
+        return result
     @cached_property
     def X_IA_0E0E(self):
         IA_0E0E_tab = IA_0E0E()
-        return tensor_stuff(IA_0E0E_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(IA_0E0E_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_0E0E'
+        return result
     @cached_property
     def X_IA_0B0B(self):
         IA_0B0B_tab = IA_0B0B()
-        return tensor_stuff(IA_0B0B_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(IA_0B0B_tab[:, [0, 1, 5, 6, 7, 8, 9]], self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_0B0B'  
+        return result
     @cached_property
     def X_IA_gb2_fe(self):
         IA_gb2_fe_tab = IA_gb2_fe()
         p_mat_gb2_fe = IA_gb2_fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_gb2_fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_fe'
+        return result
     @cached_property
     def X_IA_gb2_he(self):
         IA_gb2_he_tab = IA_gb2_he()
         p_mat_gb2_he = IA_gb2_he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_he, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_gb2_he, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_he'
+        return result
     @cached_property
     def X_IA_tij_feG2(self):
         IA_tij_feG2_tab = IA_tij_feG2()
         p_mat_tij_feG2 = IA_tij_feG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_tij_feG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_tij_feG2'
+        return result
     @cached_property
     def X_IA_tij_heG2(self):
         IA_tij_heG2_tab = IA_tij_heG2()
         p_mat_tij_heG2 = IA_tij_heG2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l) 
-    
+        result = tensor_stuff(p_mat_tij_heG2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_tij_heG2'
+        return result
     @cached_property
     def X_IA_tij_F2F2(self):
         IA_tij_F2F2_tab = IA_tij_F2F2()
         p_mat_tij_F2F2 = IA_tij_F2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_tij_F2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_tij_F2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_tij_F2F2'
+        return result
     @cached_property
     def X_IA_tij_G2G2(self):
         IA_tij_G2G2_tab = IA_tij_G2G2()
         p_mat_tij_G2G2 = IA_tij_G2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_tij_G2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_tij_G2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_tij_G2G2'
+        return result
     @cached_property
     def X_IA_tij_F2G2(self):
         IA_tij_F2G2_tab = IA_tij_F2G2()
         p_mat_tij_F2G2 = IA_tij_F2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_tij_F2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_tij_F2G2'
+        return result
     @cached_property
     def X_IA_tij_F2G2reg(self):
         IA_tij_F2G2reg_tab =IA_tij_F2G2reg()
         p_mat_tij_F2G2reg_tab = IA_tij_F2G2reg_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_tij_F2G2reg_tab, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_tij_F2G2reg_tab, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_tij_F2G2reg'
+        return result
     @cached_property
     def X_IA_gb2_F2(self):
         IA_gb2_F2_tab = IA_gb2_F2()
         p_mat_gb2_F2 = IA_gb2_F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_gb2_F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_F2'
+        return result
     @cached_property
     def X_IA_gb2_G2(self):
         IA_gb2_G2_tab = IA_gb2_G2()
         p_mat_gb2_G2 = IA_gb2_G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_gb2_G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_G2'
+        return result
     @cached_property
     def X_IA_gb2_S2F2(self):
         IA_gb2_S2F2_tab = IA_gb2_S2F2()
         p_mat_gb2_S2F2 = IA_gb2_S2F2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_S2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_gb2_S2F2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_S2F2'
+        return result
     @cached_property
     def X_IA_gb2_S2fe(self):
         IA_gb2_S2fe_tab = IA_gb2_S2fe()
         p_mat_gb2_S2fe = IA_gb2_S2fe_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_S2fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_gb2_S2fe, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_S2fe'
+        return result
     @cached_property
     def X_IA_gb2_S2he(self):
         IA_gb2_S2he_tab = IA_gb2_S2he()
         p_mat_gb2_S2he = IA_gb2_S2he_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_S2he, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat_gb2_S2he, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_S2he'
+        return result
     @cached_property
     def X_IA_gb2_S2G2(self):
         IA_gb2_S2G2_tab = IA_gb2_S2G2()
         p_mat_gb2_S2G2 = IA_gb2_S2G2_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat_gb2_S2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat_gb2_S2G2, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_IA_gb2_S2G2'
+        return result
     @cached_property
     def X_OV(self):
         OV_tab = OV()
         p_mat = OV_tab[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_OV'
+        return result
     @cached_property
     def X_kP1(self):
         tab1, _, _ = kPol()
         p_mat = tab1[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_kP1'
+        return result
     @cached_property
     def X_kP2(self):
         _, tab2, _ = kPol()
         p_mat = tab2[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
+        result = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_kP2'
+        return result
     @cached_property
     def X_kP3(self):
         _, _, tab3 = kPol()
         p_mat = tab3[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_kP3'
+        return result    
     @cached_property
     def X_RSDA(self):
         tabA, self.A_coeff = RSDA()
         p_mat = tabA[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-    
+        result = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_RSDA'  
+        return result    
     @cached_property
     def X_RSDB(self):
         tabB, self.B_coeff = RSDB()
         p_mat = tabB[:, [0, 1, 5, 6, 7, 8, 9]]
-        return tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
-
-
-
+        result = tensor_stuff(p_mat, self.N, self.m, self.eta_m, self.l, self.tau_l)
+        self.X_registry[id(result)] = 'X_RSDB'
+        return result
 
 
     def validate_params(self, P, **kwargs):
@@ -520,32 +550,35 @@ class FASTPT:
     
     def _hash_arrays(self, arrays):
         """Helper function to create a hash from multiple numpy arrays or scalars"""
-        if arrays is None: return None
+        if arrays is None: 
+            return hash(None)
         if isinstance(arrays, (tuple, list)):
-            # Handle elements that could be arrays, tuples of arrays, or other objects
-            result = []
-            for item in arrays:
+            # Avoid creating intermediate lists for storing hashes
+            # Instead build the hash directly using a single hash_key value
+            hash_key_hash = 0
+            for i, item in enumerate(arrays):
                 if isinstance(item, np.ndarray):
-                    result.append(hash(item.tobytes()))
+                    # Use a prime multiplier to avoid collisions
+                    item_hash = hash(item.tobytes())
                 elif isinstance(item, (tuple, list)):
-                    # Handle nested tuples/lists recursively
-                    result.append(self._hash_arrays(item))
+                    # Recursively compute hash of nested structure
+                    item_hash = self._hash_arrays(item)
                 else:
-                    result.append(hash(item))
-            return tuple(result)
-    
+                    item_hash = hash(item)
+                # Combine hashes using a prime-based approach to reduce collisions
+                hash_key_hash = hash_key_hash ^ (item_hash + 0x9e3779b9 + (hash_key_hash << 6) + (hash_key_hash >> 2))
+            return hash_key_hash
+
         # Single item case
         if isinstance(arrays, np.ndarray):
             return hash(arrays.tobytes())
         return hash(arrays)
 
-    
     def compute_term(self, term, X, operation=None, P=None, P_window=None, C_window=None):
         """Computes the individual terms of Fast-PT functions with caching"""
         if P is None: raise ValueError('Compute term requires an input power spectrum array.')
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get(term, P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key(term, X, P, P_window, C_window)
+        result = self.cache.get(term, hash_key)
         if result is not None: return result
     
         # Handle case where X is a tuple of multiple X parameters
@@ -558,10 +591,10 @@ class FASTPT:
         
             if operation:
                 final_result = operation(results)
-                self.cache.set(final_result, term, P_hash, P_win_hash, C_window)
+                self.cache.set(final_result, term, hash_key)
                 return final_result
         
-            self.cache.set(results, term, P_hash, P_win_hash, C_window)
+            self.cache.set(results, term, hash_key)
             return results
     
         # Single X parameter case
@@ -570,11 +603,27 @@ class FASTPT:
     
         if operation:
             final_result = operation(result)
-            self.cache.set(final_result, term, P_hash, P_win_hash, C_window)
+            self.cache.set(final_result, term, hash_key)
             return final_result
     
-        self.cache.set(result, term, P_hash, P_win_hash, C_window)
+        self.cache.set(result, term, hash_key)
         return result
+    
+    def _create_hash_key(self, term, X, P, P_window, C_window):
+        """Create a hash key from the term and input parameters"""
+        P_hash = self._hash_arrays(P)
+        P_win_hash = self._hash_arrays(P_window)
+        if X is None:
+            X_id = hash(None)
+        else:
+            X_id = hash(self.X_registry.get(id(X), f"unknown_{id(X)}"))
+        term_hash = hash(term) #Included for differentiating between similar param sets
+        hash_list = [term_hash, X_id, P_hash, P_win_hash, hash(C_window)]
+        hash_key = 0
+        for h in hash_list:
+            if h is not None:
+                hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        return hash_key
 
 
 
@@ -584,38 +633,35 @@ class FASTPT:
         self.validate_params(P, P_window=P_window, C_window=C_window)
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Ps = self._apply_extrapolation(Ps)
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("one_loop_dd", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("one_loop_dd", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("one_loop_dd", hash_key)
         if result is not None: return result, Ps
         P22 = self.get_P22(P, P_window=P_window, C_window=C_window)
         P13 = self.get_P13(P, P_window=P_window, C_window=C_window)
         P_1loop = P22 + P13
         P_1loop = self._apply_extrapolation(P_1loop)
-        self.cache.set(P_1loop, "one_loop_dd", P_hash, P_win_hash, C_window)
+        self.cache.set(P_1loop, "one_loop_dd", hash_key)
         return P_1loop, Ps #This return is going to be different than the original bc the original return is 
                         # different depending on the todo list which is going to be deprecated.
     
     def get_P22(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("P22", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("P22", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P22", hash_key)
         if result is not None: return result
         P22_coef = np.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
         _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P22_mat = np.multiply(P22_coef, np.transpose(mat))
         P22 = np.sum(P22_mat, axis=1)
-        self.cache.set(P22, "P22", P_hash, P_win_hash, C_window)
+        self.cache.set(P22, "P22", hash_key)
         return P22
 
     def get_P13(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("P13", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("P13", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P13", hash_key)
         if result is not None: return result
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P13 = P_13_reg(self.k_extrap, Ps)
-        self.cache.set(P13, "P13", P_hash, P_win_hash, C_window)
+        self.cache.set(P13, "P13", hash_key)
         return P13
 
 
@@ -631,41 +677,37 @@ class FASTPT:
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4
     
     def get_sig4(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("sig4", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("sig4", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("sig4", hash_key)
         if result is not None: return result
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
-        self.cache.set(sig4, "sig4", P_hash, P_win_hash, C_window)
+        self.cache.set(sig4, "sig4", hash_key)
         return sig4
 
     def get_Pd1d2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pd1d2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pd1d2", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("Pd1d2", hash_key)
         if result is not None: return result
         _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd1d2 = 2. * (17. / 21 * mat[0, :] + mat[4, :] + 4. / 21 * mat[1, :])
         Pd1d2 = self._apply_extrapolation(Pd1d2)
-        self.cache.set(Pd1d2, "Pd1d2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pd1d2, "Pd1d2", hash_key)
         return Pd1d2
     
     def get_Pd2d2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pd2d2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pd2d2", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("Pd2d2", hash_key)
         if result is not None: return result
         _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2d2 = 2. * (mat[0, :])
         Pd2d2 = self._apply_extrapolation(Pd2d2)
-        self.cache.set(Pd2d2, "Pd2d2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pd2d2, "Pd2d2", hash_key)
         return Pd2d2
     
     def get_Pd1s2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pd1s2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pd1s2", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("Pd1s2", hash_key)
         if result is not None: return result
         _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd1s2 = 2. * (8. / 315 * mat[0, :] + 4. / 15 * mat[4, :] + 254. / 441 * mat[1, :] + 2. / 5 * mat[5,
@@ -673,29 +715,27 @@ class FASTPT:
                                                                                                                       2,
                                                                                                                       :])
         Pd1s2 = self._apply_extrapolation(Pd1s2)
-        self.cache.set(Pd1s2, "Pd1s2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pd1s2, "Pd1s2", hash_key)
         return Pd1s2
     
     def get_Pd2s2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pd2s2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pd2s2", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("Pd2s2", hash_key)
         if result is not None: return result
         _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2s2 = 2. * (2. / 3 * mat[1, :])
         Pd2s2 = self._apply_extrapolation(Pd2s2)
-        self.cache.set(Pd2s2, "Pd2s2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pd2s2, "Pd2s2", hash_key)
         return Pd2s2
     
     def get_Ps2s2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays
-        result = self.cache.get("Ps2s2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Ps2s2", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("Ps2s2", hash_key)
         if result is not None: return result
         _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Pd2s2 = 2. * (4. / 45 * mat[0, :] + 8. / 63 * mat[1, :] + 8. / 35 * mat[2, :])
         Pd2s2 = self._apply_extrapolation(Pd2s2)
-        self.cache.set(Pd2s2, "Ps2s2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pd2s2, "Ps2s2", hash_key)
         return Pd2s2
 
     
@@ -712,14 +752,13 @@ class FASTPT:
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl
     
     def get_sig3nl(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("sig3nl", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("sig3nl", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("sig3nl", hash_key)
         if result is not None: return result
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         sig3nl = Y1_reg_NL(self.k_extrap, Ps)
         sig3nl = self._apply_extrapolation(sig3nl)
-        self.cache.set(sig3nl, "sig3nl", P_hash, P_win_hash, C_window)
+        self.cache.set(sig3nl, "sig3nl", hash_key)
         return sig3nl
 
     
@@ -735,9 +774,8 @@ class FASTPT:
         return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
     
     def get_Pb1L(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pb1L", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pb1L", self.X_lpt, P, P_window, C_window)
+        result = self.cache.get("Pb1L", hash_key)
         if result is not None: return result
         Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
@@ -747,13 +785,12 @@ class FASTPT:
         Y1 = Y1_reg_NL(self.k_extrap, Ps)
         Pb1L = X1 + Y1
         Pb1L = self._apply_extrapolation(Pb1L)
-        self.cache.set(Pb1L, "Pb1L", P_hash, P_win_hash, C_window)
+        self.cache.set(Pb1L, "Pb1L", hash_key)
         return Pb1L
     
     def get_Pb1L_2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pb1L_2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pb1L_2", self.X_lpt, P, P_window, C_window)
+        result = self.cache.get("Pb1L_2", hash_key)
         if result is not None: return result
         Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
@@ -762,13 +799,12 @@ class FASTPT:
         Y2 = Y2_reg_NL(self.k_extrap, Ps)
         Pb1L_2 = X2 + Y2
         Pb1L_2 = self._apply_extrapolation(Pb1L_2)
-        self.cache.set(Pb1L_2, "Pb1L_2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pb1L_2, "Pb1L_2", hash_key)
         return Pb1L_2
 
     def get_Pb1L_b2L(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pb1L_b2L", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pb1L_b2L", self.X_lpt, P, P_window, C_window)
+        result = self.cache.get("Pb1L_b2L", hash_key)
         if result is not None: return result
         Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
@@ -776,13 +812,12 @@ class FASTPT:
         X3 = (50. / 21.) * j000 + 2. * j1n11 - (8. / 21.) * j002
         Pb1L_b2L = X3
         Pb1L_b2L = self._apply_extrapolation(Pb1L_b2L)
-        self.cache.set(Pb1L_b2L, "Pb1L_b2L", P_hash, P_win_hash, C_window)
+        self.cache.set(Pb1L_b2L, "Pb1L_b2L", hash_key)
         return Pb1L_b2L
     
     def get_Pb2L(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("Pb2L", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pb2L", self.X_lpt, P, P_window, C_window)
+        result = self.cache.get("Pb2L", hash_key)
         if result is not None: return result
         Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
@@ -790,13 +825,12 @@ class FASTPT:
         X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
         Pb2L = X4
         Pb2L = self._apply_extrapolation(Pb2L)
-        self.cache.set(Pb2L, "Pb2L", P_hash, P_win_hash, C_window)
+        self.cache.set(Pb2L, "Pb2L", hash_key)
         return Pb2L
     
     def get_Pb2L_2(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays
-        result = self.cache.get("Pb2L_2", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("Pb2L_2", self.X_lpt, P, P_window, C_window)
+        result = self.cache.get("Pb2L_2", hash_key)
         if result is not None: return result
         Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, P_window=P_window, C_window=C_window)
         [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
@@ -804,7 +838,7 @@ class FASTPT:
         X5 = j000
         Pb2L_2 = X5
         Pb2L_2 = self._apply_extrapolation(Pb2L_2)
-        self.cache.set(Pb2L_2, "Pb2L_2", P_hash, P_win_hash, C_window)
+        self.cache.set(Pb2L_2, "Pb2L_2", hash_key)
         return Pb2L_2
     
     def cleft_Q_R(self, P, P_window=None, C_window=None):
@@ -858,12 +892,12 @@ class FASTPT:
         return P_A, P_Btype2, P_DEE, P_DBB
     
     def get_P_Btype2(self, P):
-        P_hash = self._hash_arrays(P)
-        result = self.cache.get("P_Btype2", P_hash)
+        hash_key = self._create_hash_key("P_Btype2", None, P, None, None)
+        result = self.cache.get("P_Btype2", hash_key)
         if result is not None: return result
         P_Btype2 = P_IA_B(self.k_original, P)
         P_Btype2 = 4 * P_Btype2
-        self.cache.set(P_Btype2, "P_Btype2", P_hash)
+        self.cache.set(P_Btype2, "P_Btype2", hash_key)
         return P_Btype2
 
     ## eq 18; eq 19; eq 27 EE; eq 27 BB
@@ -879,26 +913,25 @@ class FASTPT:
         return P_deltaE1, P_deltaE2, P_0E0E, P_0B0B
     
     def get_P_deltaE2(self, P):
-        P_hash = self._hash_arrays(P)
-        result = self.cache.get("P_deltaE2", P_hash)
+        hash_key = self._create_hash_key("P_deltaE2", None, P, None, None)
+        result = self.cache.get("P_deltaE2", hash_key)
         if result is not None: return result
         P_deltaE2 = P_IA_deltaE2(self.k_original, P)
         #Add extrap?
         P_deltaE2 = 2 * P_deltaE2
-        self.cache.set(P_deltaE2, "P_deltaE2", P_hash)
+        self.cache.set(P_deltaE2, "P_deltaE2", hash_key)
         return P_deltaE2
 
     ## eq 12 (line 2); eq 12 (line 3); eq 15 EE; eq 15 BB
 
     
     def IA_der(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("IA_der", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("IA_der", None, P, P_window, C_window)
+        result = self.cache.get("IA_der", hash_key)
         if result is not None: return result
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_der = (self.k_original**2)*P
-        self.cache.set(P_der, "IA_der", P_hash, P_win_hash, C_window)
+        self.cache.set(P_der, "IA_der", hash_key)
         return P_der
     
     def IA_ct(self,P,P_window=None, C_window=None):
@@ -910,9 +943,8 @@ class FASTPT:
         return P_0tE,P_0EtE,P_E2tE,P_tEtE
     
     def get_P_0tE(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("P_0tE", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("P_0tE", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P_0tE", hash_key)
         if result is not None: return result
         nu=-2
         Ps, mat = self.J_k_scalar(P, self.X_spt, nu, P_window=P_window, C_window=C_window)
@@ -931,13 +963,12 @@ class FASTPT:
         P_13F = P_IA_13F(self.k_original, P)
         P_0tE = P_22G-P_22F+P_13G-P_13F
         P_0tE = 2*P_0tE
-        self.cache.set(P_0tE, "P_0tE", P_hash, P_win_hash, C_window)
+        self.cache.set(P_0tE, "P_0tE", hash_key)
         return P_0tE
     
     def get_P_0EtE(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays
-        result = self.cache.get("P_0EtE", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("P_0EtE", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P_0EtE", hash_key)
         if result is not None: return result
         P_feG2, A = self.J_k_tensor(P,self.X_IA_tij_feG2, P_window=P_window, C_window=C_window)
         P_feG2 = self._apply_extrapolation(P_feG2)
@@ -945,13 +976,12 @@ class FASTPT:
                                        P=P, P_window=P_window, C_window=C_window) #OG: P_A00E, _, _, _ = self.IA_ta()
         P_0EtE = np.subtract(P_feG2,(1/2)*P_A00E)
         P_0EtE = 2*P_0EtE
-        self.cache.set(P_0EtE, "P_0EtE", P_hash, P_win_hash, C_window)
+        self.cache.set(P_0EtE, "P_0EtE", hash_key)
         return P_0EtE
     
     def get_P_E2tE(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("P_E2tE", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("P_E2tE", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P_E2tE", hash_key)
         if result is not None: return result
         P_heG2, A = self.J_k_tensor(P,self.X_IA_tij_heG2, P_window=P_window, C_window=C_window)
         P_heG2 = self._apply_extrapolation(P_heG2)
@@ -959,13 +989,12 @@ class FASTPT:
                                  P=P, P_window=P_window, C_window=C_window) #OG: P_A0E2, _, _, _ = self.IA_mix()
         P_E2tE = np.subtract(P_heG2,(1/2)*P_A0E2)
         P_E2tE = 2*P_E2tE
-        self.cache.set(P_E2tE, "P_E2tE", P_hash, P_win_hash, C_window)
+        self.cache.set(P_E2tE, "P_E2tE", hash_key)
         return P_E2tE
     
     def get_P_tEtE(self, P, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("P_tEtE", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("P_tEtE", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P_tEtE", hash_key)
         if result is not None: return result
         P_F2F2, A = self.J_k_tensor(P,self.X_IA_tij_F2F2, P_window=P_window, C_window=C_window)
         P_G2G2, A = self.J_k_tensor(P,self.X_IA_tij_G2G2, P_window=P_window, C_window=C_window)
@@ -973,7 +1002,7 @@ class FASTPT:
         P_F2F2, P_G2G2, P_F2G2 = self._apply_extrapolation(P_F2F2, P_G2G2, P_F2G2)
         P_tEtE = P_F2F2+P_G2G2-2*P_F2G2
         P_tEtE = 2*P_tEtE
-        self.cache.set(P_tEtE, "P_tEtE", P_hash, P_win_hash, C_window)
+        self.cache.set(P_tEtE, "P_tEtE", hash_key)
         return P_tEtE
     
     def IA_ctbias(self,P,P_window=None, C_window=None):
@@ -1033,14 +1062,13 @@ class FASTPT:
     
     def OV(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_hash = self._hash_arrays(P)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("P_OV", P_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("OV", None, P, P_window, C_window)
+        result = self.cache.get("P_OV", hash_key)
         if result is not None: return result
         P, A = self.J_k_tensor(P, self.X_OV, P_window=P_window, C_window=C_window)
         P = self._apply_extrapolation(P)
         P_OV = P * (2 * pi) ** 2
-        self.cache.set(P_OV, "P_OV", P_hash, P_win_hash, C_window)
+        self.cache.set(P_OV, "P_OV", hash_key)
         return P_OV
 
     
@@ -1163,8 +1191,8 @@ class FASTPT:
     ### Core functions used by top-level functions ###
     def _cache_fourier_coefficients(self, P_b, C_window=None):
         """Cache and return Fourier coefficients for a given biased power spectrum"""
-        P_b_hash = self._hash_arrays(P_b)
-        result = self.cache.get("fourier_coefficients", P_b_hash, C_window)
+        hash_key = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
+        result = self.cache.get("fourier_coefficients", hash_key)
         if result is not None: return result
         from numpy.fft import rfft
     
@@ -1178,7 +1206,7 @@ class FASTPT:
                 print('windowing the Fourier coefficients')
             c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
     
-        self.cache.set(c_m, "fourier_coefficients", P_b_hash, C_window)
+        self.cache.set(c_m, "fourier_coefficients", hash_key)
         return c_m
 
     def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
@@ -1189,7 +1217,12 @@ class FASTPT:
         g_n_hash = self._hash_arrays(g_n)
         h_l_hash = self._hash_arrays(h_l)
         two_part_l_hash = self._hash_arrays(two_part_l)
-        result = self.cache.get("convolution", c1_hash, c2_hash, g_m_hash, g_n_hash, h_l_hash, two_part_l_hash)
+        hash_list = [c1_hash, c2_hash, g_m_hash, g_n_hash, h_l_hash, two_part_l_hash]
+        hash_key = 0
+        for h in hash_list:
+            if h is not None:
+                hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        result = self.cache.get("convolution", hash_key)
         if result is not None: return result
 
         from scipy.signal import fftconvolve
@@ -1208,15 +1241,13 @@ class FASTPT:
             C_l = C_l * h_l
         
         # Cache and return
-        self.cache.set(C_l, "convolution", c1_hash, c2_hash, g_m_hash, g_n_hash, h_l_hash, two_part_l_hash)
+        self.cache.set(C_l, "convolution", hash_key)
         return C_l
 
 
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        X_hash = self._hash_arrays(X)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("J_k_scalar", P_hash, X_hash, nu, P_win_hash, C_window)
+        hash_key = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
+        result = self.cache.get("J_k_scalar", hash_key)
         if result is not None: return result
         from numpy.fft import ifft, irfft
 
@@ -1259,15 +1290,13 @@ class FASTPT:
             P_out = P_out[self.id_pad]
             A_out = A_out[:, self.id_pad]
 
-        self.cache.set((P_out, A_out), "J_k_scalar", P_hash, X_hash, nu, P_win_hash, C_window)
+        self.cache.set((P_out, A_out), "J_k_scalar", hash_key)
         return P_out, A_out
 
     
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
-        P_hash = self._hash_arrays(P)
-        X_hash = self._hash_arrays(X)
-        P_win_hash = self._hash_arrays(P_window)
-        result = self.cache.get("J_k_tensor", P_hash, X_hash, P_win_hash, C_window)
+        hash_key = self._create_hash_key("J_k_tensor", X, P, P_window, C_window)
+        result = self.cache.get("J_k_tensor", hash_key)
         if result is not None: return result
         from numpy.fft import ifft
 
@@ -1327,7 +1356,7 @@ class FASTPT:
             A_out = A_out[:, self.id_pad]
             P_fin = P_fin[self.id_pad]
 
-        self.cache.set((P_fin, A_out), "J_k_tensor", P_hash, X_hash, P_win_hash, C_window)
+        self.cache.set((P_fin, A_out), "J_k_tensor", hash_key)
         return P_fin, A_out
 
 

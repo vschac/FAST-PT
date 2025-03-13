@@ -14,16 +14,43 @@ class CacheManager:
         #^^ 1000 MB = 1000*1024 KB = 1000*1024*1024 bytes (1024 instead of 1000 due to binary memory 2^10=1024)
         self.hits = 0
         self.misses = 0
+
+    def measure_actual_size(self):
+        """Measure actual memory usage of the cache"""
+        # First try pympler if available
+        try:
+            from pympler import asizeof
+            actual_size = asizeof.asizeof(self.cache) / (1024 * 1024)
+            return f"Actual cache size (pympler): {actual_size:.2f} MB"
+        except ImportError:
+            pass
+        
+        # Fallback to sys.getsizeof (less accurate for complex objects)
+        import sys
+        basic_size = sys.getsizeof(self.cache) / (1024 * 1024)
+        return f"Basic cache size (sys.getsizeof): {basic_size:.2f} MB"
     
     def _get_array_size(self, arr):
-        """Calculate size of numpy array in bytes"""
+        """Calculate size of objects in bytes, accounting for Python objects"""
         if isinstance(arr, np.ndarray):
             return arr.nbytes
-        return 0
+        elif isinstance(arr, (tuple, list)):
+            # Account for container overhead (~56 bytes per tuple/list in CPython)
+            container_overhead = sys.getsizeof(arr) - sum(sys.getsizeof(0) for _ in range(len(arr)))
+            return container_overhead + sum(self._get_array_size(item) for item in arr)
+        elif isinstance(arr, (int, float, str, bool)):
+            return sys.getsizeof(arr)
+        elif arr is None:
+            return sys.getsizeof(None)
+        else:
+            try:
+                return sys.getsizeof(arr)
+            except:
+                return 64  # Default estimate if sys.getsizeof fails
     
-    def get(self, category, *args):
+    def get(self, category, hash_key):
         """Get an item from cache using category and arguments as key"""
-        key = (category, args)
+        key = (category, hash_key)
         if key in self.cache:
             self.hits += 1
             # Track hit counts per item
@@ -35,65 +62,48 @@ class CacheManager:
         self.misses += 1
         return None
     
-    def set(self, value, category, *args):
+    def set(self, value, category, hash_key):
         """Store an item in cache using category and arguments as key"""
-        key = (category, args)
+        key = (category, hash_key)
+        key_size = self._get_array_size(key)
+
         old_size = 0
-        if key in self.cache.keys(): # Check if we're replacing an existing entry
+        if key in self.cache:
             old_val = self.cache[key]
-            if isinstance(old_val, np.ndarray):
-                old_size = self._get_array_size(old_val)
-            elif isinstance(old_val, (list, tuple)):
-                for item in old_val:
-                    old_size += self._get_array_size(item)
+            old_size = self._get_array_size(old_val)
         else:
-            # Initialize hit counter for new entries
             self.hit_counts[key] = 0
-        
-        # Calculate size of new entry
-        size = 0
-        if isinstance(value, np.ndarray):
-            size = self._get_array_size(value)
-        elif isinstance(value, (list, tuple)):
-            for item in value:
-                size += self._get_array_size(item)
-        
-        # Check if we need to make room in the cache
-        if self.max_size_bytes > 0 and (self.cache_size + size) > self.max_size_bytes:
-            self._evict(size)
-        
-        # Store item and update size
+    
+        value_size = self._get_array_size(value)
+        total_size = key_size + value_size
+    
+        if self.max_size_bytes > 0 and (self.cache_size - old_size + total_size) > self.max_size_bytes:
+            self._evict(total_size - old_size)
+    
         self.cache[key] = value
-        self.cache_size -= old_size
-        self.cache_size += size
+        self.cache_size = self.cache_size - old_size + total_size
         return value
     
     def _evict(self, required_size):
         """Evict items from cache until there's room for required_size"""
-        # Would LRU be better? 
-        # Pros: Keeps frequently used items in cache
-        # Cons: Requires additional bookkeeping, may not be worth it for small cache sizes
         items = list(self.cache.items())
         np.random.shuffle(items)
-        
+    
         freed = 0
         for key, value in items:
             if freed >= required_size:
                 break
-                
-            size = 0
-            if isinstance(value, np.ndarray):
-                size = self._get_array_size(value)
-            elif isinstance(value, (list, tuple)):
-                for item in value:
-                    size += self._get_array_size(item)
             
+            key_size = self._get_array_size(key)
+            value_size = self._get_array_size(value)
+            total_size = key_size + value_size
+        
             del self.cache[key]
-            # Also remove hit count for evicted item
             if key in self.hit_counts:
                 del self.hit_counts[key]
-            self.cache_size -= size
-            freed += size
+            
+            self.cache_size -= total_size
+            freed += total_size
     
     def clear(self):
         """Clear the entire cache"""
@@ -102,19 +112,49 @@ class CacheManager:
         self.cache_size = 0
     
     def stats(self):
-        """Return cache statistics"""
+        """Return statistics about the cache usage"""
+        # Calculate key and value sizes separately
+        key_size = 0
+        value_size = 0
+        
+        for key, value in self.cache.items():
+            key_size += self._get_array_size(key)
+            value_size += self._get_array_size(value)
+        
+        # Total size
+        total_size_bytes = self.cache_size
+        total_size_mb = total_size_bytes / (1024 * 1024)
+        key_size_mb = key_size / (1024 * 1024)
+        value_size_mb = value_size / (1024 * 1024)
+        
+        # Calculate hit rate
+        total_accesses = self.hits + self.misses
+        hit_rate = self.hits / total_accesses if total_accesses > 0 else 0
+        
+        # Max cache size in MB
+        max_size_mb = self.max_size_bytes / (1024 * 1024) if self.max_size_bytes > 0 else float('inf')
+        
         return {
-            'size_mb': self.cache_size / (1024 * 1024),
-            'max_size_mb': self.max_size_bytes / (1024 * 1024),
             'items': len(self.cache),
-            'hit_rate': self.hits / (self.hits + self.misses) if (self.hits + self.misses) > 0 else 0
+            'size_bytes': total_size_bytes,
+            'size_mb': total_size_mb,
+            'key_size_mb': key_size_mb,
+            'value_size_mb': value_size_mb,
+            'key_percent': (key_size / total_size_bytes) * 100 if total_size_bytes > 0 else 0,
+            'value_percent': (value_size / total_size_bytes) * 100 if total_size_bytes > 0 else 0,
+            'max_size_mb': max_size_mb,
+            'percent_full': (total_size_bytes / self.max_size_bytes) * 100 if self.max_size_bytes > 0 else 0,
+            'hits': self.hits,
+            'misses': self.misses,
+            'hit_rate': hit_rate
         }
-    
+
     def __repr__(self):
         """Return a string representation of the cache"""
         stats = self.stats()
         result = [
             f"CacheManager: {stats['size_mb']:.2f}MB/{stats['max_size_mb']:.2f}MB used",
+            f"Memory breakdown: Keys: {stats['key_size_mb']:.2f}MB ({stats['key_percent']:.1f}%), Values: {stats['value_size_mb']:.2f}MB ({stats['value_percent']:.1f}%)",
             f"Items: {stats['items']}, Hit rate: {stats['hit_rate']:.2%}"
         ]
     
@@ -122,17 +162,17 @@ class CacheManager:
             # Group items by category
             categories = {}
             for key, value in self.cache.items():
-                category, args = key
+                category, hash_key = key
                 if category not in categories:
                     categories[category] = []
                 hit_count = self.hit_counts.get(key, 0)
-                categories[category].append((args, value, hit_count))
+                categories[category].append((hash_key, value, hit_count))
         
             result.append("\nCached items by category:")
             for category, items in sorted(categories.items()):
                 result.append(f"\n  Category: {category} ({len(items)} items)")
             
-                for args, value, hit_count in items:
+                for hash_key, value, hit_count in items:
                     # Format the value representation
                     if isinstance(value, np.ndarray):
                         shape_str = f"shape={value.shape}"
@@ -163,71 +203,15 @@ class CacheManager:
                     if len(val_repr) > 100:
                         val_repr = val_repr[:97] + "..."
                 
-                    # Format arguments based on FAST-PT patterns
-                    if len(args) == 1:
-                        # Single argument - likely a hashed power spectrum or common parameter
-                        if isinstance(args[0], int) and abs(args[0]) > 10000000:
-                            args_repr = "(hashed P)"
+                    # Format hash key based on its magnitude
+                    if isinstance(hash_key, int):
+                        if abs(hash_key) > 1000000000:  # Large hash values
+                            hash_repr = f"hash:{hash_key:.3e}"  # Scientific notation
                         else:
-                            args_repr = f"({args[0]})"
-                        
-                    elif len(args) == 2:
-                        # Two arguments - often (hashed P, P_window)
-                        if isinstance(args[0], int) and abs(args[0]) > 10000000:
-                            if isinstance(args[1], int) and abs(args[1]) > 10000000:
-                                args_repr = "(hashed P, hashed P_window)"
-                            elif args[1] is None:
-                                args_repr = "(hashed P, None)"
-                            else:
-                                args_repr = f"(hashed P, {args[1]})"
-                        else:
-                            args_repr = f"({args[0]}, {args[1]})"
-                        
-                    elif len(args) == 3:
-                        # Three arguments - often (hashed P, P_window, C_window)
-                        if isinstance(args[0], int) and abs(args[0]) > 10000000:
-                            if isinstance(args[1], int) and abs(args[1]) > 10000000:
-                                if isinstance(args[2], float) and (args[2] == 0.0 or args[2] == 1.0 or args[2] == 0.75):
-                                    args_repr = f"(hashed P, hashed P_window, C_window={args[2]})"
-                                elif args[2] is None:
-                                    args_repr = "(hashed P, hashed P_window, None)"
-                                else:
-                                    args_repr = f"(hashed P, hashed P_window, {args[2]})"
-                            else:
-                                if args[2] is None:
-                                    args_repr = f"(hashed P, {args[1]}, None)"
-                                else:
-                                    args_repr = f"(hashed P, {args[1]}, {args[2]})"
-                        else:
-                            args_repr = f"({args[0]}, {args[1]}, {args[2]})"
-                        
-                    elif len(args) > 3:
-                        # For multiple hashes in fourier coefficients or convolution caching
-                        hash_parts = []
-                        for arg in args:
-                            if isinstance(arg, int) and abs(arg) > 10000000:
-                                hash_parts.append("hash")
-                            elif arg is None:
-                                hash_parts.append("None")
-                            elif isinstance(arg, (float, int)) and -10 <= arg <= 10:
-                                hash_parts.append(str(arg))
-                            else:
-                                hash_parts.append(f"{type(arg).__name__}")
-                    
-                        # Common patterns in FAST-PT cache keys
-                        if category == "fourier_coefficients" and len(hash_parts) == 2:
-                            args_repr = "(hashed P_b, C_window)"
-                        elif category == "convolution" and len(hash_parts) == 6:
-                            args_repr = "(hashed c1, hashed c2, hashed g_m, hashed g_n, hashed h_l, hashed two_part_l)"
-                        elif category == "J_k_scalar" and len(hash_parts) == 5:
-                            args_repr = "(hashed P, hashed X, nu, hashed P_window, C_window)"
-                        elif category == "J_k_tensor" and len(hash_parts) == 4:
-                            args_repr = "(hashed P, hashed X, hashed P_window, C_window)"
-                        else:
-                            args_repr = f"({', '.join(hash_parts)})"
+                            hash_repr = f"hash:{hash_key}"
                     else:
-                        args_repr = "()"
+                        hash_repr = str(hash_key)
                 
-                    result.append(f"    • {args_repr} [hits: {hit_count}]: {val_repr}")
+                    result.append(f"    • {hash_repr} [hits: {hit_count}]: {val_repr}")
     
         return "\n".join(result)

@@ -58,7 +58,7 @@ def test_init_padding(fpt):
 
     # Test with no padding
     fpt1 = FASTPT(k, to_do=['skip'], n_pad=None)
-    assert fpt1.n_pad == 0
+    assert fpt1.n_pad == int(0.5 * len(k))  # Default padding
             
     # Test with padding
     assert hasattr(fpt, 'n_pad')
@@ -377,7 +377,7 @@ def test_IRres(fpt):
 def test_hash_none(fpt):
     """Test hashing None values"""
     result = fpt._hash_arrays(None)
-    assert result is None
+    assert result == hash(None)
 
 def test_hash_numpy_array(fpt):
     """Test hashing numpy arrays"""
@@ -410,19 +410,16 @@ def test_hash_tuple_list(fpt):
     """Test hashing tuples and lists of items"""
     # Simple tuple of scalars
     tuple_result = fpt._hash_arrays((1, 2, 3))
-    assert isinstance(tuple_result, tuple)
-    assert len(tuple_result) == 3
+    assert isinstance(tuple_result, int)
     
     # Simple list of scalars
     list_result = fpt._hash_arrays([1, 2, 3])
-    assert isinstance(list_result, tuple)  # Note: returns a tuple
-    assert len(list_result) == 3
+    assert isinstance(list_result, int)
     
     # Mixed list
     mixed_list = [1, "string", True]
     mixed_result = fpt._hash_arrays(mixed_list)
-    assert isinstance(mixed_result, tuple)
-    assert len(mixed_result) == 3
+    assert isinstance(mixed_result, int) #Now returns single hash
 
 def test_hash_X_parameters(fpt):
     """Test hashing X parameter tuples (like X_spt, X_lpt, etc.)"""
@@ -437,16 +434,7 @@ def test_hash_X_parameters(fpt):
     mock_X = (mock_pf, mock_p, mock_g_m, mock_g_n, mock_two_part_l, mock_h_l)
     X_hash = fpt._hash_arrays(mock_X)
     
-    assert isinstance(X_hash, tuple)
-    assert len(X_hash) == 6
-    
-    # Each element should be a hash integer
-    for h in X_hash:
-        if isinstance(h, np.ndarray):
-            for sub_h in h:
-                assert isinstance(sub_h, int)
-        else:
-            assert isinstance(h, int)
+    assert isinstance(X_hash, int)
 
 def test_hash_consistency(fpt):
     """Test that the same input always produces the same hash"""
@@ -478,28 +466,61 @@ def test_hash_uniqueness(fpt):
     assert hash1 != hash2
 
 def test_hash_power_spectrum(fpt, monkeypatch):
-    """Test hashing a typical power spectrum"""
+    """Test hashing and cache key generation for power spectrum"""
     
     # Test direct hashing
     P_hash = fpt._hash_arrays(P)
     assert isinstance(P_hash, int)
     
-    # Ensure the hash is used in the cache mechanism
-    # Mock the cache.get method to track calls
-    mock_calls = []
+    # Test access to cached properties creates entries in X_registry
+    X_spt = fpt.X_spt
+    assert id(X_spt) in fpt.X_registry
+    
+    mock_gets = []
+    mock_sets = []
     original_get = fpt.cache.get
+    original_set = fpt.cache.set
     
     def mock_get(*args):
-        mock_calls.append(args)
+        mock_gets.append(args)
         return original_get(*args)
         
+    def mock_set(*args):
+        mock_sets.append(args)
+        return original_set(*args)
+    
     monkeypatch.setattr(fpt.cache, 'get', mock_get)
+    monkeypatch.setattr(fpt.cache, 'set', mock_set)
     
-    # Call a method that uses the hash
     fpt.one_loop_dd(P)
+    assert len(mock_gets) > 0, "Cache get was not called"
+    assert len(mock_sets) > 0, "Cache set was not called"
+
+    for call in mock_gets:
+        assert len(call) >= 2, "Cache get call should have category and hash"
+        assert isinstance(call[0], str), "First arg should be category (string)"
+        assert isinstance(call[1], int), "Second arg should be hash key (int)"
     
-    # Verify the P_hash was used in cache calls - fixed by converting to string
-    assert any(str(P_hash) in str(call) for call in mock_calls)
+    mock_gets.clear()
+    mock_sets.clear()
+    
+    # Call the same function again - should use cache
+    result1 = fpt.one_loop_dd(P)
+    
+    assert len(mock_gets) > 0, "Cache get was not called on repeated call"
+    
+    # Different P should create different hash
+    P_modified = np.copy(P)
+    P_modified[0] *= 1.01
+    
+    mock_gets.clear()
+    mock_sets.clear()
+    
+    result2 = fpt.one_loop_dd(P_modified)
+    
+    # Should have both gets and sets (different input = new cache entry)
+    assert len(mock_sets) > 0, "Cache set wasn't called with new input"
+    assert not np.array_equal(result1[0], result2[0]), "Results should differ with different inputs"
 
 def test_hash_nested_numpy_arrays(fpt):
     """Test hashing complex nested structures with numpy arrays"""
@@ -518,20 +539,7 @@ def test_hash_nested_numpy_arrays(fpt):
     hash_result = fpt._hash_arrays(nested_structure)
     
     # Verify structure and types
-    assert isinstance(hash_result, tuple)
-    assert len(hash_result) == 2
-    
-    # First element should be a tuple (converted from list)
-    assert isinstance(hash_result[0], tuple)
-    assert len(hash_result[0]) == 2
-    assert isinstance(hash_result[0][0], int)  # hash of arr1
-    assert isinstance(hash_result[0][1], tuple)  # tuple of hashes
-    
-    # Second element should be a tuple
-    assert isinstance(hash_result[1], tuple) 
-    assert len(hash_result[1]) == 2
-    assert isinstance(hash_result[1][0], int)  # hash of np.array([11.0, 12.0])
-    assert isinstance(hash_result[1][1], tuple)  # tuple of hashes from the list
+    assert isinstance(hash_result, int)
     
     # Test consistency - same structure should hash to same value
     hash_result2 = fpt._hash_arrays(nested_structure)
@@ -551,5 +559,4 @@ def test_hash_nested_numpy_arrays(fpt):
     complex_nested = (arr1, arr2, complex_arr, (arr3, complex_arr))
     
     complex_hash = fpt._hash_arrays(complex_nested)
-    assert isinstance(complex_hash, tuple)
-    assert len(complex_hash) == 4
+    assert isinstance(complex_hash, int)
