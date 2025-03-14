@@ -13,8 +13,10 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k, n_pad=int(0.5 * len(k)))
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-    handler.run("IA_ctbias", save=True)
-    handler.run("IA_ct")
+    funcs = ['one_loop_dd', 'IA_tt', 'IA_mix']
+    r1 = handler.run(funcs[0], C_window=0.1)
+    r2 = handler.run(funcs[0])
+    print(np.array_equal(r1, r2))
 
 
 @pytest.fixture
@@ -204,6 +206,21 @@ def test_clear_params(fpt):
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     handler.clear_default_params()
     assert handler.default_params == {}
+
+def test_override_params(fpt):
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    original_params = handler.default_params.copy()
+    r1 = handler.run('one_loop_dd')
+    new_params = {'P': P * 2, 'P_window': np.array([0.1, 0.1]), 'C_window': 0.5}
+    # Run with overridden parameters (but this doesn't update default_params)
+    r2 = handler.run('one_loop_dd', **new_params)
+    assert not np.array_equal(r1, r2)
+    # Assert that default_params weren't changed
+    for key in original_params:
+        if isinstance(original_params[key], np.ndarray):
+            assert np.array_equal(handler.default_params[key], original_params[key])
+        else:
+            assert handler.default_params[key] == original_params[key]
 
 def test_update_params(fpt):
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
@@ -528,3 +545,144 @@ def test_get_edge_cases(fpt):
     result1 = handler.get("P_E")
     result2 = handler.get("P_E", P=new_P)
     assert not np.array_equal(result1, result2)
+
+################# BULK RUN TESTS #################
+def test_bulk_run_basic(fpt):
+    """Test basic functionality of bulk_run method"""
+    handler = FPTHandler(fpt)
+    funcs = ['one_loop_dd', 'IA_tt']
+    power_spectra = [P, P * 1.1, P * 1.2]
+    
+    results = handler.bulk_run(funcs, power_spectra, P_window=P_window, C_window=C_window)
+    
+    # Check that all expected results are present
+    assert len(results) == len(funcs) * len(power_spectra)
+    
+    for func in funcs:
+        for i in range(len(power_spectra)):
+            assert (func, i) in results
+            assert results[(func, i)] is not None
+
+def test_bulk_run_results_correctness(fpt):
+    """Test that bulk_run results match individual run calls"""
+    handler = FPTHandler(fpt, P_window=P_window, C_window=C_window)
+    funcs = ['one_loop_dd', 'IA_tt']
+    power_spectra = [P, P * 1.5]
+    
+    bulk_results = handler.bulk_run(funcs, power_spectra)
+    
+    # Compare with individual runs
+    for func in funcs:
+        for i, spec in enumerate(power_spectra):
+            individual_result = handler.run(func, P=spec)
+            bulk_result = bulk_results[(func, i)]
+            
+            if isinstance(individual_result, tuple):
+                assert isinstance(bulk_result, tuple)
+                assert len(individual_result) == len(bulk_result)
+                for ir, br in zip(individual_result, bulk_result):
+                    assert np.array_equal(ir, br)
+            else:
+                assert np.array_equal(individual_result, bulk_result)
+
+def test_bulk_run_with_overrides(fpt):
+    """Test bulk_run with additional override parameters"""
+    handler = FPTHandler(fpt)
+    funcs = ['RSD_components']
+    power_spectra = [P]
+    
+    # RSD_components requires 'f' parameter
+    results = handler.bulk_run(funcs, power_spectra, 
+                               P_window=P_window, C_window=C_window, f=0.5)
+    
+    assert (funcs[0], 0) in results
+    assert results[(funcs[0], 0)] is not None
+
+def test_bulk_run_empty_inputs(fpt):
+    """Test bulk_run with empty function list or power spectra list"""
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    
+    # Empty function list
+    empty_results = handler.bulk_run([], [P])
+    assert len(empty_results) == 0
+    
+    # Empty power spectra list
+    empty_results = handler.bulk_run(['one_loop_dd'], [])
+    assert len(empty_results) == 0
+
+def test_bulk_run_with_caching(fpt):
+    """Test that bulk_run properly uses caching"""
+    handler = FPTHandler(fpt, do_cache=True)
+    funcs = ['one_loop_dd']
+    power_spectra = [P]
+    
+    # First run should compute
+    handler.bulk_run(funcs, power_spectra, P_window=P_window, C_window=C_window)
+    cache_size = len(handler.cache)
+    
+    # Second run should use cache
+    handler.bulk_run(funcs, power_spectra, P_window=P_window, C_window=C_window)
+    assert len(handler.cache) == cache_size
+    
+    # Different power spectrum should create new cache entry
+    handler.bulk_run(funcs, [P * 1.1], P_window=P_window, C_window=C_window)
+    assert len(handler.cache) > cache_size
+
+def test_bulk_run_with_invalid_function(fpt):
+    """Test bulk_run with invalid function name"""
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    
+    with pytest.raises(ValueError, match="Function 'invalid_function' not found in FASTPT"):
+        handler.bulk_run(['invalid_function'], [P])
+
+def test_bulk_run_missing_params(fpt):
+    """Test bulk_run with missing required parameters"""
+    handler = FPTHandler(fpt)
+    
+    with pytest.raises(ValueError, match="Missing required parameters"):
+        handler.bulk_run(['RSD_components'], [P], P_window=P_window, C_window=C_window)
+        # Missing 'f' parameter for RSD_components
+
+def test_bulk_run_large_input(fpt):
+    """Test bulk_run with larger number of functions and spectra"""
+    handler = FPTHandler(fpt)
+    funcs = ['one_loop_dd', 'IA_tt', 'IA_mix', 'OV', 'kPol']
+    power_spectra = [P, P * 1.1, P * 1.2, P * 1.3, P * 1.4]
+    
+    results = handler.bulk_run(funcs, power_spectra, P_window=P_window, C_window=C_window)
+    
+    # Check we got all expected combinations
+    assert len(results) == len(funcs) * len(power_spectra)
+    for func in funcs:
+        for i in range(len(power_spectra)):
+            assert (func, i) in results
+
+def test_bulk_run_with_save_all(fpt):
+    """Test bulk_run with save_all flag"""
+    # Create a temporary outputs directory to avoid cluttering
+    import tempfile
+    import os
+    import shutil
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create a mock save_output that just records calls rather than saving files
+        saved_outputs = []
+        
+        original_save_output = FPTHandler.save_output
+        try:
+            def mock_save_output(self, result, func_name):
+                saved_outputs.append((result, func_name))
+                
+            FPTHandler.save_output = mock_save_output
+            
+            handler = FPTHandler(fpt, save_all=True, P_window=P_window, C_window=C_window)
+            funcs = ['one_loop_dd', 'IA_tt']
+            power_spectra = [P, P * 1.1]
+            
+            handler.bulk_run(funcs, power_spectra)
+            
+            # Check that save_output was called for each function and power spectrum
+            assert len(saved_outputs) == len(funcs) * len(power_spectra)
+        finally:
+            # Restore original method
+            FPTHandler.save_output = original_save_output

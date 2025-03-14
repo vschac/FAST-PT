@@ -7,14 +7,22 @@ from collections import defaultdict
 class FPTHandler:
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=False, max_cache_entries=500, **params):
         self.fastpt = fastpt_instance
-        if not params or params is None: print("Warning: P is a required parameter for all functions, it will need to be passed on the run call.")
-        self.default_params = self._validate_params(**params) if params else {}
         self.cache = {}
         #Explain somewhere that caching is an option though not necessarily needed
         self.do_cache = do_cache
         self.max_cache_entries = max_cache_entries
         self.save_all = save_all
         self.outputs = defaultdict(bool)
+
+        self.default_params = {}
+        if params:
+            try:
+                self.default_params = self._validate_params(**params)
+            except ValueError as e:
+                if "You must provide an input power spectrum array" in str(e):
+                    print("No power spectrum provided. You'll need to provide 'P' in each function call.")
+                else:
+                    raise e
 
         #Commented out terms have not been implemented yet
         self.term_sources = {
@@ -212,8 +220,26 @@ class FPTHandler:
         if save or self.save_all: self.save_output(result, function_name)
         return result
     
-    #Not saving any time by caching this function because the individual terms
-    #are already cached in FASTPT
+    def bulk_run(self, func_names, power_spectra, **override_kwargs):
+        """
+        Runs multiple functions with multiple power spectra.
+        
+        Args:
+            func_names (list): List of FASTPT function names to call
+            power_spectra (list): List of power spectra to use
+            **override_kwargs: Additional parameters to pass to all function calls
+        
+        Returns:
+            dict: Results keyed by (function_name, power_spectrum_index)
+        """
+        results = {}
+        for func_name in func_names:
+            for i, P in enumerate(power_spectra):
+                # Combine override kwargs with the specific power spectrum
+                params = {**override_kwargs, 'P': P}
+                results[(func_name, i)] = self.run(func_name, **params)
+        return results
+    
     def get(self, *terms, **override_kwargs):
         """Allows for quick access to a specific term or terms from a FASTPT function."""
         if not terms:
