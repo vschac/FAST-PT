@@ -9,12 +9,13 @@ P = np.loadtxt(data_path)[:, 1]
 k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5 * len(k)))
-handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-handler.run("one_loop_dd")
-handler.run("IA_tt")
-handler.run("IA_mix")
-print(fpt.cache)
+
+if __name__ == "__main__":
+    fpt = FASTPT(k, n_pad=int(0.5 * len(k)))
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+    handler.run("IA_ctbias", save=True)
+    handler.run("IA_ct")
+
 
 @pytest.fixture
 def fpt():

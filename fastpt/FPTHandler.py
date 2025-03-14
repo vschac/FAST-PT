@@ -2,9 +2,10 @@ import numpy as np
 import inspect
 from fastpt import FASTPT
 from numpy import pi, log
+from collections import defaultdict
 
 class FPTHandler:
-    def __init__(self, fastpt_instance: FASTPT, do_cache=False, max_cache_entries=500, **params):
+    def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=False, max_cache_entries=500, **params):
         self.fastpt = fastpt_instance
         if not params or params is None: print("Warning: P is a required parameter for all functions, it will need to be passed on the run call.")
         self.default_params = self._validate_params(**params) if params else {}
@@ -12,6 +13,8 @@ class FPTHandler:
         #Explain somewhere that caching is an option though not necessarily needed
         self.do_cache = do_cache
         self.max_cache_entries = max_cache_entries
+        self.save_all = save_all
+        self.outputs = defaultdict(bool)
 
         #Commented out terms have not been implemented yet
         self.term_sources = {
@@ -190,7 +193,7 @@ class FPTHandler:
         return passing_params, params_info
 
 
-    def run(self, function_name, **override_kwargs):
+    def run(self, function_name, save=False, **override_kwargs):
         """Runs the selected function from FASTPT with validated parameters."""
         if not hasattr(self.fastpt, function_name):
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
@@ -206,6 +209,7 @@ class FPTHandler:
 
         result = func(**passing_params)
         if self.do_cache: self._cache_result(function_name, passing_params, result)
+        if save or self.save_all: self.save_output(result, function_name)
         return result
     
     #Not saving any time by caching this function because the individual terms
@@ -352,3 +356,38 @@ class FPTHandler:
         self.fastpt = fastpt_instance
         self.clear_cache()
         print("FASTPT instance updated. Cached cleared.")
+
+    def save_output(self, result, func_name):
+        """ Save the output to a file """
+        import os
+        output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+        os.makedirs(output_dir, exist_ok=True)
+
+        if func_name in ("one_loop_dd_bias_lpt_NL", "one_loop_dd_bias_b3nl", "one_loop_dd_bias"):
+            for i, element in enumerate(result):
+                if isinstance(element, float): #sig4 is of type float, converting it to np array
+                    new_array = np.zeros(len(result[i-1]))
+                    new_array[0] = element
+                    result = list(result)
+                    result[i] = new_array
+        hashed = []
+        for element in result:
+            if isinstance(element, np.ndarray):
+                hashed.append(hash(element.tobytes()))
+            else:
+                hashed.append(hash(element))
+        print("hashed: ", hashed)
+        result_key = (func_name, tuple(hashed))
+        calculated_funcs = [key[0] for key in self.outputs.keys()]
+        if func_name in calculated_funcs and not self.outputs[result_key]:
+            count = len([f for f in self.outputs.keys() if f[0] == func_name])
+            name = f"{func_name}_{count}_output.txt"
+        else:
+            name = f"{func_name}_output.txt"
+        file_path = os.path.join(output_dir, name)
+        try:
+            np.savetxt(file_path, np.transpose(result), header=f'{func_name}')
+            self.outputs[(func_name, tuple(hashed))] = True
+            print(f"Output saved to {file_path}")
+        except Exception as e:
+            print(f"Error saving {func_name} output: {str(e)}")
