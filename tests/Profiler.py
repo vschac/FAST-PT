@@ -5,10 +5,6 @@ from time import time
 from statistics import mean, stdev
 import json
 from datetime import datetime
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from fastpt.FPTHandler import FPTHandler
-
 
 def run_benchmark(fpt, function_name, params, n_runs=5):
     """Run a specific FASTPT function multiple times and collect timing stats."""
