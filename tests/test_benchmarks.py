@@ -13,8 +13,7 @@ def fpt():
     d = np.loadtxt(data_path)
     k = d[:, 0]
     n_pad = int(0.5 * len(k))
-    to_do = ['all']
-    return FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
+    return FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
 def test_one_loop_dd(fpt):
     bmark = np.transpose(fpt.one_loop_dd(P, C_window=C_window)[0])

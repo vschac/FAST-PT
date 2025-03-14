@@ -20,8 +20,7 @@ print(fpt.cache)
 def fpt():
     k = np.loadtxt(data_path)[:, 0]
     n_pad=int(0.5*len(k))
-    to_do = ['skip'] #Currently needed as no todo delegates to fastpt simple which does not init the necessary properties for tensor/scalar stuff
-    return FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
+    return FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
 ################# FUNCTIONALITY TESTS #################
 def test_init_with_valid_params(fpt):

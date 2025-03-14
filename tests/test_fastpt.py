@@ -12,8 +12,7 @@ def fpt():
     d = np.loadtxt(data_path)
     k = d[:, 0]
     n_pad = int(0.5 * len(k))
-    to_do = ['all']
-    return FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
+    return FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
 
 ####################INITIALIZATION TESTS####################
@@ -44,20 +43,20 @@ def test_init_extrapolation_ranges():
     k = np.logspace(-3, 1, 200)
             
     # Test valid extrapolation
-    fpt = FASTPT(k, to_do=['skip'], low_extrap=-5, high_extrap=3)
+    fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
     assert fpt.low_extrap == -5
     assert fpt.high_extrap == 3
             
     # Test invalid extrapolation
     with pytest.raises(ValueError):
-        FASTPT(k, to_do=['skip'], low_extrap=3, high_extrap=-5)  # Invalid range
+        FASTPT(k, low_extrap=3, high_extrap=-5)  # Invalid range
 
 def test_init_padding(fpt):
     """Test initialization with different padding values"""
     k = np.logspace(-3, 1, 200)
 
     # Test with no padding
-    fpt1 = FASTPT(k, to_do=['skip'], n_pad=None)
+    fpt1 = FASTPT(k, n_pad=None)
     assert fpt1.n_pad == int(0.5 * len(k))  # Default padding
             
     # Test with padding
@@ -67,7 +66,7 @@ def test_init_padding(fpt):
                                    ['one_loop_cleft_dd'], ['IA_tt'], 
                                    ['IA_mix'], ['IA_ta'], ['OV'], 
                                    ['kPol'], ['RSD'], ['tij'], ['gb2'], 
-                                   ['IRres'], ['all'], ['everything'], ['skip']])
+                                   ['IRres'], ['all'], ['everything']])
 def test_all_todos(to_do):
     """Test initialization with all possible to_do options"""
     k = np.logspace(-3, 1, 200)
@@ -83,7 +82,7 @@ def test_skip_todo(fpt):
     t1 = time()
     diff1 = t1 - t0
     t2 = time()
-    fastPT = FASTPT(fpt.k_original, to_do=['skip'])
+    fastPT = FASTPT(fpt.k_original)
     t3 = time()
     diff2 = t3 - t2
     assert diff2 < diff1

@@ -74,7 +74,7 @@ def cached_property(method):
 class FASTPT:
 
     def __init__(self, k, nu=None, to_do=None, param_mat=None, low_extrap=None, high_extrap=None, n_pad=None,
-                 verbose=False, max_cache_size_mb=500):
+                 verbose=False, simple=False, max_cache_size_mb=500):
 
         ''' inputs:
 				* k grid
@@ -93,7 +93,7 @@ class FASTPT:
         
 
         # if no to_do list is given, default to fastpt_simple SPT case
-        if (to_do is None):
+        if (simple):
             if (verbose):
                 print(
                     'Note: You are using an earlier call structure for FASTPT. Your code will still run correctly, calling FASTPT_simple. See user manual.')
@@ -189,7 +189,6 @@ class FASTPT:
         self.l = np.arange(-self.n_l // 2 + 1, self.n_l // 2 + 1)
         self.tau_l = omega * self.l
 
-        if to_do: print("Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed.")
         self.todo_dict = {
             'one_loop_dd': False, 'one_loop_cleft_dd': False, 
             'dd_bias': False, 'IA_all': False,
@@ -200,27 +199,26 @@ class FASTPT:
             'all': False, 'everything': False
         }
 
-        for entry in to_do:
-            if entry in {'all', 'everything'}:
-                for key in self.todo_dict:
-                    self.todo_dict[key] = True
-            elif entry in {'IA_all', 'IA'}:
-                for key in ['IA_tt', 'IA_ta', 'IA_mix', 'gb2', 'tij']:
-                    self.todo_dict[key] = True
-            elif entry == 'dd_bias':
-                self.todo_dict['one_loop_dd'] = True
-                self.todo_dict['dd_bias'] = True
-            elif entry == 'tij':
-                for key in ['gb2', 'one_loop_dd', 'tij', 'IA_tt', 'IA_ta', 'IA_mix']:
-                    self.todo_dict[key] = True
-            elif entry in self.todo_dict:
-                self.todo_dict[entry] = True
-            elif entry == 'skip':
-                #If todo list is skipped no terms will be calculated at Fast-PT initialization,
-                #instead they will be calculated as they are needed then cached for later use.
-                break
-            else:
-                raise ValueError(f'FAST-PT does not recognize {entry} in the to_do list.\n{self.todo_dict.keys()} are the valid entries.')
+        if to_do: 
+            print("Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed.")
+        
+            for entry in to_do:
+                if entry in {'all', 'everything'}:
+                    for key in self.todo_dict:
+                        self.todo_dict[key] = True
+                elif entry in {'IA_all', 'IA'}:
+                    for key in ['IA_tt', 'IA_ta', 'IA_mix', 'gb2', 'tij']:
+                        self.todo_dict[key] = True
+                elif entry == 'dd_bias':
+                    self.todo_dict['one_loop_dd'] = True
+                    self.todo_dict['dd_bias'] = True
+                elif entry == 'tij':
+                    for key in ['gb2', 'one_loop_dd', 'tij', 'IA_tt', 'IA_ta', 'IA_mix']:
+                        self.todo_dict[key] = True
+                elif entry in self.todo_dict:
+                    self.todo_dict[entry] = True
+                else:
+                    raise ValueError(f'FAST-PT does not recognize {entry} in the to_do list.\n{self.todo_dict.keys()} are the valid entries.')
 
         
         ### INITIALIZATION of k-grid quantities ###
