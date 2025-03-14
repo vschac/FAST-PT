@@ -7,6 +7,7 @@ fast_pt.egg-info/SOURCES.txt
 fast_pt.egg-info/dependency_links.txt
 fast_pt.egg-info/requires.txt
 fast_pt.egg-info/top_level.txt
+fastpt/CacheManager.py
 fastpt/FASTPT.py
 fastpt/FASTPT_simple.py
 fastpt/FPTHandler.py
@@ -44,5 +45,6 @@ fastpt/kPol.py
 fastpt/matter_power_spt.py
 fastpt/param_matrix.py
 tests/test_benchmarks.py
+tests/test_cache.py
 tests/test_fastpt.py
 tests/test_handler.py

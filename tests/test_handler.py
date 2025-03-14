@@ -488,8 +488,8 @@ def test_get_special_terms(fpt):
     
     p_ov = handler.get("P_OV")
     fpt.cache.clear()
-    p_ov_direct = fpt.OV(P)
-    assert np.allclose(p_ov, p_ov_direct, rtol=1e-4, atol=1e-4), "P_OV results differ significantly"
+    p_ov_direct = fpt.OV(P, P_window=P_window, C_window=C_window)
+    assert np.array_equal(p_ov, p_ov_direct), f"p_ov: {p_ov}, p_ov_direct: {p_ov_direct}"
 
     p_der = handler.get("P_der")
     fpt.cache.clear()
