@@ -770,18 +770,17 @@ def test_output_directory_precedence(fpt):
     
     with tempfile.TemporaryDirectory() as tempdir1:
         with tempfile.TemporaryDirectory() as tempdir2:
-            with tempfile.TemporaryDirectory() as tempdir3:
-                # Initialize with default output directory
-                handler = FPTHandler(fpt, save_dir=tempdir1, P=P, P_window=P_window, C_window=C_window)
+            # Initialize with default output directory
+            handler = FPTHandler(fpt, save_dir=tempdir1, P=P, P_window=P_window, C_window=C_window)
                 
-                # 1. Test initializer-specified directory
-                handler.run('one_loop_dd', save_type="txt")
-                assert os.path.exists(os.path.join(tempdir1, "one_loop_dd_output.txt"))
+            # 1. Test initializer-specified directory
+            handler.run('one_loop_dd', save_type="txt")
+            assert os.path.exists(os.path.join(tempdir1, "one_loop_dd_output.txt"))
                 
-                # 2. Test save_dir parameter overrides initializer
-                handler.run('IA_tt', save_type="txt", save_dir=tempdir2)
-                assert os.path.exists(os.path.join(tempdir2, "IA_tt_output.txt"))
-                assert not os.path.exists(os.path.join(tempdir1, "IA_tt_output.txt"))
+            # 2. Test save_dir parameter overrides initializer
+            handler.run('IA_tt', save_type="txt", save_dir=tempdir2)
+            assert os.path.exists(os.path.join(tempdir2, "IA_tt_output.txt"))
+            assert not os.path.exists(os.path.join(tempdir1, "IA_tt_output.txt"))
 
 def test_invalid_file_type(fpt):
     """Test that invalid file types raise appropriate errors"""

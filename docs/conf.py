@@ -45,7 +45,10 @@ autodoc_default_options = {
     'undoc-members': False,
     'private-members': False,  # Don't include _private members
     'special-members': '__init__',  # Only include __init__ special method
-    'exclude-members': 'J_k_tensor,J_k_scalar,X_IA_0B0B'  # List specific methods to exclude
+    'exclude-members': 'J_k_tensor,J_k_scalar,X_IA_0B0B,X_IA_0E0E,X_IA_A,X_IA_B,X_IA_DBB,X_IA_DEE,X_IA_E,X_IA_deltaE1,' +   # List specific methods to exclude
+                        'X_IA_gb2_F2,X_IA_gb2_G2,X_IA_gb2_S2F2,X_IA_gb2_S2G2,X_IA_gb2_S2fe,X_IA_gb2_S2he,X_IA_gb2_fe,X_IA_gb2_he,X_IA_tij_F2F2,' +
+                        'X_IA_tij_F2G2,X_IA_tij_F2G2reg,X_IA_tij_G2G2,X_IA_tij_feG2,X_IA_tij_heG2,X_OV,X_RSDA,X_RSDB,X_cleft,X_kP1,X_kP2,X_kP3,X_lpt,X_spt,X_sptG,' +
+                        'k_extrap,k_final,k_original'
 }
 
 # Configure numpydoc
