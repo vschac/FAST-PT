@@ -13,10 +13,7 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k, n_pad=int(0.5 * len(k)))
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-    funcs = ['one_loop_dd', 'IA_tt', 'IA_mix']
-    r1 = handler.run(funcs[0], C_window=0.1)
-    r2 = handler.run(funcs[0])
-    print(np.array_equal(r1, r2))
+    handler.run('IA_tt', save_type="csv", output_dir="outputs")
 
 
 @pytest.fixture
@@ -686,3 +683,159 @@ def test_bulk_run_with_save_all(fpt):
         finally:
             # Restore original method
             FPTHandler.save_output = original_save_output
+
+################# OUTPUT FILE TESTS #################
+def test_save_output_file_types(fpt):
+    """Test saving output in different file formats"""
+    import os
+    import tempfile
+    import json
+    import csv
+    import numpy as np
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Test txt format
+        txt_result = handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        txt_file = os.path.join(temp_dir, "one_loop_dd_output.txt")
+        assert os.path.exists(txt_file)
+        loaded_txt = np.loadtxt(txt_file)
+        # Check that the saved data matches the result (accounting for transpose in saving)
+        assert np.allclose(loaded_txt, np.transpose(txt_result))
+        
+        # Test csv format
+        csv_result = handler.run('IA_tt', save_type="csv", save_dir=temp_dir)
+        csv_file = os.path.join(temp_dir, "IA_tt_output.csv")
+        assert os.path.exists(csv_file)
+        # Read CSV file and check header and data
+        with open(csv_file, 'r') as f:
+            csv_reader = csv.reader(f)
+            header = next(csv_reader)
+            assert header == ['IA_tt_0', 'IA_tt_1']  # Header should contain function name with indices
+            data = list(csv_reader)
+            assert len(data) > 0
+        
+        # Test json format
+        json_result = handler.run('one_loop_dd_bias', save_type="json", save_dir=temp_dir)
+        json_file = os.path.join(temp_dir, "one_loop_dd_bias_output.json")
+        assert os.path.exists(json_file)
+        # Read JSON file and check structure
+        with open(json_file, 'r') as f:
+            json_data = json.load(f)
+            assert 'one_loop_dd_bias' in json_data
+            # Check that the saved data has the same structure (number of arrays)
+            if isinstance(json_result, tuple):
+                assert len(json_data['one_loop_dd_bias']) == len(json_result)
+
+def test_save_output_auto_naming(fpt):
+    """Test automatic filename adjustment when files already exist"""
+    import os
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # First run - should create base filename
+        handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        base_file = os.path.join(temp_dir, "one_loop_dd_output.txt")
+        assert os.path.exists(base_file)
+        
+        # Second run - should create filename with counter
+        handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        counter_file = os.path.join(temp_dir, "one_loop_dd_1_output.txt")
+        assert os.path.exists(counter_file)
+        
+        # Third run - should increment counter
+        handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        counter_file2 = os.path.join(temp_dir, "one_loop_dd_2_output.txt")
+        assert os.path.exists(counter_file2)
+        
+        # Different function should still use base filename
+        handler.run('IA_tt', save_type="txt", save_dir=temp_dir)
+        different_file = os.path.join(temp_dir, "IA_tt_output.txt")
+        assert os.path.exists(different_file)
+
+def test_output_directory_precedence(fpt):
+    """Test precedence of different output directory parameters"""
+    import os
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tempdir1:
+        with tempfile.TemporaryDirectory() as tempdir2:
+            with tempfile.TemporaryDirectory() as tempdir3:
+                # Initialize with default output directory
+                handler = FPTHandler(fpt, save_dir=tempdir1, P=P, P_window=P_window, C_window=C_window)
+                
+                # 1. Test initializer-specified directory
+                handler.run('one_loop_dd', save_type="txt")
+                assert os.path.exists(os.path.join(tempdir1, "one_loop_dd_output.txt"))
+                
+                # 2. Test save_dir parameter overrides initializer
+                handler.run('IA_tt', save_type="txt", save_dir=tempdir2)
+                assert os.path.exists(os.path.join(tempdir2, "IA_tt_output.txt"))
+                assert not os.path.exists(os.path.join(tempdir1, "IA_tt_output.txt"))
+                
+                # 3. Test output_dir parameter also works
+                handler.run('kPol', save_type="txt", output_dir=tempdir3)
+                assert os.path.exists(os.path.join(tempdir3, "kPol_output.txt"))
+                assert not os.path.exists(os.path.join(tempdir1, "kPol_output.txt"))
+                
+                # 4. Test save_dir takes precedence over output_dir
+                handler.run('OV', save_type="txt", save_dir=tempdir2, output_dir=tempdir3)
+                assert os.path.exists(os.path.join(tempdir2, "OV_output.txt"))
+                assert not os.path.exists(os.path.join(tempdir3, "OV_output.txt"))
+
+def test_invalid_file_type(fpt):
+    """Test that invalid file types raise appropriate errors"""
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        with pytest.raises(ValueError, match="Invalid file type"):
+            handler.run('one_loop_dd', save_type="invalid", save_dir=temp_dir)
+
+def test_save_output_direct_call(fpt):
+    """Test direct calls to save_output method"""
+    import os
+    import tempfile
+    import numpy as np
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Run function to get a result
+        result = handler.run('one_loop_dd')
+        
+        # Call save_output directly with different file types
+        handler.save_output(result, 'one_loop_dd', type="txt", output_dir=temp_dir)
+        handler.save_output(result, 'one_loop_dd', type="csv", output_dir=temp_dir)
+        handler.save_output(result, 'one_loop_dd', type="json", output_dir=temp_dir)
+        
+        # Check that all three files exist
+        assert os.path.exists(os.path.join(temp_dir, "one_loop_dd_output.txt"))
+        assert os.path.exists(os.path.join(temp_dir, "one_loop_dd_output.csv"))
+        assert os.path.exists(os.path.join(temp_dir, "one_loop_dd_output.json"))
+
+def test_bulk_run_with_save_options(fpt):
+    """Test bulk_run with file saving options"""
+    import os
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P_window=P_window, C_window=C_window)
+        funcs = ['one_loop_dd', 'IA_tt']
+        power_spectra = [P, P * 1.1]
+        
+        # Test bulk_run with save_type
+        handler.bulk_run(funcs, power_spectra, save_type="txt", save_dir=temp_dir)
+        
+        # Check that files were created for each function and power spectrum
+        for func in funcs:
+            for i in range(len(power_spectra)):
+                if i == 0:
+                    base_path = os.path.join(temp_dir, f"{func}_output.txt")
+                else:
+                    base_path = os.path.join(temp_dir, f"{func}_{i}_output.txt")
+                assert os.path.exists(base_path)

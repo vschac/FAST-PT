@@ -3,16 +3,24 @@ import inspect
 from fastpt import FASTPT
 from numpy import pi, log
 from collections import defaultdict
+import os
 
 class FPTHandler:
-    def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=False, max_cache_entries=500, **params):
+    def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
         self.fastpt = fastpt_instance
         self.cache = {}
-        #Explain somewhere that caching is an option though not necessarily needed
         self.do_cache = do_cache
         self.max_cache_entries = max_cache_entries
         self.save_all = save_all
-        self.outputs = defaultdict(bool)
+        
+        # Set default output directory if none specified
+        if save_dir is None:
+            self.output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+        else:
+            self.output_dir = save_dir
+            
+        # Ensure output directory exists
+        os.makedirs(self.output_dir, exist_ok=True)
 
         self.default_params = {}
         if params:
@@ -201,23 +209,52 @@ class FPTHandler:
         return passing_params, params_info
 
 
-    def run(self, function_name, save=False, **override_kwargs):
-        """Runs the selected function from FASTPT with validated parameters."""
+    def run(self, function_name, save_type=None, save_dir=None, output_dir=None, **override_kwargs):
+        """Runs the selected function from FASTPT with validated parameters.
+        
+        Args:
+            function_name (str): Name of the FASTPT function to run
+            save_type (str, optional): Type of file to save results as ('txt', 'csv', or 'json'). Defaults to None.
+            save_dir (str, optional): Directory to save results in. Defaults to the class's output_dir.
+            output_dir (str, optional): Alternative name for save_dir (for backwards compatibility).
+            **override_kwargs: Additional parameters to pass to the FASTPT function
+            
+        Returns:
+            Result from the FASTPT function call
+        """
         if not hasattr(self.fastpt, function_name):
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
+
+        if 'save_type' in override_kwargs:
+            save_param = override_kwargs.pop('save_type')
+            if save_type is None:
+                save_type = save_param
+                
+        if 'save_dir' in override_kwargs:
+            save_dir = override_kwargs.pop('save_dir')
+        if 'output_dir' in override_kwargs:
+            output_dir = override_kwargs.pop('output_dir')
+            
+        if output_dir is not None and save_dir is None:
+            save_dir = output_dir
+        output_directory = save_dir if save_dir is not None else self.output_dir
 
         func = getattr(self.fastpt, function_name)
         passing_params, _ = self._prepare_function_params(func, override_kwargs)
         
         if self.do_cache:
-            cache_key = self._convert_to_hashable(passing_params)
+            cache_key = (function_name, self._convert_to_hashable(passing_params))
             if cache_key in self.cache:
                 print(f"Using cached result for {function_name}")
                 return self.cache[cache_key]
 
         result = func(**passing_params)
-        if self.do_cache: self._cache_result(function_name, passing_params, result)
-        if save or self.save_all: self.save_output(result, function_name)
+        if self.do_cache: 
+            self._cache_result(function_name, passing_params, result)
+        if save_type is not None: 
+            self.save_output(result, function_name, type=save_type, output_dir=output_directory)
+        elif self.save_all is not None: 
+            self.save_output(result, function_name, type=self.save_all, output_dir=output_directory)
         return result
     
     def bulk_run(self, func_names, power_spectra, **override_kwargs):
@@ -383,37 +420,79 @@ class FPTHandler:
         self.clear_cache()
         print("FASTPT instance updated. Cached cleared.")
 
-    def save_output(self, result, func_name):
-        """ Save the output to a file """
+    def save_output(self, result, func_name, type="txt", output_dir=None):
+        """ 
+        Save the output to a file
+        
+        Args:
+            result: The result to save
+            func_name (str): Name of the function that produced the result
+            type (str): File type ('txt', 'csv', or 'json')
+            output_dir (str, optional): Directory to save the file in. Defaults to self.output_dir.
+        """
+        if type not in ("txt", "csv", "json"): 
+            raise ValueError("Invalid file type. Must be 'txt', 'csv', or 'json'")
+        
         import os
-        output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
-        os.makedirs(output_dir, exist_ok=True)
+        save_dir = output_dir if output_dir is not None else self.output_dir
+        os.makedirs(save_dir, exist_ok=True)
 
         if func_name in ("one_loop_dd_bias_lpt_NL", "one_loop_dd_bias_b3nl", "one_loop_dd_bias"):
             for i, element in enumerate(result):
-                if isinstance(element, float): #sig4 is of type float, converting it to np array
+                if isinstance(element, float): # sig4 is of type float, converting it to np array
                     new_array = np.zeros(len(result[i-1]))
                     new_array[0] = element
                     result = list(result)
                     result[i] = new_array
-        hashed = []
-        for element in result:
-            if isinstance(element, np.ndarray):
-                hashed.append(hash(element.tobytes()))
-            else:
-                hashed.append(hash(element))
-        print("hashed: ", hashed)
-        result_key = (func_name, tuple(hashed))
-        calculated_funcs = [key[0] for key in self.outputs.keys()]
-        if func_name in calculated_funcs and not self.outputs[result_key]:
-            count = len([f for f in self.outputs.keys() if f[0] == func_name])
-            name = f"{func_name}_{count}_output.txt"
-        else:
-            name = f"{func_name}_output.txt"
-        file_path = os.path.join(output_dir, name)
+
+        base_name = f"{func_name}_output.{type}"
+        file_path = os.path.join(save_dir, base_name)
+        
+        counter = 1
+        while os.path.exists(file_path):
+            new_name = f"{func_name}_{counter}_output.{type}"
+            file_path = os.path.join(save_dir, new_name)
+            counter += 1
+        
         try:
-            np.savetxt(file_path, np.transpose(result), header=f'{func_name}')
-            self.outputs[(func_name, tuple(hashed))] = True
+            if type == "txt":
+                np.savetxt(file_path, np.transpose(result), header=f'{func_name}')
+            elif type == "csv":
+                import csv
+                data_for_csv = []
+                
+                if isinstance(result, np.ndarray) and result.ndim == 1:
+                    data_for_csv = [[x] for x in result]
+                else:
+                    # Try to handle as collection of arrays or values
+                    transposed = np.transpose(result)
+                    data_for_csv = transposed.tolist() if hasattr(transposed, 'tolist') else transposed
+                
+                with open(file_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    if isinstance(result, tuple) or isinstance(result, list):
+                        header = [f'{func_name}_{i}' for i in range(len(result))]
+                    else:
+                        header = [func_name]
+                    writer.writerow(header)
+                    writer.writerows(data_for_csv)
+            elif type == "json":
+                import json
+                
+                # Prepare data for JSON serialization (numpy arrays aren't directly JSON serializable)
+                def numpy_to_python(obj):
+                    if isinstance(obj, np.ndarray):
+                        return obj.tolist()
+                    elif isinstance(obj, (tuple, list)):
+                        return [numpy_to_python(item) for item in obj]
+                    elif isinstance(obj, np.number):
+                        return obj.item()
+                    return obj
+                
+                json_data = {func_name: numpy_to_python(result)}
+                with open(file_path, 'w') as jsonfile:
+                    json.dump(json_data, jsonfile, indent=2)
+            
             print(f"Output saved to {file_path}")
         except Exception as e:
             print(f"Error saving {func_name} output: {str(e)}")
