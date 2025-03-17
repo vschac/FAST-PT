@@ -7,7 +7,7 @@ import os
 
 class FPTHandler:
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
-        self.fastpt = fastpt_instance
+        self.__fastpt = fastpt_instance
         self.cache = {}
         self.do_cache = do_cache
         self.max_cache_entries = max_cache_entries
@@ -113,6 +113,9 @@ class FPTHandler:
             # "P_IRres": ("IRres", 0),
         }
  
+    @property
+    def fastpt(self):
+        return self.__fastpt
 
     def _validate_params(self, **params):
         """" Same function as before """
@@ -416,7 +419,7 @@ class FPTHandler:
         print("Default parameters updated.")
 
     def update_fastpt_instance(self, fastpt_instance: FASTPT):
-        self.fastpt = fastpt_instance
+        self.__fastpt = fastpt_instance
         self.clear_cache()
         print("FASTPT instance updated. Cached cleared.")
 
@@ -496,3 +499,130 @@ class FPTHandler:
             print(f"Output saved to {file_path}")
         except Exception as e:
             print(f"Error saving {func_name} output: {str(e)}")
+
+    def load(self, file_path, load_dir=None):
+        """ 
+        Load a saved output file and return it in the same format as FASTPT outputs (tuple of numpy arrays)
+        
+        Args:
+            file_path (str): Name or path of the file to load
+            load_dir (str, optional): Directory to load file from. If None, uses default output directory
+                                     If file_path already includes a directory, load_dir is ignored.
+        
+        Returns:
+            tuple: A tuple of numpy arrays matching the original FASTPT function output format
+        """
+        import os
+        import numpy as np
+        import re
+        
+        # If file_path is an absolute path or already contains directory info, use it as is
+        if os.path.isabs(file_path) or os.path.dirname(file_path):
+            full_path = file_path
+        else:
+            # Otherwise, build path from load_dir or default output directory
+            directory = load_dir if load_dir is not None else self.output_dir
+            full_path = os.path.join(directory, file_path)
+        
+        # Get file extension
+        _, ext = os.path.splitext(full_path)
+        ext = ext.lower()
+    
+        # Check for valid extension before checking if file exists
+        if ext not in (".txt", ".csv", ".json"):
+            raise FileNotFoundError(f"Unsupported file extension: {ext}. Must be '.txt', '.csv', or '.json'")
+        if not os.path.exists(full_path):
+            raise FileNotFoundError(f"File '{full_path}' not found.")
+
+        
+        # Extract function name from filename
+        func_name = re.match(r'(.+?)(?:_\d+)?_output\.', os.path.basename(full_path))
+        func_name = func_name.group(1) if func_name else None
+        
+        try:
+            arrays = []
+            
+            if ext == ".txt":
+                # Load and transpose to match original format
+                loaded_data = np.loadtxt(full_path)
+                # Split columns into separate arrays
+                for i in range(loaded_data.shape[1]):
+                    arrays.append(loaded_data[:, i])
+                
+            elif ext == ".csv":
+                import csv
+                with open(full_path, 'r') as csvfile:
+                    reader = csv.reader(csvfile)
+                    # Skip header row
+                    next(reader)
+                    # Read all rows
+                    data_rows = list(reader)
+                    
+                    # Convert to numeric values
+                    numeric_data = []
+                    for row in data_rows:
+                        numeric_data.append([float(val) for val in row])
+                    
+                    # Convert to numpy array
+                    all_data = np.array(numeric_data)
+                    
+                    # Split columns into separate arrays (transposing to match original format)
+                    for i in range(all_data.shape[1]):
+                        arrays.append(all_data[:, i])
+                    
+            elif ext == ".json":
+                import json
+                with open(full_path, 'r') as jsonfile:
+                    data = json.load(jsonfile)
+                    # Get the function name from the data if available
+                    if not func_name and len(data) == 1:
+                        func_name = next(iter(data))
+                    
+                    # Get the data under the function name key
+                    result_data = data[next(iter(data))]
+                    
+                    # Handle different possible structures in JSON
+                    if isinstance(result_data, list):
+                        # If result_data is a list of lists (multiple arrays)
+                        if result_data and isinstance(result_data[0], list):
+                            for arr in result_data:
+                                arrays.append(np.array(arr))
+                        else:
+                            # Single array
+                            arrays.append(np.array(result_data))
+                    else:
+                        # Single value or other structure
+                        arrays.append(np.array([result_data]))
+            else:
+                raise ValueError(f"Unsupported file extension: {ext}. Must be '.txt', '.csv', or '.json'")
+            
+            # Handle special case for sig4 in bias functions - convert back to float
+            # In one_loop_dd_bias and one_loop_dd_bias_b3nl, sig4 is at index 7
+            # In one_loop_dd_bias_lpt_NL, sig4 is at index 6
+            if func_name in ["one_loop_dd_bias", "one_loop_dd_bias_b3nl"] and len(arrays) > 7:
+                # Check if the array is mostly zeros with one value
+                if arrays[7].size > 1 and np.count_nonzero(arrays[7]) <= 1:
+                    # Get the first non-zero value or the first value if all zeros
+                    if np.any(arrays[7]):
+                        sig4_value = arrays[7][np.nonzero(arrays[7])[0][0]]
+                    else:
+                        sig4_value = arrays[7][0]
+                    arrays[7] = sig4_value
+                    
+            elif func_name == "one_loop_dd_bias_lpt_NL" and len(arrays) > 6:
+                # Similar check for lpt_NL case
+                if arrays[6].size > 1 and np.count_nonzero(arrays[6]) <= 1:
+                    if np.any(arrays[6]):
+                        sig4_value = arrays[6][np.nonzero(arrays[6])[0][0]]
+                    else:
+                        sig4_value = arrays[6][0]
+                    arrays[6] = sig4_value
+                    
+            print(f"Output loaded from {full_path}")
+            
+            # Convert list of arrays to tuple to match FASTPT output format
+            return tuple(arrays)
+        
+        except Exception as e:
+            print(f"Error loading output from {full_path}: {str(e)}")
+            return None

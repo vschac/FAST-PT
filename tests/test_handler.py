@@ -13,7 +13,7 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k, n_pad=int(0.5 * len(k)))
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-    handler.run('IA_tt', save_type="csv", output_dir="outputs")
+    handler.run('IA_tt')
 
 
 @pytest.fixture
@@ -658,8 +658,6 @@ def test_bulk_run_with_save_all(fpt):
     """Test bulk_run with save_all flag"""
     # Create a temporary outputs directory to avoid cluttering
     import tempfile
-    import os
-    import shutil
     
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a mock save_output that just records calls rather than saving files
@@ -667,12 +665,12 @@ def test_bulk_run_with_save_all(fpt):
         
         original_save_output = FPTHandler.save_output
         try:
-            def mock_save_output(self, result, func_name):
-                saved_outputs.append((result, func_name))
+            def mock_save_output(self, result, func_name, type="txt", output_dir=None):
+                saved_outputs.append((result, func_name, type, output_dir))
                 
             FPTHandler.save_output = mock_save_output
             
-            handler = FPTHandler(fpt, save_all=True, P_window=P_window, C_window=C_window)
+            handler = FPTHandler(fpt, save_all="txt", P_window=P_window, C_window=C_window, save_dir=temp_dir)
             funcs = ['one_loop_dd', 'IA_tt']
             power_spectra = [P, P * 1.1]
             
@@ -680,6 +678,13 @@ def test_bulk_run_with_save_all(fpt):
             
             # Check that save_output was called for each function and power spectrum
             assert len(saved_outputs) == len(funcs) * len(power_spectra)
+            
+            # Verify the correct arguments were passed to save_output
+            for output in saved_outputs:
+                assert isinstance(output[0], tuple)  # Result
+                assert output[1] in funcs  # Function name
+                assert output[2] == "txt"  # File type
+                assert output[3] == temp_dir  # Output directory
         finally:
             # Restore original method
             FPTHandler.save_output = original_save_output
@@ -800,7 +805,6 @@ def test_save_output_direct_call(fpt):
     """Test direct calls to save_output method"""
     import os
     import tempfile
-    import numpy as np
     
     with tempfile.TemporaryDirectory() as temp_dir:
         handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
@@ -839,3 +843,163 @@ def test_bulk_run_with_save_options(fpt):
                 else:
                     base_path = os.path.join(temp_dir, f"{func}_{i}_output.txt")
                 assert os.path.exists(base_path)
+
+def test_load_method(fpt):
+    """Test the load method for loading saved output files of different types"""
+    import tempfile
+    import numpy as np
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Test txt format
+        txt_result = handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        txt_loaded = handler.load('one_loop_dd_output.txt', load_dir=temp_dir)
+        assert isinstance(txt_loaded, tuple)
+        assert len(txt_loaded) == len(txt_result)
+        for r1, r2 in zip(txt_result, txt_loaded):
+            assert np.allclose(r1, r2)
+        
+        # Test csv format
+        csv_result = handler.run('IA_tt', save_type="csv", save_dir=temp_dir)
+        csv_loaded = handler.load('IA_tt_output.csv', load_dir=temp_dir)
+        assert isinstance(csv_loaded, tuple)
+        assert len(csv_loaded) == len(csv_result)
+        for r1, r2 in zip(csv_result, csv_loaded):
+            assert np.allclose(r1, r2)
+        
+        # Test json format
+        json_result = handler.run('one_loop_dd_bias', save_type="json", save_dir=temp_dir)
+        json_loaded = handler.load('one_loop_dd_bias_output.json', load_dir=temp_dir)
+        assert isinstance(json_loaded, tuple)
+        assert len(json_loaded) == len(json_result)
+        for r1, r2 in zip(json_result, json_loaded):
+            assert np.allclose(r1, r2), f"r1: {r1}, r2: {r2}"
+
+def test_load_with_absolute_path(fpt):
+    """Test loading files using absolute paths"""
+    import os
+    import tempfile
+    import numpy as np
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Save a result
+        result = handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        file_path = os.path.join(temp_dir, "one_loop_dd_output.txt")
+        
+        # Load using absolute path - should ignore load_dir
+        loaded_result = handler.load(file_path)
+        assert isinstance(loaded_result, tuple)
+        for r1, r2 in zip(result, loaded_result):
+            assert np.allclose(r1, r2)
+        
+        # Load using absolute path but with a different load_dir (should ignore load_dir)
+        with tempfile.TemporaryDirectory() as another_dir:
+            loaded_result2 = handler.load(file_path, load_dir=another_dir)
+            assert isinstance(loaded_result2, tuple)
+            for r1, r2 in zip(result, loaded_result2):
+                assert np.allclose(r1, r2)
+
+def test_load_with_default_dir(fpt):
+    """Test loading from the default output directory"""
+    import tempfile
+    import numpy as np
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Initialize handler with custom output directory
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, save_dir=temp_dir)
+        
+        # Save a result to the default directory
+        result = handler.run('one_loop_dd', save_type="txt")
+        
+        # Load without specifying a directory (should use default)
+        loaded_result = handler.load('one_loop_dd_output.txt')
+        assert isinstance(loaded_result, tuple)
+        for r1, r2 in zip(result, loaded_result):
+            assert np.allclose(r1, r2)
+
+def test_load_error_handling(fpt):
+    """Test error handling in the load method"""
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Test file not found
+        with pytest.raises(FileNotFoundError):
+            handler.load('nonexistent_file.txt', load_dir=temp_dir)
+        
+        # Test unsupported file type
+        handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
+        # Create a file with unsupported extension by renaming
+        import os
+        import shutil
+        src = os.path.join(temp_dir, "one_loop_dd_output.txt")
+        dst = os.path.join(temp_dir, "one_loop_dd_output.xyz")
+        shutil.copy(src, dst)
+        
+        with pytest.raises(FileNotFoundError):
+            handler.load('one_loop_dd_output.xyz', load_dir=temp_dir)
+
+def test_load_consistency_across_types(fpt):
+    """Test that loading from different file types produces consistent results"""
+    import tempfile
+    import numpy as np
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+        
+        # Save the same result in different formats
+        result = handler.run('one_loop_dd')
+        handler.save_output(result, 'one_loop_dd', type="txt", output_dir=temp_dir)
+        handler.save_output(result, 'one_loop_dd', type="csv", output_dir=temp_dir)
+        handler.save_output(result, 'one_loop_dd', type="json", output_dir=temp_dir)
+        
+        # Load from each format
+        txt_loaded = handler.load('one_loop_dd_output.txt', load_dir=temp_dir)
+        csv_loaded = handler.load('one_loop_dd_output.csv', load_dir=temp_dir)
+        json_loaded = handler.load('one_loop_dd_output.json', load_dir=temp_dir)
+        
+        # Check that all loaded results match the original
+        assert isinstance(txt_loaded, tuple) and isinstance(csv_loaded, tuple) and isinstance(json_loaded, tuple)
+        assert len(txt_loaded) == len(csv_loaded) == len(json_loaded) == len(result)
+        
+        # Compare all formats against the original result
+        for i in range(len(result)):
+            assert np.allclose(result[i], txt_loaded[i])
+            assert np.allclose(result[i], csv_loaded[i])
+            assert np.allclose(result[i], json_loaded[i])
+
+def test_load_with_relative_paths(fpt):
+    """Test loading using relative paths"""
+    import tempfile
+    import os
+    import numpy as np
+    
+    # Get current working directory
+    orig_cwd = os.getcwd()
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Change to the temporary directory
+            os.chdir(temp_dir)
+            
+            # Create a subdirectory for outputs
+            os.makedirs('outputs', exist_ok=True)
+            
+            handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+            
+            # Save a result
+            result = handler.run('one_loop_dd', save_type="txt", save_dir='outputs')
+            
+            # Load using relative path
+            loaded_result = handler.load(os.path.join('outputs', 'one_loop_dd_output.txt'))
+            
+            assert isinstance(loaded_result, tuple)
+            for r1, r2 in zip(result, loaded_result):
+                assert np.allclose(r1, r2)
+        finally:
+            # Make sure to return to original directory
+            os.chdir(orig_cwd)
