@@ -29,6 +29,7 @@ class FPTHandler:
             except ValueError as e:
                 if "You must provide an input power spectrum array" in str(e):
                     print("No power spectrum provided. You'll need to provide 'P' in each function call.")
+                    self.default_params = params
                 else:
                     raise e
 
@@ -276,7 +277,7 @@ class FPTHandler:
         for func_name in func_names:
             for i, P in enumerate(power_spectra):
                 # Combine override kwargs with the specific power spectrum
-                params = {**override_kwargs, 'P': P}
+                params = {**self.default_params, **override_kwargs, 'P': P}
                 if verbose: print(f"Running {func_name} with power spectrum {i}")
                 results[(func_name, i)] = self.run(func_name, **params)
         return results
