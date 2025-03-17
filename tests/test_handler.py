@@ -12,8 +12,10 @@ P_window = np.array([0.2, 0.2])
 
 if __name__ == "__main__":
     fpt = FASTPT(k, n_pad=int(0.5 * len(k)))
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-    handler.run('IA_tt')
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
+    funcs = ['one_loop_dd', 'IA_tt', "IA_mix", "IA_ta", "IA_der", "IA_ct", "IA_ctbias", "IA_gb2", "IA_d2", "IA_s2", "OV", "kPol", "RSD_components", "RSD_ABsum_components", "RSD_ABsum_mu"]
+    power_spectra = [P, P * 1.1, P * 1.2]
+    results = handler.bulk_run(funcs, power_spectra, verbose=True, P_window=P_window, C_window=C_window)
 
 
 @pytest.fixture

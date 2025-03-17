@@ -260,7 +260,7 @@ class FPTHandler:
             self.save_output(result, function_name, type=self.save_all, output_dir=output_directory)
         return result
     
-    def bulk_run(self, func_names, power_spectra, **override_kwargs):
+    def bulk_run(self, func_names, power_spectra, verbose=False, **override_kwargs):
         """
         Runs multiple functions with multiple power spectra.
         
@@ -277,6 +277,7 @@ class FPTHandler:
             for i, P in enumerate(power_spectra):
                 # Combine override kwargs with the specific power spectrum
                 params = {**override_kwargs, 'P': P}
+                if verbose: print(f"Running {func_name} with power spectrum {i}")
                 results[(func_name, i)] = self.run(func_name, **params)
         return results
     
