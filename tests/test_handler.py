@@ -492,13 +492,13 @@ def test_get_special_terms(fpt):
         
     p_btype2 = handler.get("P_Btype2")
     fpt.cache.clear()
-    p_btype2_direct = fpt.get_P_Btype2(P)
+    p_btype2_direct = fpt._get_P_Btype2(P)
         
     assert np.array_equal(p_btype2, p_btype2_direct)
         
     p_deltaE2 = handler.get("P_deltaE2")
     fpt.cache.clear()
-    p_deltaE2_direct = fpt.get_P_deltaE2(P)
+    p_deltaE2_direct = fpt._get_P_deltaE2(P)
         
     assert np.array_equal(p_deltaE2, p_deltaE2_direct)
     
@@ -782,16 +782,6 @@ def test_output_directory_precedence(fpt):
                 handler.run('IA_tt', save_type="txt", save_dir=tempdir2)
                 assert os.path.exists(os.path.join(tempdir2, "IA_tt_output.txt"))
                 assert not os.path.exists(os.path.join(tempdir1, "IA_tt_output.txt"))
-                
-                # 3. Test output_dir parameter also works
-                handler.run('kPol', save_type="txt", output_dir=tempdir3)
-                assert os.path.exists(os.path.join(tempdir3, "kPol_output.txt"))
-                assert not os.path.exists(os.path.join(tempdir1, "kPol_output.txt"))
-                
-                # 4. Test save_dir takes precedence over output_dir
-                handler.run('OV', save_type="txt", save_dir=tempdir2, output_dir=tempdir3)
-                assert os.path.exists(os.path.join(tempdir2, "OV_output.txt"))
-                assert not os.path.exists(os.path.join(tempdir3, "OV_output.txt"))
 
 def test_invalid_file_type(fpt):
     """Test that invalid file types raise appropriate errors"""

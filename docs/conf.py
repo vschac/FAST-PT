@@ -41,10 +41,11 @@ html_static_path = ['_static']
 
 # Configure autodoc to skip special methods
 autodoc_default_options = {
-    'exclude-members': '__weakref__, __dict__, __module__',
     'members': True,
-    'undoc-members': True,
-    'special-members': '__init__',
+    'undoc-members': False,
+    'private-members': False,  # Don't include _private members
+    'special-members': '__init__',  # Only include __init__ special method
+    'exclude-members': 'J_k_tensor,J_k_scalar,X_IA_0B0B'  # List specific methods to exclude
 }
 
 # Configure numpydoc

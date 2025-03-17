@@ -634,15 +634,15 @@ class FASTPT:
         hash_key = self._create_hash_key("one_loop_dd", self.X_spt, P, P_window, C_window)
         result = self.cache.get("one_loop_dd", hash_key)
         if result is not None: return result, Ps
-        P22 = self.get_P22(P, P_window=P_window, C_window=C_window)
-        P13 = self.get_P13(P, P_window=P_window, C_window=C_window)
+        P22 = self._get_P22(P, P_window=P_window, C_window=C_window)
+        P13 = self._get_P13(P, P_window=P_window, C_window=C_window)
         P_1loop = P22 + P13
         P_1loop = self._apply_extrapolation(P_1loop)
         self.cache.set(P_1loop, "one_loop_dd", hash_key)
         return P_1loop, Ps #This return is going to be different than the original bc the original return is 
                         # different depending on the todo list which is going to be deprecated.
     
-    def get_P22(self, P, P_window=None, C_window=None):
+    def _get_P22(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("P22", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P22", hash_key)
         if result is not None: return result
@@ -653,7 +653,7 @@ class FASTPT:
         self.cache.set(P22, "P22", hash_key)
         return P22
 
-    def get_P13(self, P, P_window=None, C_window=None):
+    def _get_P13(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("P13", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P13", hash_key)
         if result is not None: return result
@@ -666,15 +666,15 @@ class FASTPT:
     #TODO add comments back explaining math behind one loop
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
         P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
-        Pd1d2 = self.get_Pd1d2(P, P_window=P_window, C_window=C_window)
-        Pd2d2 = self.get_Pd2d2(P, P_window=P_window, C_window=C_window)
-        Pd1s2 = self.get_Pd1s2(P, P_window=P_window, C_window=C_window)
-        Pd2s2 = self.get_Pd2s2(P, P_window=P_window, C_window=C_window)
-        Ps2s2 = self.get_Ps2s2(P, P_window=P_window, C_window=C_window)
-        sig4 = self.get_sig4(P, P_window=P_window, C_window=C_window)
+        Pd1d2 = self._get_Pd1d2(P, P_window=P_window, C_window=C_window)
+        Pd2d2 = self._get_Pd2d2(P, P_window=P_window, C_window=C_window)
+        Pd1s2 = self._get_Pd1s2(P, P_window=P_window, C_window=C_window)
+        Pd2s2 = self._get_Pd2s2(P, P_window=P_window, C_window=C_window)
+        Ps2s2 = self._get_Ps2s2(P, P_window=P_window, C_window=C_window)
+        sig4 = self._get_sig4(P, P_window=P_window, C_window=C_window)
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4
     
-    def get_sig4(self, P, P_window=None, C_window=None):
+    def _get_sig4(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("sig4", self.X_spt, P, P_window, C_window)
         result = self.cache.get("sig4", hash_key)
         if result is not None: return result
@@ -683,7 +683,7 @@ class FASTPT:
         self.cache.set(sig4, "sig4", hash_key)
         return sig4
 
-    def get_Pd1d2(self, P, P_window=None, C_window=None):
+    def _get_Pd1d2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pd1d2", self.X_spt, P, P_window, C_window)
         result = self.cache.get("Pd1d2", hash_key)
         if result is not None: return result
@@ -693,7 +693,7 @@ class FASTPT:
         self.cache.set(Pd1d2, "Pd1d2", hash_key)
         return Pd1d2
     
-    def get_Pd2d2(self, P, P_window=None, C_window=None):
+    def _get_Pd2d2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pd2d2", self.X_spt, P, P_window, C_window)
         result = self.cache.get("Pd2d2", hash_key)
         if result is not None: return result
@@ -703,7 +703,7 @@ class FASTPT:
         self.cache.set(Pd2d2, "Pd2d2", hash_key)
         return Pd2d2
     
-    def get_Pd1s2(self, P, P_window=None, C_window=None):
+    def _get_Pd1s2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pd1s2", self.X_spt, P, P_window, C_window)
         result = self.cache.get("Pd1s2", hash_key)
         if result is not None: return result
@@ -716,7 +716,7 @@ class FASTPT:
         self.cache.set(Pd1s2, "Pd1s2", hash_key)
         return Pd1s2
     
-    def get_Pd2s2(self, P, P_window=None, C_window=None):
+    def _get_Pd2s2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pd2s2", self.X_spt, P, P_window, C_window)
         result = self.cache.get("Pd2s2", hash_key)
         if result is not None: return result
@@ -726,7 +726,7 @@ class FASTPT:
         self.cache.set(Pd2s2, "Pd2s2", hash_key)
         return Pd2s2
     
-    def get_Ps2s2(self, P, P_window=None, C_window=None):
+    def _get_Ps2s2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Ps2s2", self.X_spt, P, P_window, C_window)
         result = self.cache.get("Ps2s2", hash_key)
         if result is not None: return result
@@ -740,16 +740,16 @@ class FASTPT:
     def one_loop_dd_bias_b3nl(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
-        Pd1d2 = self.get_Pd1d2(P, P_window=P_window, C_window=C_window)
-        Pd2d2 = self.get_Pd2d2(P, P_window=P_window, C_window=C_window)
-        Pd1s2 = self.get_Pd1s2(P, P_window=P_window, C_window=C_window)
-        Pd2s2 = self.get_Pd2s2(P, P_window=P_window, C_window=C_window)
-        Ps2s2 = self.get_Ps2s2(P, P_window=P_window, C_window=C_window)
-        sig4 = self.get_sig4(P, P_window=P_window, C_window=C_window)
-        sig3nl = self.get_sig3nl(P, P_window=P_window, C_window=C_window)
+        Pd1d2 = self._get_Pd1d2(P, P_window=P_window, C_window=C_window)
+        Pd2d2 = self._get_Pd2d2(P, P_window=P_window, C_window=C_window)
+        Pd1s2 = self._get_Pd1s2(P, P_window=P_window, C_window=C_window)
+        Pd2s2 = self._get_Pd2s2(P, P_window=P_window, C_window=C_window)
+        Ps2s2 = self._get_Ps2s2(P, P_window=P_window, C_window=C_window)
+        sig4 = self._get_sig4(P, P_window=P_window, C_window=C_window)
+        sig3nl = self._get_sig3nl(P, P_window=P_window, C_window=C_window)
         return P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl
     
-    def get_sig3nl(self, P, P_window=None, C_window=None):
+    def _get_sig3nl(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("sig3nl", self.X_spt, P, P_window, C_window)
         result = self.cache.get("sig3nl", hash_key)
         if result is not None: return result
@@ -763,15 +763,15 @@ class FASTPT:
     def one_loop_dd_bias_lpt_NL(self, P, P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
         _, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
-        Pb1L = self.get_Pb1L(P, P_window=P_window, C_window=C_window)
-        Pb1L_2 = self.get_Pb1L_2(P, P_window=P_window, C_window=C_window)
-        Pb1L_b2L = self.get_Pb1L_b2L(P, P_window=P_window, C_window=C_window)
-        Pb2L = self.get_Pb2L(P, P_window=P_window, C_window=C_window)
-        Pb2L_2 = self.get_Pb2L_2(P, P_window=P_window, C_window=C_window)
-        sig4 = self.get_sig4(P, P_window=P_window, C_window=C_window)
+        Pb1L = self._get_Pb1L(P, P_window=P_window, C_window=C_window)
+        Pb1L_2 = self._get_Pb1L_2(P, P_window=P_window, C_window=C_window)
+        Pb1L_b2L = self._get_Pb1L_b2L(P, P_window=P_window, C_window=C_window)
+        Pb2L = self._get_Pb2L(P, P_window=P_window, C_window=C_window)
+        Pb2L_2 = self._get_Pb2L_2(P, P_window=P_window, C_window=C_window)
+        sig4 = self._get_sig4(P, P_window=P_window, C_window=C_window)
         return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
     
-    def get_Pb1L(self, P, P_window=None, C_window=None):
+    def _get_Pb1L(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pb1L", self.X_lpt, P, P_window, C_window)
         result = self.cache.get("Pb1L", hash_key)
         if result is not None: return result
@@ -786,7 +786,7 @@ class FASTPT:
         self.cache.set(Pb1L, "Pb1L", hash_key)
         return Pb1L
     
-    def get_Pb1L_2(self, P, P_window=None, C_window=None):
+    def _get_Pb1L_2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pb1L_2", self.X_lpt, P, P_window, C_window)
         result = self.cache.get("Pb1L_2", hash_key)
         if result is not None: return result
@@ -800,7 +800,7 @@ class FASTPT:
         self.cache.set(Pb1L_2, "Pb1L_2", hash_key)
         return Pb1L_2
 
-    def get_Pb1L_b2L(self, P, P_window=None, C_window=None):
+    def _get_Pb1L_b2L(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pb1L_b2L", self.X_lpt, P, P_window, C_window)
         result = self.cache.get("Pb1L_b2L", hash_key)
         if result is not None: return result
@@ -813,7 +813,7 @@ class FASTPT:
         self.cache.set(Pb1L_b2L, "Pb1L_b2L", hash_key)
         return Pb1L_b2L
     
-    def get_Pb2L(self, P, P_window=None, C_window=None):
+    def _get_Pb2L(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pb2L", self.X_lpt, P, P_window, C_window)
         result = self.cache.get("Pb2L", hash_key)
         if result is not None: return result
@@ -826,7 +826,7 @@ class FASTPT:
         self.cache.set(Pb2L, "Pb2L", hash_key)
         return Pb2L
     
-    def get_Pb2L_2(self, P, P_window=None, C_window=None):
+    def _get_Pb2L_2(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("Pb2L_2", self.X_lpt, P, P_window, C_window)
         result = self.cache.get("Pb2L_2", hash_key)
         if result is not None: return result
@@ -882,14 +882,14 @@ class FASTPT:
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_A = self.compute_term("P_A", self.X_IA_A, operation=lambda x: 2 * x, 
                                  P=P, P_window=P_window, C_window=C_window)
-        P_Btype2 = self.get_P_Btype2(P) #Calculated differently then other terms, can't use compute_term
+        P_Btype2 = self._get_P_Btype2(P) #Calculated differently then other terms, can't use compute_term
         P_DEE = self.compute_term("P_DEE", self.X_IA_DEE, operation=lambda x: 2 * x, 
                                    P=P, P_window=P_window, C_window=C_window)
         P_DBB = self.compute_term("P_DBB", self.X_IA_DBB, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
         return P_A, P_Btype2, P_DEE, P_DBB
     
-    def get_P_Btype2(self, P):
+    def _get_P_Btype2(self, P):
         hash_key = self._create_hash_key("P_Btype2", None, P, None, None)
         result = self.cache.get("P_Btype2", hash_key)
         if result is not None: return result
@@ -905,12 +905,12 @@ class FASTPT:
         self.validate_params(P, P_window=P_window, C_window=C_window)
         P_deltaE1 = self.compute_term("P_deltaE1", self.X_IA_deltaE1, operation=lambda x: 2 * x, 
                                        P=P, P_window=P_window, C_window=C_window)
-        P_deltaE2 = self.get_P_deltaE2(P) #Calculated differently then other terms, can't use compute_term
+        P_deltaE2 = self._get_P_deltaE2(P) #Calculated differently then other terms, can't use compute_term
         P_0E0E = self.compute_term("P_0E0E", self.X_IA_0E0E, P=P, P_window=P_window, C_window=C_window)
         P_0B0B = self.compute_term("P_0B0B", self.X_IA_0B0B, P=P, P_window=P_window, C_window=C_window)
         return P_deltaE1, P_deltaE2, P_0E0E, P_0B0B
     
-    def get_P_deltaE2(self, P):
+    def _get_P_deltaE2(self, P):
         hash_key = self._create_hash_key("P_deltaE2", None, P, None, None)
         result = self.cache.get("P_deltaE2", hash_key)
         if result is not None: return result
@@ -934,13 +934,13 @@ class FASTPT:
     
     def IA_ct(self,P,P_window=None, C_window=None):
         self.validate_params(P, P_window=P_window, C_window=C_window)
-        P_0tE = self.get_P_0tE(P, P_window=P_window, C_window=C_window)
-        P_0EtE = self.get_P_0EtE(P, P_window=P_window, C_window=C_window)
-        P_E2tE = self.get_P_E2tE(P, P_window=P_window, C_window=C_window)
-        P_tEtE = self.get_P_tEtE(P, P_window=P_window, C_window=C_window)
+        P_0tE = self._get_P_0tE(P, P_window=P_window, C_window=C_window)
+        P_0EtE = self._get_P_0EtE(P, P_window=P_window, C_window=C_window)
+        P_E2tE = self._get_P_E2tE(P, P_window=P_window, C_window=C_window)
+        P_tEtE = self._get_P_tEtE(P, P_window=P_window, C_window=C_window)
         return P_0tE,P_0EtE,P_E2tE,P_tEtE
     
-    def get_P_0tE(self, P, P_window=None, C_window=None):
+    def _get_P_0tE(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("P_0tE", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P_0tE", hash_key)
         if result is not None: return result
@@ -964,7 +964,7 @@ class FASTPT:
         self.cache.set(P_0tE, "P_0tE", hash_key)
         return P_0tE
     
-    def get_P_0EtE(self, P, P_window=None, C_window=None):
+    def _get_P_0EtE(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("P_0EtE", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P_0EtE", hash_key)
         if result is not None: return result
@@ -977,7 +977,7 @@ class FASTPT:
         self.cache.set(P_0EtE, "P_0EtE", hash_key)
         return P_0EtE
     
-    def get_P_E2tE(self, P, P_window=None, C_window=None):
+    def _get_P_E2tE(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("P_E2tE", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P_E2tE", hash_key)
         if result is not None: return result
@@ -990,7 +990,7 @@ class FASTPT:
         self.cache.set(P_E2tE, "P_E2tE", hash_key)
         return P_E2tE
     
-    def get_P_tEtE(self, P, P_window=None, C_window=None):
+    def _get_P_tEtE(self, P, P_window=None, C_window=None):
         hash_key = self._create_hash_key("P_tEtE", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P_tEtE", hash_key)
         if result is not None: return result

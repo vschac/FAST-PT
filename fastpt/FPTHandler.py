@@ -2,7 +2,6 @@ import numpy as np
 import inspect
 from fastpt import FASTPT
 from numpy import pi, log
-from collections import defaultdict
 import os
 
 class FPTHandler:
@@ -213,14 +212,13 @@ class FPTHandler:
         return passing_params, params_info
 
 
-    def run(self, function_name, save_type=None, save_dir=None, output_dir=None, **override_kwargs):
+    def run(self, function_name, save_type=None, save_dir=None, **override_kwargs):
         """Runs the selected function from FASTPT with validated parameters.
         
         Args:
             function_name (str): Name of the FASTPT function to run
             save_type (str, optional): Type of file to save results as ('txt', 'csv', or 'json'). Defaults to None.
             save_dir (str, optional): Directory to save results in. Defaults to the class's output_dir.
-            output_dir (str, optional): Alternative name for save_dir (for backwards compatibility).
             **override_kwargs: Additional parameters to pass to the FASTPT function
             
         Returns:
@@ -236,11 +234,7 @@ class FPTHandler:
                 
         if 'save_dir' in override_kwargs:
             save_dir = override_kwargs.pop('save_dir')
-        if 'output_dir' in override_kwargs:
-            output_dir = override_kwargs.pop('output_dir')
-            
-        if output_dir is not None and save_dir is None:
-            save_dir = output_dir
+
         output_directory = save_dir if save_dir is not None else self.output_dir
 
         func = getattr(self.fastpt, function_name)
@@ -288,28 +282,28 @@ class FPTHandler:
             raise ValueError("At least one term must be provided.")
         output = {}
         unique_funcs = {
-                    "P_Btype2": "get_P_Btype2",
-                    "P_deltaE2": "get_P_deltaE2",
+                    "P_Btype2": "_get_P_Btype2",
+                    "P_deltaE2": "_get_P_deltaE2",
                     "P_der": "IA_der",
                     "P_OV": "OV",
-                    "P_0tE": "get_P_0tE",
-                    "P_0EtE": "get_P_0EtE",
-                    "P_E2tE": "get_P_E2tE",
-                    "P_tEtE": "get_P_tEtE",
+                    "P_0tE": "_get_P_0tE",
+                    "P_0EtE": "_get_P_0EtE",
+                    "P_E2tE": "_get_P_E2tE",
+                    "P_tEtE": "_get_P_tEtE",
                     "P_1loop": "one_loop_dd",
                     "Ps": "one_loop_dd",
-                    "Pd1d2": "get_Pd1d2",
-                    "Pd2d2": "get_Pd2d2",
-                    "Pd1s2": "get_Pd1s2",
-                    "Pd2s2": "get_Pd2s2",
-                    "Ps2s2": "get_Ps2s2",
-                    "sig4": "get_sig4",
-                    "sig3nl": "get_sig3nl",
-                    "Pb1L": "get_Pb1L",
-                    "Pb1L_2": "get_Pb1L_2",
-                    "Pb1L_b2L": "get_Pb1L_b2L",
-                    "Pb2L": "get_Pb2L",
-                    "Pb2L_2": "get_Pb2L_2"
+                    "Pd1d2": "_get_Pd1d2",
+                    "Pd2d2": "_get_Pd2d2",
+                    "Pd1s2": "_get_Pd1s2",
+                    "Pd2s2": "_get_Pd2s2",
+                    "Ps2s2": "_get_Ps2s2",
+                    "sig4": "_get_sig4",
+                    "sig3nl": "_get_sig3nl",
+                    "Pb1L": "_get_Pb1L",
+                    "Pb1L_2": "_get_Pb1L_2",
+                    "Pb1L_b2L": "_get_Pb1L_b2L",
+                    "Pb2L": "_get_Pb2L",
+                    "Pb2L_2": "_get_Pb2L_2"
                 }
         for term in terms:
             if term not in self.term_sources:
