@@ -488,7 +488,34 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="fastpt.FPTHandler">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastpt.</span></span><span class="sig-name descname"><span class="pre">FPTHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fastpt_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT.FASTPT"><span class="pre">FASTPT</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cache_entries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler" title="Link to this definition"></a></dt>
-<dd><dl class="py method">
+<dd><p>Handler class for FAST-PT that simplifies function calls and result management.</p>
+<p>This class provides a simplified interface for working with FAST-PT functions,
+with features including parameter validation, caching of results, saving/loading
+outputs, and direct access to specific power spectrum terms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fastpt_instance</strong> (<a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT"><em>FASTPT</em></a>) – An initialized FASTPT instance.</p></li>
+<li><p><strong>do_cache</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to cache function results for repeated calls. Default is False.</p></li>
+<li><p><strong>save_all</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File format to save all results (‘txt’, ‘csv’, or ‘json’). Default is None.</p></li>
+<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results. Default is ‘outputs’ directory in package location.</p></li>
+<li><p><strong>max_cache_entries</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of results to keep in cache. Default is 500.</p></li>
+<li><p><strong>**params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Default parameters to use for all function calls.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">FASTPT</span><span class="p">,</span> <span class="n">FPTHandler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">k_values</span><span class="p">))</span>  <span class="c1"># Example power spectrum</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fpt</span> <span class="o">=</span> <span class="n">FASTPT</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P_E&#39;</span><span class="p">)</span>  <span class="c1"># Direct access to the P_E term of fpt.IA_tt</span>
+</pre></div>
+</div>
+<dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fastpt_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT.FASTPT"><span class="pre">FASTPT</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cache_entries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -496,13 +523,16 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.bulk_run">
 <span class="sig-name descname"><span class="pre">bulk_run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_spectra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.bulk_run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.bulk_run" title="Link to this definition"></a></dt>
-<dd><p>Runs multiple functions with multiple power spectra.</p>
+<dd><p>Run multiple functions with multiple power spectra.</p>
+<p>This method provides a convenient way to run multiple FAST-PT functions
+with different power spectra and collect all the results.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>func_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of FASTPT function names to call</p></li>
-<li><p><strong>power_spectra</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of power spectra to use</p></li>
-<li><p><strong>**override_kwargs</strong> – Additional parameters to pass to all function calls</p></li>
+<li><p><strong>func_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – List of FAST-PT function names to call</p></li>
+<li><p><strong>power_spectra</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><em>array_like</em>) – List of power spectra to use for each function call</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to print progress messages</p></li>
+<li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional parameters to pass to all function calls</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -512,40 +542,122 @@
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P1</span> <span class="o">=</span> <span class="n">k</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">)</span>  <span class="c1"># Example power spectrum 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P2</span> <span class="o">=</span> <span class="n">k</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># Example power spectrum 2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">bulk_run</span><span class="p">([</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="s1">&#39;IA_tt&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">P1</span><span class="p">,</span> <span class="n">P2</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">one_loop_P1</span> <span class="o">=</span> <span class="n">results</span><span class="p">[(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.clear_cache">
 <span class="sig-name descname"><span class="pre">clear_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.clear_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.clear_cache" title="Link to this definition"></a></dt>
-<dd><p>Clears specific or all cached results.</p>
+<dd><p>Clear cached function results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>function_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – If provided, only clears cache for the specified function.
+If None, clears the entire cache.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">do_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">)</span>  <span class="c1"># Clear just one_loop_dd results</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>  <span class="c1"># Clear all cached results</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.clear_default_params">
 <span class="sig-name descname"><span class="pre">clear_default_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.clear_default_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.clear_default_params" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Clear all default parameters.</p>
+<p>Removes all stored default parameters so they must be specified
+in subsequent function calls.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">clear_default_params</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now P must be provided in each function call</span>
+</pre></div>
+</div>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.fastpt">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fastpt</span></span><a class="headerlink" href="#fastpt.FPTHandler.fastpt" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Get the underlying FASTPT instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The FASTPT instance used by this handler.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT">FASTPT</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.get">
 <span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">terms</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.get" title="Link to this definition"></a></dt>
-<dd><p>Allows for quick access to a specific term or terms from a FASTPT function.</p>
+<dd><p>Get specific power spectrum terms directly.</p>
+<p>This method provides direct access to specific power spectrum components
+without needing to know which FAST-PT function calculates them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*terms</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Names of power spectrum terms to retrieve</p></li>
+<li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Parameters for the underlying FAST-PT calculations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If a single term is requested, returns that term directly.
+If multiple terms are requested, returns a dictionary mapping
+term names to their values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>term or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If a requested term is not found or parameters are invalid</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P_1loop&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ia_terms</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P_E&#39;</span><span class="p">,</span> <span class="s1">&#39;P_B&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">ia_terms</span><span class="p">[</span><span class="s1">&#39;P_E&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.list_available_functions">
 <span class="sig-name descname"><span class="pre">list_available_functions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.list_available_functions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.list_available_functions" title="Link to this definition"></a></dt>
-<dd><p>Returns a list of valid FASTPT functions.</p>
+<dd><p>List all callable FAST-PT functions.</p>
+<p>Prints a list of all public functions available in the FAST-PT instance.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">list_available_functions</span><span class="p">()</span>
+<span class="go">[&#39;OV&#39;, &#39;IA_ct&#39;, &#39;IA_ctbias&#39;, &#39;IA_d2&#39;, &#39;IA_der&#39;, ...]</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.list_available_terms">
 <span class="sig-name descname"><span class="pre">list_available_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.list_available_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.list_available_terms" title="Link to this definition"></a></dt>
-<dd><p>List all available power spectrum terms that can be requested via get()</p>
+<dd><p>List all available power spectrum terms that can be requested via get().</p>
+<p>Prints available terms organized by the FAST-PT function that calculates them,
+along with any special parameter requirements.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">list_available_terms</span><span class="p">()</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -571,55 +683,113 @@ If file_path already includes a directory, load_dir is ignored.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.run" title="Link to this definition"></a></dt>
-<dd><p>Runs the selected function from FASTPT with validated parameters.</p>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.run" title="Link to this definition"></a></dt>
+<dd><p>Run a FAST-PT function with validated parameters.</p>
+<p>This method calls the specified FAST-PT function, handles parameter validation,
+caches results if enabled, and optionally saves the output to a file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>function_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the FASTPT function to run</p></li>
-<li><p><strong>save_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Type of file to save results as (‘txt’, ‘csv’, or ‘json’). Defaults to None.</p></li>
-<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results in. Defaults to the class’s output_dir.</p></li>
-<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Alternative name for save_dir (for backwards compatibility).</p></li>
-<li><p><strong>**override_kwargs</strong> – Additional parameters to pass to the FASTPT function</p></li>
+<li><p><strong>function_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the FAST-PT function to run</p></li>
+<li><p><strong>save_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File format to save results (‘txt’, ‘csv’, or ‘json’)</p></li>
+<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results. Defaults to the class’s output_dir.</p></li>
+<li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional parameters to pass to the FAST-PT function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Result from the FASTPT function call</p>
+<dd class="field-even"><p><strong>result</strong> – Result from the FAST-PT function call, typically a tuple of numpy arrays</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)">object</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the function is not found or parameter validation fails</p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop_result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ia_result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;IA_tt&#39;</span><span class="p">,</span> <span class="n">save_type</span><span class="o">=</span><span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.save_output">
 <span class="sig-name descname"><span class="pre">save_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'txt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.save_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.save_output" title="Link to this definition"></a></dt>
-<dd><p>Save the output to a file</p>
+<dd><p>Save calculation results to a file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>result</strong> – The result to save</p></li>
+<li><p><strong>result</strong> (<em>array_like</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em> of </em><em>array_like</em>) – Result to save</p></li>
 <li><p><strong>func_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the function that produced the result</p></li>
-<li><p><strong>type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – File type (‘txt’, ‘csv’, or ‘json’)</p></li>
-<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save the file in. Defaults to self.output_dir.</p></li>
+<li><p><strong>type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File format (‘txt’, ‘csv’, or ‘json’). Default is ‘txt’.</p></li>
+<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save the file. Default is the handler’s output_dir.</p></li>
 </ul>
 </dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If an invalid file type is specified</p>
+</dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">save_output</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.show_cache_info">
 <span class="sig-name descname"><span class="pre">show_cache_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.show_cache_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.show_cache_info" title="Link to this definition"></a></dt>
-<dd><p>Display cache information</p>
+<dd><p>Display information about the current cache state.</p>
+<p>Shows the number of entries in the cache, the maximum allowed entries,
+and the current usage percentage.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">do_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_cache_entries</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">show_cache_info</span><span class="p">()</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.update_default_params">
 <span class="sig-name descname"><span class="pre">update_default_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.update_default_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.update_default_params" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Update the default parameters used for all function calls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Parameters to set as defaults</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If any parameters are invalid or inconsistent</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">update_default_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now these parameters will be used by default</span>
+</pre></div>
+</div>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.update_fastpt_instance">
 <span class="sig-name descname"><span class="pre">update_fastpt_instance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fastpt_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT.FASTPT"><span class="pre">FASTPT</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.update_fastpt_instance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.update_fastpt_instance" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Update the FAST-PT instance used by this handler.</p>
+<p>This method replaces the current FASTPT instance and clears the cache.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fastpt_instance</strong> (<a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT"><em>FASTPT</em></a>) – New FASTPT instance to use</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">k_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>  <span class="c1"># Different k range</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fpt_new</span> <span class="o">=</span> <span class="n">FASTPT</span><span class="p">(</span><span class="n">k_new</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">update_fastpt_instance</span><span class="p">(</span><span class="n">fpt_new</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
 
 </dd></dl>
 

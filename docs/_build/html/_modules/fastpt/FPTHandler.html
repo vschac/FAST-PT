@@ -77,12 +77,44 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">FASTPT</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">pi</span><span class="p">,</span> <span class="n">log</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
 <div class="viewcode-block" id="FPTHandler">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FPTHandler</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handler class for FAST-PT that simplifies function calls and result management.</span>
+<span class="sd">    </span>
+<span class="sd">    This class provides a simplified interface for working with FAST-PT functions,</span>
+<span class="sd">    with features including parameter validation, caching of results, saving/loading</span>
+<span class="sd">    outputs, and direct access to specific power spectrum terms.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fastpt_instance : FASTPT</span>
+<span class="sd">        An initialized FASTPT instance.</span>
+<span class="sd">    do_cache : bool, optional</span>
+<span class="sd">        Whether to cache function results for repeated calls. Default is False.</span>
+<span class="sd">    save_all : str, optional</span>
+<span class="sd">        File format to save all results (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;). Default is None.</span>
+<span class="sd">    save_dir : str, optional</span>
+<span class="sd">        Directory to save results. Default is &#39;outputs&#39; directory in package location.</span>
+<span class="sd">    max_cache_entries : int, optional</span>
+<span class="sd">        Maximum number of results to keep in cache. Default is 500.</span>
+<span class="sd">    **params : dict</span>
+<span class="sd">        Default parameters to use for all function calls.</span>
+<span class="sd">        </span>
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from fastpt import FASTPT, FPTHandler</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
+<span class="sd">    &gt;&gt;&gt; P = np.abs(np.sin(k_values))  # Example power spectrum</span>
+<span class="sd">    &gt;&gt;&gt; fpt = FASTPT(k)</span>
+<span class="sd">    &gt;&gt;&gt; handler = FPTHandler(fpt, P=P, C_window=0.75)</span>
+<span class="sd">    &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; P_1loop = handler.get(&#39;P_E&#39;)  # Direct access to the P_E term of fpt.IA_tt</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="FPTHandler.__init__">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fastpt_instance</span><span class="p">:</span> <span class="n">FASTPT</span><span class="p">,</span> <span class="n">do_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_all</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_cache_entries</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
@@ -196,6 +228,14 @@
  
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">fastpt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the underlying FASTPT instance.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        FASTPT</span>
+<span class="sd">            The FASTPT instance used by this handler.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
@@ -295,18 +335,39 @@
 
 <div class="viewcode-block" id="FPTHandler.run">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.run">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function_name</span><span class="p">,</span> <span class="n">save_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Runs the selected function from FASTPT with validated parameters.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function_name</span><span class="p">,</span> <span class="n">save_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run a FAST-PT function with validated parameters.</span>
 <span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            function_name (str): Name of the FASTPT function to run</span>
-<span class="sd">            save_type (str, optional): Type of file to save results as (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;). Defaults to None.</span>
-<span class="sd">            save_dir (str, optional): Directory to save results in. Defaults to the class&#39;s output_dir.</span>
-<span class="sd">            output_dir (str, optional): Alternative name for save_dir (for backwards compatibility).</span>
-<span class="sd">            **override_kwargs: Additional parameters to pass to the FASTPT function</span>
+<span class="sd">        This method calls the specified FAST-PT function, handles parameter validation,</span>
+<span class="sd">        caches results if enabled, and optionally saves the output to a file.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        function_name : str</span>
+<span class="sd">            Name of the FAST-PT function to run</span>
+<span class="sd">        save_type : str, optional</span>
+<span class="sd">            File format to save results (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;)</span>
+<span class="sd">        save_dir : str, optional</span>
+<span class="sd">            Directory to save results. Defaults to the class&#39;s output_dir.</span>
+<span class="sd">        **override_kwargs : dict</span>
+<span class="sd">            Additional parameters to pass to the FAST-PT function</span>
 <span class="sd">            </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            Result from the FASTPT function call</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        result : object</span>
+<span class="sd">            Result from the FAST-PT function call, typically a tuple of numpy arrays</span>
+<span class="sd">            </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the function is not found or parameter validation fails</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop_result = handler.run(&#39;one_loop_dd&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ia_result = handler.run(&#39;IA_tt&#39;, save_type=&#39;csv&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">function_name</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Function &#39;</span><span class="si">{</span><span class="n">function_name</span><span class="si">}</span><span class="s2">&#39; not found in FASTPT.&quot;</span><span class="p">)</span>
@@ -318,11 +379,7 @@
                 
         <span class="k">if</span> <span class="s1">&#39;save_dir&#39;</span> <span class="ow">in</span> <span class="n">override_kwargs</span><span class="p">:</span>
             <span class="n">save_dir</span> <span class="o">=</span> <span class="n">override_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;save_dir&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s1">&#39;output_dir&#39;</span> <span class="ow">in</span> <span class="n">override_kwargs</span><span class="p">:</span>
-            <span class="n">output_dir</span> <span class="o">=</span> <span class="n">override_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;output_dir&#39;</span><span class="p">)</span>
-            
-        <span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">save_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
+
         <span class="n">output_directory</span> <span class="o">=</span> <span class="n">save_dir</span> <span class="k">if</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span>
 
         <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">function_name</span><span class="p">)</span>
@@ -348,15 +405,35 @@
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.bulk_run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bulk_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">power_spectra</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Runs multiple functions with multiple power spectra.</span>
+<span class="sd">        Run multiple functions with multiple power spectra.</span>
 <span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            func_names (list): List of FASTPT function names to call</span>
-<span class="sd">            power_spectra (list): List of power spectra to use</span>
-<span class="sd">            **override_kwargs: Additional parameters to pass to all function calls</span>
+<span class="sd">        This method provides a convenient way to run multiple FAST-PT functions</span>
+<span class="sd">        with different power spectra and collect all the results.</span>
 <span class="sd">        </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            dict: Results keyed by (function_name, power_spectrum_index)</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        func_names : list of str</span>
+<span class="sd">            List of FAST-PT function names to call</span>
+<span class="sd">        power_spectra : list of array_like</span>
+<span class="sd">            List of power spectra to use for each function call</span>
+<span class="sd">        verbose : bool, optional</span>
+<span class="sd">            Whether to print progress messages</span>
+<span class="sd">        **override_kwargs : dict</span>
+<span class="sd">            Additional parameters to pass to all function calls</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Results keyed by (function_name, power_spectrum_index)</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
+<span class="sd">        &gt;&gt;&gt; P1 = k**(-1.5)  # Example power spectrum 1</span>
+<span class="sd">        &gt;&gt;&gt; P2 = k**(-1.0)  # Example power spectrum 2</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; results = handler.bulk_run([&#39;one_loop_dd&#39;, &#39;IA_tt&#39;], [P1, P2])</span>
+<span class="sd">        &gt;&gt;&gt; one_loop_P1 = results[(&#39;one_loop_dd&#39;, 0)]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
@@ -371,7 +448,38 @@
 <div class="viewcode-block" id="FPTHandler.get">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.get">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">terms</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Allows for quick access to a specific term or terms from a FASTPT function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get specific power spectrum terms directly.</span>
+<span class="sd">        </span>
+<span class="sd">        This method provides direct access to specific power spectrum components</span>
+<span class="sd">        without needing to know which FAST-PT function calculates them.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *terms : str</span>
+<span class="sd">            Names of power spectrum terms to retrieve</span>
+<span class="sd">        **override_kwargs : dict</span>
+<span class="sd">            Parameters for the underlying FAST-PT calculations</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        term or dict</span>
+<span class="sd">            If a single term is requested, returns that term directly.</span>
+<span class="sd">            If multiple terms are requested, returns a dictionary mapping</span>
+<span class="sd">            term names to their values.</span>
+<span class="sd">            </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If a requested term is not found or parameters are invalid</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop = handler.get(&#39;P_1loop&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ia_terms = handler.get(&#39;P_E&#39;, &#39;P_B&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print(ia_terms[&#39;P_E&#39;].shape)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">terms</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one term must be provided.&quot;</span><span class="p">)</span>
         <span class="n">output</span> <span class="o">=</span> <span class="p">{}</span>
@@ -450,7 +558,22 @@
 <div class="viewcode-block" id="FPTHandler.clear_cache">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.clear_cache">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Clears specific or all cached results. &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clear cached function results.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        function_name : str, optional</span>
+<span class="sd">            If provided, only clears cache for the specified function.</span>
+<span class="sd">            If None, clears the entire cache.</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, do_cache=True)</span>
+<span class="sd">        &gt;&gt;&gt; handler.run(&#39;one_loop_dd&#39;, P=P_linear)</span>
+<span class="sd">        &gt;&gt;&gt; handler.clear_cache(&#39;one_loop_dd&#39;)  # Clear just one_loop_dd results</span>
+<span class="sd">        &gt;&gt;&gt; handler.clear_cache()  # Clear all cached results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">function_name</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">function_name</span><span class="p">}</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cache cleared for &#39;</span><span class="si">{</span><span class="n">function_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
@@ -462,7 +585,18 @@
 <div class="viewcode-block" id="FPTHandler.show_cache_info">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.show_cache_info">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">show_cache_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Display cache information&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Display information about the current cache state.</span>
+<span class="sd">        </span>
+<span class="sd">        Shows the number of entries in the cache, the maximum allowed entries,</span>
+<span class="sd">        and the current usage percentage.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, do_cache=True, max_cache_entries=100)</span>
+<span class="sd">        &gt;&gt;&gt; handler.run(&#39;one_loop_dd&#39;, P=P_linear)</span>
+<span class="sd">        &gt;&gt;&gt; handler.show_cache_info()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">num_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">({</span>
             <span class="s2">&quot;num_entries&quot;</span><span class="p">:</span> <span class="n">num_entries</span><span class="p">,</span>
@@ -475,15 +609,34 @@
 <div class="viewcode-block" id="FPTHandler.list_available_functions">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.list_available_functions">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_available_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Returns a list of valid FASTPT functions. &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List all callable FAST-PT functions.</span>
+<span class="sd">        </span>
+<span class="sd">        Prints a list of all public functions available in the FAST-PT instance.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; handler.list_available_functions()</span>
+<span class="sd">        [&#39;OV&#39;, &#39;IA_ct&#39;, &#39;IA_ctbias&#39;, &#39;IA_d2&#39;, &#39;IA_der&#39;, ...]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">print</span><span class="p">([</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)])</span></div>
 
 
 <div class="viewcode-block" id="FPTHandler.list_available_terms">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.list_available_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_available_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;List all available power spectrum terms that can be requested via get()&quot;&quot;&quot;</span>
-    
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List all available power spectrum terms that can be requested via get().</span>
+<span class="sd">        </span>
+<span class="sd">        Prints available terms organized by the FAST-PT function that calculates them,</span>
+<span class="sd">        along with any special parameter requirements.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; handler.list_available_terms()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Organize by function</span>
         <span class="n">organized</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -516,13 +669,44 @@
 <div class="viewcode-block" id="FPTHandler.clear_default_params">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.clear_default_params">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clear all default parameters.</span>
+<span class="sd">        </span>
+<span class="sd">        Removes all stored default parameters so they must be specified</span>
+<span class="sd">        in subsequent function calls.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; handler.clear_default_params()</span>
+<span class="sd">        &gt;&gt;&gt; # Now P must be provided in each function call</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cache cleared for all functions.&quot;</span><span class="p">)</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default parameters cleared.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="FPTHandler.update_default_params">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.update_default_params">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the default parameters used for all function calls.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        **params : dict</span>
+<span class="sd">            Parameters to set as defaults</span>
+<span class="sd">            </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If any parameters are invalid or inconsistent</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; handler.update_default_params(P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; # Now these parameters will be used by default</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default parameters updated.&quot;</span><span class="p">)</span></div>
 
@@ -530,22 +714,54 @@
 <div class="viewcode-block" id="FPTHandler.update_fastpt_instance">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.update_fastpt_instance">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_fastpt_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fastpt_instance</span><span class="p">:</span> <span class="n">FASTPT</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the FAST-PT instance used by this handler.</span>
+<span class="sd">        </span>
+<span class="sd">        This method replaces the current FASTPT instance and clears the cache.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fastpt_instance : FASTPT</span>
+<span class="sd">            New FASTPT instance to use</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; k_new = np.logspace(-4, 2, 300)  # Different k range</span>
+<span class="sd">        &gt;&gt;&gt; fpt_new = FASTPT(k_new)</span>
+<span class="sd">        &gt;&gt;&gt; handler.update_fastpt_instance(fpt_new)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span> <span class="o">=</span> <span class="n">fastpt_instance</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FASTPT instance updated. Cached cleared.&quot;</span><span class="p">)</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FASTPT instance updated. Cache cleared.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="FPTHandler.save_output">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.save_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">save_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">func_name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;txt&quot;</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; </span>
-<span class="sd">        Save the output to a file</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save calculation results to a file.</span>
 <span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            result: The result to save</span>
-<span class="sd">            func_name (str): Name of the function that produced the result</span>
-<span class="sd">            type (str): File type (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;)</span>
-<span class="sd">            output_dir (str, optional): Directory to save the file in. Defaults to self.output_dir.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        result : array_like or tuple of array_like</span>
+<span class="sd">            Result to save</span>
+<span class="sd">        func_name : str</span>
+<span class="sd">            Name of the function that produced the result</span>
+<span class="sd">        type : str, optional</span>
+<span class="sd">            File format (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;). Default is &#39;txt&#39;.</span>
+<span class="sd">        output_dir : str, optional</span>
+<span class="sd">            Directory to save the file. Default is the handler&#39;s output_dir.</span>
+<span class="sd">            </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If an invalid file type is specified</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;, P=P_linear)</span>
+<span class="sd">        &gt;&gt;&gt; handler.save_output(result, &#39;one_loop_dd&#39;, type=&#39;csv&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;txt&quot;</span><span class="p">,</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;json&quot;</span><span class="p">):</span> 
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid file type. Must be &#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;&quot;</span><span class="p">)</span>

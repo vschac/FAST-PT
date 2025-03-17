@@ -5,6 +5,39 @@ from numpy import pi, log
 import os
 
 class FPTHandler:
+    """
+    Handler class for FAST-PT that simplifies function calls and result management.
+    
+    This class provides a simplified interface for working with FAST-PT functions,
+    with features including parameter validation, caching of results, saving/loading
+    outputs, and direct access to specific power spectrum terms.
+    
+    Parameters
+    ----------
+    fastpt_instance : FASTPT
+        An initialized FASTPT instance.
+    do_cache : bool, optional
+        Whether to cache function results for repeated calls. Default is False.
+    save_all : str, optional
+        File format to save all results ('txt', 'csv', or 'json'). Default is None.
+    save_dir : str, optional
+        Directory to save results. Default is 'outputs' directory in package location.
+    max_cache_entries : int, optional
+        Maximum number of results to keep in cache. Default is 500.
+    **params : dict
+        Default parameters to use for all function calls.
+        
+    Examples
+    --------
+    >>> from fastpt import FASTPT, FPTHandler
+    >>> import numpy as np
+    >>> k = np.logspace(-3, 1, 200)
+    >>> P = np.abs(np.sin(k_values))  # Example power spectrum
+    >>> fpt = FASTPT(k)
+    >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
+    >>> result = handler.run('one_loop_dd')
+    >>> P_1loop = handler.get('P_E')  # Direct access to the P_E term of fpt.IA_tt
+    """
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
         self.__fastpt = fastpt_instance
         self.cache = {}
@@ -115,6 +148,14 @@ class FPTHandler:
  
     @property
     def fastpt(self):
+        """
+        Get the underlying FASTPT instance.
+        
+        Returns
+        -------
+        FASTPT
+            The FASTPT instance used by this handler.
+        """
         return self.__fastpt
 
     def _validate_params(self, **params):
@@ -213,16 +254,38 @@ class FPTHandler:
 
 
     def run(self, function_name, save_type=None, save_dir=None, **override_kwargs):
-        """Runs the selected function from FASTPT with validated parameters.
+        """
+        Run a FAST-PT function with validated parameters.
         
-        Args:
-            function_name (str): Name of the FASTPT function to run
-            save_type (str, optional): Type of file to save results as ('txt', 'csv', or 'json'). Defaults to None.
-            save_dir (str, optional): Directory to save results in. Defaults to the class's output_dir.
-            **override_kwargs: Additional parameters to pass to the FASTPT function
+        This method calls the specified FAST-PT function, handles parameter validation,
+        caches results if enabled, and optionally saves the output to a file.
+        
+        Parameters
+        ----------
+        function_name : str
+            Name of the FAST-PT function to run
+        save_type : str, optional
+            File format to save results ('txt', 'csv', or 'json')
+        save_dir : str, optional
+            Directory to save results. Defaults to the class's output_dir.
+        **override_kwargs : dict
+            Additional parameters to pass to the FAST-PT function
             
-        Returns:
-            Result from the FASTPT function call
+        Returns
+        -------
+        result : object
+            Result from the FAST-PT function call, typically a tuple of numpy arrays
+            
+        Raises
+        ------
+        ValueError
+            If the function is not found or parameter validation fails
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> P_1loop_result = handler.run('one_loop_dd')
+        >>> ia_result = handler.run('IA_tt', save_type='csv')
         """
         if not hasattr(self.fastpt, function_name):
             raise ValueError(f"Function '{function_name}' not found in FASTPT.")
@@ -257,15 +320,35 @@ class FPTHandler:
     
     def bulk_run(self, func_names, power_spectra, verbose=False, **override_kwargs):
         """
-        Runs multiple functions with multiple power spectra.
+        Run multiple functions with multiple power spectra.
         
-        Args:
-            func_names (list): List of FASTPT function names to call
-            power_spectra (list): List of power spectra to use
-            **override_kwargs: Additional parameters to pass to all function calls
+        This method provides a convenient way to run multiple FAST-PT functions
+        with different power spectra and collect all the results.
         
-        Returns:
-            dict: Results keyed by (function_name, power_spectrum_index)
+        Parameters
+        ----------
+        func_names : list of str
+            List of FAST-PT function names to call
+        power_spectra : list of array_like
+            List of power spectra to use for each function call
+        verbose : bool, optional
+            Whether to print progress messages
+        **override_kwargs : dict
+            Additional parameters to pass to all function calls
+        
+        Returns
+        -------
+        dict
+            Results keyed by (function_name, power_spectrum_index)
+            
+        Examples
+        --------
+        >>> k = np.logspace(-3, 1, 200)
+        >>> P1 = k**(-1.5)  # Example power spectrum 1
+        >>> P2 = k**(-1.0)  # Example power spectrum 2
+        >>> handler = FPTHandler(fpt, C_window=0.75)
+        >>> results = handler.bulk_run(['one_loop_dd', 'IA_tt'], [P1, P2])
+        >>> one_loop_P1 = results[('one_loop_dd', 0)]
         """
         results = {}
         for func_name in func_names:
@@ -277,7 +360,38 @@ class FPTHandler:
         return results
     
     def get(self, *terms, **override_kwargs):
-        """Allows for quick access to a specific term or terms from a FASTPT function."""
+        """
+        Get specific power spectrum terms directly.
+        
+        This method provides direct access to specific power spectrum components
+        without needing to know which FAST-PT function calculates them.
+        
+        Parameters
+        ----------
+        *terms : str
+            Names of power spectrum terms to retrieve
+        **override_kwargs : dict
+            Parameters for the underlying FAST-PT calculations
+            
+        Returns
+        -------
+        term or dict
+            If a single term is requested, returns that term directly.
+            If multiple terms are requested, returns a dictionary mapping
+            term names to their values.
+            
+        Raises
+        ------
+        ValueError
+            If a requested term is not found or parameters are invalid
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> P_1loop = handler.get('P_1loop')
+        >>> ia_terms = handler.get('P_E', 'P_B')
+        >>> print(ia_terms['P_E'].shape)
+        """
         if not terms:
             raise ValueError("At least one term must be provided.")
         output = {}
@@ -353,7 +467,22 @@ class FPTHandler:
         return output
 
     def clear_cache(self, function_name=None):
-        """ Clears specific or all cached results. """
+        """
+        Clear cached function results.
+        
+        Parameters
+        ----------
+        function_name : str, optional
+            If provided, only clears cache for the specified function.
+            If None, clears the entire cache.
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, do_cache=True)
+        >>> handler.run('one_loop_dd', P=P_linear)
+        >>> handler.clear_cache('one_loop_dd')  # Clear just one_loop_dd results
+        >>> handler.clear_cache()  # Clear all cached results
+        """
         if function_name:
             self.cache = {key: value for key, value in self.cache.items() if key[0] != function_name}
             print(f"Cache cleared for '{function_name}'.")
@@ -362,7 +491,18 @@ class FPTHandler:
             print("Cache cleared for all functions.")
 
     def show_cache_info(self):
-        """Display cache information"""
+        """
+        Display information about the current cache state.
+        
+        Shows the number of entries in the cache, the maximum allowed entries,
+        and the current usage percentage.
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, do_cache=True, max_cache_entries=100)
+        >>> handler.run('one_loop_dd', P=P_linear)
+        >>> handler.show_cache_info()
+        """
         num_entries = len(self.cache)
         print({
             "num_entries": num_entries,
@@ -372,12 +512,31 @@ class FPTHandler:
 
 
     def list_available_functions(self):
-        """ Returns a list of valid FASTPT functions. """
+        """
+        List all callable FAST-PT functions.
+        
+        Prints a list of all public functions available in the FAST-PT instance.
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> handler.list_available_functions()
+        ['OV', 'IA_ct', 'IA_ctbias', 'IA_d2', 'IA_der', ...]
+        """
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("__")])
 
     def list_available_terms(self):
-        """List all available power spectrum terms that can be requested via get()"""
-    
+        """
+        List all available power spectrum terms that can be requested via get().
+        
+        Prints available terms organized by the FAST-PT function that calculates them,
+        along with any special parameter requirements.
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> handler.list_available_terms()
+        """
         # Organize by function
         organized = {}
         for term, (func, _) in self.term_sources.items():
@@ -407,27 +566,90 @@ class FPTHandler:
         return organized
     
     def clear_default_params(self):
+        """
+        Clear all default parameters.
+        
+        Removes all stored default parameters so they must be specified
+        in subsequent function calls.
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> handler.clear_default_params()
+        >>> # Now P must be provided in each function call
+        """
         self.default_params = {}
-        print("Cache cleared for all functions.")
+        print("Default parameters cleared.")
 
     def update_default_params(self, **params):
+        """
+        Update the default parameters used for all function calls.
+        
+        Parameters
+        ----------
+        **params : dict
+            Parameters to set as defaults
+            
+        Raises
+        ------
+        ValueError
+            If any parameters are invalid or inconsistent
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> handler.update_default_params(P=P_linear, C_window=0.75)
+        >>> # Now these parameters will be used by default
+        """
         self.default_params = self._validate_params(**params)
         print("Default parameters updated.")
 
     def update_fastpt_instance(self, fastpt_instance: FASTPT):
+        """
+        Update the FAST-PT instance used by this handler.
+        
+        This method replaces the current FASTPT instance and clears the cache.
+        
+        Parameters
+        ----------
+        fastpt_instance : FASTPT
+            New FASTPT instance to use
+            
+        Examples
+        --------
+        >>> k_new = np.logspace(-4, 2, 300)  # Different k range
+        >>> fpt_new = FASTPT(k_new)
+        >>> handler.update_fastpt_instance(fpt_new)
+        """
         self.__fastpt = fastpt_instance
         self.clear_cache()
-        print("FASTPT instance updated. Cached cleared.")
+        print("FASTPT instance updated. Cache cleared.")
 
     def save_output(self, result, func_name, type="txt", output_dir=None):
-        """ 
-        Save the output to a file
+        """
+        Save calculation results to a file.
         
-        Args:
-            result: The result to save
-            func_name (str): Name of the function that produced the result
-            type (str): File type ('txt', 'csv', or 'json')
-            output_dir (str, optional): Directory to save the file in. Defaults to self.output_dir.
+        Parameters
+        ----------
+        result : array_like or tuple of array_like
+            Result to save
+        func_name : str
+            Name of the function that produced the result
+        type : str, optional
+            File format ('txt', 'csv', or 'json'). Default is 'txt'.
+        output_dir : str, optional
+            Directory to save the file. Default is the handler's output_dir.
+            
+        Raises
+        ------
+        ValueError
+            If an invalid file type is specified
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> result = handler.run('one_loop_dd', P=P_linear)
+        >>> handler.save_output(result, 'one_loop_dd', type='csv')
         """
         if type not in ("txt", "csv", "json"): 
             raise ValueError("Invalid file type. Must be 'txt', 'csv', or 'json'")
