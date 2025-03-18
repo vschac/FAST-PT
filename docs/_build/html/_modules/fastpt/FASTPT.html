@@ -149,21 +149,84 @@
 <div class="viewcode-block" id="FASTPT">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FASTPT</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    FASTPT is a numerical algorithm to calculate</span>
+<span class="sd">	1-loop contributions to the matter power spectrum</span>
+<span class="sd">	and other integrals of a similar type.</span>
+<span class="sd">	The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978</span>
+<span class="sd">	Please cite these papers if you are using FASTPT in your research.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        k : array_like</span>
+<span class="sd">            The input k-grid (wavenumbers) in h/Mpc. Must be logarithmically spaced</span>
+<span class="sd">            with equal spacing in log(k) and contain an even number of elements.</span>
+<span class="sd">        </span>
+<span class="sd">        nu : float, optional</span>
+<span class="sd">            Deprecated. Previously used for scaling relations, no longer required.</span>
+<span class="sd">        </span>
+<span class="sd">        to_do : list of str, optional</span>
+<span class="sd">            List of calculations to prepare matrices for. Terms will be calculated as needed</span>
+<span class="sd">            even without specifying them here, but pre-computing matrices can save time on the </span>
+<span class="sd">            initial run of any function. &#39;All&#39; or &#39;everything&#39; will initialize all terms.</span>
+<span class="sd">        </span>
+<span class="sd">        param_mat : array_like, optional</span>
+<span class="sd">            Custom parameter matrix for extensions (advanced usage).</span>
+<span class="sd">        </span>
+<span class="sd">        low_extrap : float, optional</span>
+<span class="sd">            If provided, extrapolate the power spectrum to lower k values </span>
+<span class="sd">            down to 10^(low_extrap). Helps with edge effects. Typical value: -5.</span>
+<span class="sd">        </span>
+<span class="sd">        high_extrap : float, optional</span>
+<span class="sd">            If provided, extrapolate the power spectrum to higher k values </span>
+<span class="sd">            up to 10^(high_extrap). Helps with edge effects. Typical value: 3.</span>
+<span class="sd">            Must be greater than low_extrap if both are provided.</span>
+<span class="sd">        </span>
+<span class="sd">        n_pad : int, optional</span>
+<span class="sd">            Number of zeros to pad the array with on both ends. </span>
+<span class="sd">            Helps reduce edge effects in FFT calculations. If None, defaults to</span>
+<span class="sd">            half the length of the input k array.</span>
+<span class="sd">            </span>
+<span class="sd">        verbose : bool, optional</span>
+<span class="sd">            If True, prints additional information during calculations.</span>
+<span class="sd">        </span>
+<span class="sd">        simple : bool, optional</span>
+<span class="sd">            If True, uses the older, simplified FASTPT interface. Will be deprecated.</span>
+<span class="sd">        </span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The input k array must be:</span>
+<span class="sd">        1. Strictly increasing</span>
+<span class="sd">        2. Logarithmically spaced with consistent spacing</span>
+<span class="sd">        3. Contain an even number of elements</span>
+<span class="sd">        </span>
+<span class="sd">        Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is </span>
+<span class="sd">        recommended to reduce numerical artifacts from the FFT-based algorithm.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        Basic initialization for 1-loop calculations:</span>
+<span class="sd">        </span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; from fastpt import FASTPT</span>
+<span class="sd">        &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
+<span class="sd">        &gt;&gt;&gt; P_linear = k**(-1.5) * 1000  # Example power spectrum</span>
+<span class="sd">        &gt;&gt;&gt; fpt = FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=100)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop = fpt.one_loop_dd(P_linear)[0]</span>
+<span class="sd">        </span>
+<span class="sd">        With multiple components:</span>
+<span class="sd">        </span>
+<span class="sd">        &gt;&gt;&gt; fpt = FASTPT(k, to_do=[&#39;one_loop_dd&#39;, &#39;IA_tt&#39;, &#39;RSD&#39;], </span>
+<span class="sd">        ...              low_extrap=-5, high_extrap=3, n_pad=100)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop = fpt.one_loop_dd(P_linear)[0]</span>
+<span class="sd">        &gt;&gt;&gt; P_IA_E, P_IA_B = fpt.IA_tt(P_linear)</span>
+<span class="sd">        &gt;&gt;&gt; A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = fpt.RSD_components(P_linear, f=0.55)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="FASTPT.__init__">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">nu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_do</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">param_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">low_extrap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">high_extrap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_pad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">simple</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_cache_size_mb</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
-
-<span class="w">        </span><span class="sd">&#39;&#39;&#39; inputs:</span>
-<span class="sd">				* k grid</span>
-<span class="sd">				* the to_do list: e.g. one_loop density density , bias terms, ...</span>
-<span class="sd">				* low_extrap is the call to extrapolate the power spectrum to lower k-values,</span>
-<span class="sd">					this helps with edge effects</span>
-<span class="sd">				* n_pad is the number of zeros to add to both ends of the array. This helps with</span>
-<span class="sd">					edge effects.</span>
-<span class="sd">				* verbose is to turn on verbose settings.</span>
-<span class="sd">		&#39;&#39;&#39;</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">simple</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         
         <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must provide an input k array.&#39;</span><span class="p">)</span>
@@ -186,7 +249,7 @@
         <span class="c1"># Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.</span>
         
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">CacheManager</span><span class="p">(</span><span class="n">max_size_mb</span><span class="o">=</span><span class="n">max_cache_size_mb</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">CacheManager</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">X_registry</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1">#Stores the names of X terms to be used as an efficient unique identifier in hash keys</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__k_original</span> <span class="o">=</span> <span class="n">k</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">extrap</span> <span class="o">=</span> <span class="kc">False</span>
@@ -592,9 +655,7 @@
         <span class="k">return</span> <span class="n">result</span>
 
 
-<div class="viewcode-block" id="FASTPT.validate_params">
-<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.validate_params">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">P</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must provide an input power spectrum array.&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
@@ -619,8 +680,7 @@
             <span class="k">if</span> <span class="n">C_window</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">C_window</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;C_window must be between 0 and 1.&#39;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="kc">None</span></div>
-
+        <span class="k">return</span> <span class="kc">None</span>
     
     <span class="c1">############## ABSTRACTED BEHAVIOR METHODS ##############</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_apply_extrapolation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -658,7 +718,29 @@
 <div class="viewcode-block" id="FASTPT.compute_term">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.compute_term">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the individual terms of Fast-PT functions with caching&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes a Fast-PT term with caching support.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        term : str</span>
+<span class="sd">            Name of the term to compute, used for cache identification</span>
+<span class="sd">        X : tuple or list of tuples</span>
+<span class="sd">            Fast-PT coefficient matrices for the calculation</span>
+<span class="sd">        operation : callable, optional</span>
+<span class="sd">            Function to apply to the result(s) after computation</span>
+<span class="sd">        P : array_like</span>
+<span class="sd">            Input power spectrum</span>
+<span class="sd">        P_window : tuple, optional</span>
+<span class="sd">            Window parameters for tapering the power spectrum at the endpoints</span>
+<span class="sd">        C_window : float, optional</span>
+<span class="sd">            Window parameter for tapering the Fourier coefficients</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array_like</span>
+<span class="sd">            The computed Fast-PT term</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">P</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Compute term requires an input power spectrum array.&#39;</span><span class="p">)</span>
         <span class="n">hash_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
@@ -716,7 +798,17 @@
 <div class="viewcode-block" id="FASTPT.one_loop_dd">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.one_loop_dd">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">one_loop_dd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="c1">#Acts as its own get function (like IA_der)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the standard 1-loop density-density corrections to the power spectrum.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_1loop, Ps) where:</span>
+<span class="sd">        P_1loop : 1-loop correction (P_22 + P_13)</span>
+<span class="sd">        Ps : Smoothed input power spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Ps</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_scalar</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">Ps</span><span class="p">)</span>
         <span class="n">hash_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;one_loop_dd&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
@@ -756,6 +848,22 @@
 <div class="viewcode-block" id="FASTPT.one_loop_dd_bias">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.one_loop_dd_bias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">one_loop_dd_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes 1-loop corrections with standard bias terms.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4) where:</span>
+<span class="sd">        P_1loop : 1-loop correction (P_22 + P_13)</span>
+<span class="sd">        Ps : Smoothed input power spectrum</span>
+<span class="sd">        Pd1d2 : First order density-second order density correlation</span>
+<span class="sd">        Pd2d2 : Second order density auto-correlation</span>
+<span class="sd">        Pd1s2 : First order density-second order tidal correlation</span>
+<span class="sd">        Pd2s2 : Second order density-second order tidal correlation</span>
+<span class="sd">        Ps2s2 : Second order tidal auto-correlation</span>
+<span class="sd">        sig4 : σ^4 integral for stochastic bias</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">P_1loop</span><span class="p">,</span> <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pd1d2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pd1d2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pd2d2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pd2d2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -832,7 +940,17 @@
 <div class="viewcode-block" id="FASTPT.one_loop_dd_bias_b3nl">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.one_loop_dd_bias_b3nl">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">one_loop_dd_bias_b3nl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes 1-loop corrections with bias terms including third-order non-local bias.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl) where:</span>
+<span class="sd">        The first 8 terms are identical to those returned by one_loop_dd_bias</span>
+<span class="sd">        sig3nl : Third order non-local bias term</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_1loop</span><span class="p">,</span> <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pd1d2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pd1d2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pd2d2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pd2d2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -858,7 +976,22 @@
 <div class="viewcode-block" id="FASTPT.one_loop_dd_bias_lpt_NL">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.one_loop_dd_bias_lpt_NL">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">one_loop_dd_bias_lpt_NL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes bias corrections in Lagrangian Perturbation Theory (LPT).</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4) where:</span>
+<span class="sd">        Ps : Smoothed input power spectrum</span>
+<span class="sd">        Pb1L : First-order Lagrangian bias correlation term</span>
+<span class="sd">        Pb1L_2 : First-order Lagrangian bias squared correlation</span>
+<span class="sd">        Pb1L_b2L : First-order and second-order Lagrangian bias cross-correlation</span>
+<span class="sd">        Pb2L : Second-order Lagrangian bias correlation</span>
+<span class="sd">        Pb2L_2 : Second-order Lagrangian bias squared correlation </span>
+<span class="sd">        sig4 : σ^4 integral for stochastic bias</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pb1L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pb1L</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pb1L_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pb1L_2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -940,7 +1073,7 @@
 <div class="viewcode-block" id="FASTPT.cleft_Q_R">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.cleft_Q_R">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">cleft_Q_R</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
 
 
         <span class="n">nu_arr</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span>
@@ -972,7 +1105,17 @@
 <div class="viewcode-block" id="FASTPT.IA_tt">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_tt">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_tt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment tidal torque contributions.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_E, P_B) where:</span>
+<span class="sd">        P_E : E-mode (curl-free) tidal torque power spectrum</span>
+<span class="sd">        P_B : B-mode (divergence-free) tidal torque power spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_E</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> 
                                  <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_B&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_B</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
@@ -985,7 +1128,20 @@
 <div class="viewcode-block" id="FASTPT.IA_mix">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_mix">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes mixed intrinsic alignment contributions combining tidal </span>
+<span class="sd">        alignment and tidal torque.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_A, P_Btype2, P_DEE, P_DBB) where:</span>
+<span class="sd">        P_A : Mixed tidal alignment/tidal torque term</span>
+<span class="sd">        P_Btype2 : Second-type B-mode term</span>
+<span class="sd">        P_DEE : Contribution to the E-mode power spectrum</span>
+<span class="sd">        P_DBB : Contribution to the B-mode power spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_A&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_A</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> 
                                  <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_Btype2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_Btype2</span><span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="c1">#Calculated differently then other terms, can&#39;t use compute_term</span>
@@ -1011,7 +1167,19 @@
 <div class="viewcode-block" id="FASTPT.IA_ta">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_ta">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_ta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment tidal alignment contributions.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_deltaE1, P_deltaE2, P_0E0E, P_0B0B) where:</span>
+<span class="sd">        P_deltaE1 : First density-E mode correlation</span>
+<span class="sd">        P_deltaE2 : Second density-E mode correlation</span>
+<span class="sd">        P_0E0E : E-mode auto-correlation</span>
+<span class="sd">        P_0B0B : B-mode auto-correlation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_deltaE1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_deltaE1&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_deltaE1</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> 
                                        <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_deltaE2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_deltaE2</span><span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="c1">#Calculated differently then other terms, can&#39;t use compute_term</span>
@@ -1036,10 +1204,18 @@
 <div class="viewcode-block" id="FASTPT.IA_der">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_der">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_der</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes k^2 * P(k) derivative term for intrinsic alignment models.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array_like</span>
+<span class="sd">            P_der : Derivative term of the power spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">hash_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;IA_der&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;IA_der&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_der</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k_original</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">P</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P_der</span><span class="p">,</span> <span class="s2">&quot;IA_der&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_der</span></div>
@@ -1048,7 +1224,19 @@
 <div class="viewcode-block" id="FASTPT.IA_ct">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_ct">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_ct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment counter-term contributions.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_0tE, P_0EtE, P_E2tE, P_tEtE) where:</span>
+<span class="sd">        P_0tE : Density-tidal E-mode correlation</span>
+<span class="sd">        P_0EtE : E-mode-tidal E-mode correlation</span>
+<span class="sd">        P_E2tE : Second E-mode-tidal E-mode correlation</span>
+<span class="sd">        P_tEtE : Tidal E-mode auto-correlation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_0tE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_0tE</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_0EtE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_0EtE</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_E2tE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_E2tE</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -1122,7 +1310,17 @@
 <div class="viewcode-block" id="FASTPT.IA_ctbias">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_ctbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_ctbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment counter-term bias contributions.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_d2tE, P_s2tE) where:</span>
+<span class="sd">        P_d2tE : Second-order density-tidal E-mode correlation</span>
+<span class="sd">        P_s2tE : Second-order tidal-tidal E-mode correlation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="c1">#Old Commnet: P_13S2F2 = P_IA_13S2F2(self.k_original, P)</span>
         <span class="n">P_d2tE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span>
             <span class="s2">&quot;P_d2tE&quot;</span><span class="p">,</span>  
@@ -1147,7 +1345,18 @@
 <div class="viewcode-block" id="FASTPT.IA_gb2">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_gb2">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_gb2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment galaxy bias contributions (2nd order).</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_gb2sij, P_gb2dsij, P_gb2sij2) where:</span>
+<span class="sd">        P_gb2sij : Galaxy bias-tidal correlation</span>
+<span class="sd">        P_gb2dsij : Galaxy bias-density-tidal correlation</span>
+<span class="sd">        P_gb2sij2 : Galaxy bias-tidal squared correlation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_gb2sij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_gb2sij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                       <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_gb2dsij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_gb2dsij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
@@ -1161,7 +1370,18 @@
 <div class="viewcode-block" id="FASTPT.IA_d2">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_d2">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_d2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment 2nd-order density correlations.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_d2E, P_d20E, P_d2E2) where:</span>
+<span class="sd">        P_d2E : 2nd-order density-E-mode correlation</span>
+<span class="sd">        P_d20E : 2nd-order density-density-E-mode correlation</span>
+<span class="sd">        P_d2E2 : 2nd-order density-E-mode squared correlation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_d2E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d2E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                    <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_d20E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d20E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_he</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
@@ -1175,7 +1395,18 @@
 <div class="viewcode-block" id="FASTPT.IA_s2">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_s2">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_s2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes intrinsic alignment 2nd-order tidal correlations.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P_s2E, P_s20E, P_s2E2) where:</span>
+<span class="sd">        P_s2E : 2nd-order tidal-E-mode correlation</span>
+<span class="sd">        P_s20E : 2nd-order tidal-density-E-mode correlation</span>
+<span class="sd">        P_s2E2 : 2nd-order tidal-E-mode squared correlation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_s2E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s2E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                    <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_s20E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s20E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
@@ -1189,7 +1420,15 @@
 <div class="viewcode-block" id="FASTPT.OV">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.OV">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">OV</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the Ostriker-Vishniac effect power spectrum.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array_like</span>
+<span class="sd">            P_OV : Ostriker-Vishniac effect power spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">hash_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;OV&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;P_OV&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
@@ -1204,7 +1443,18 @@
 <div class="viewcode-block" id="FASTPT.kPol">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.kPol">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">kPol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes k-dependent polarization power spectra.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (P1, P2, P3) where:</span>
+<span class="sd">        P1 : First k-dependent polarization power spectrum</span>
+<span class="sd">        P2 : Second k-dependent polarization power spectrum</span>
+<span class="sd">        P3 : Third k-dependent polarization power spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_kP1&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_kP1</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">80</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">),</span>
                                 <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_kP2&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_kP2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">160</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">),</span>
@@ -1218,7 +1468,23 @@
 <div class="viewcode-block" id="FASTPT.RSD_components">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.RSD_components">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">RSD_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes redshift-space distortion component terms.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : float</span>
+<span class="sd">            Logarithmic growth rate</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5) where:</span>
+<span class="sd">        A1, A3, A5 : A-type RSD components with different powers of μ</span>
+<span class="sd">        B0, B2, B4, B6 : B-type RSD components with different powers of μ</span>
+<span class="sd">        P_Ap1, P_Ap3, P_Ap5 : Additional RSD A-prime components</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_RSDA</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
 
         <span class="n">A1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_coeff</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_coeff</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">A</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_coeff</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">A</span><span class="p">)</span>
@@ -1245,7 +1511,24 @@
 <div class="viewcode-block" id="FASTPT.RSD_ABsum_components">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.RSD_ABsum_components">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">RSD_ABsum_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes combined redshift-space distortion terms by powers of μ.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : float</span>
+<span class="sd">            Logarithmic growth rate</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (ABsum_mu2, ABsum_mu4, ABsum_mu6, ABsum_mu8) where:</span>
+<span class="sd">        ABsum_mu2 : Combined term with μ^2 dependence</span>
+<span class="sd">        ABsum_mu4 : Combined term with μ^4 dependence</span>
+<span class="sd">        ABsum_mu6 : Combined term with μ^6 dependence</span>
+<span class="sd">        ABsum_mu8 : Combined term with μ^8 dependence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">A1</span><span class="p">,</span> <span class="n">A3</span><span class="p">,</span> <span class="n">A5</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">B2</span><span class="p">,</span> <span class="n">B4</span><span class="p">,</span> <span class="n">B6</span><span class="p">,</span> <span class="n">P_Ap1</span><span class="p">,</span> <span class="n">P_Ap3</span><span class="p">,</span> <span class="n">P_Ap5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RSD_components</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">ABsum_mu2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_original</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">A1</span> <span class="o">+</span> <span class="n">P_Ap1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">f</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_original</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B0</span>
         <span class="n">ABsum_mu4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_original</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">A3</span> <span class="o">+</span> <span class="n">P_Ap3</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">f</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_original</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B2</span>
@@ -1259,7 +1542,22 @@
 <div class="viewcode-block" id="FASTPT.RSD_ABsum_mu">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.RSD_ABsum_mu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">RSD_ABsum_mu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">mu_n</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the total redshift-space distortion correction at a given μ.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        f : float</span>
+<span class="sd">            Logarithmic growth rate</span>
+<span class="sd">        mu_n : float</span>
+<span class="sd">            Cosine of the angle between the wavevector and the line-of-sight</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array_like</span>
+<span class="sd">            ABsum : The total RSD contribution at the specified μ angle</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">ABsum_mu2</span><span class="p">,</span> <span class="n">ABsum_mu4</span><span class="p">,</span> <span class="n">ABsum_mu6</span><span class="p">,</span> <span class="n">ABsum_mu8</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RSD_ABsum_components</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">ABsum</span> <span class="o">=</span> <span class="n">ABsum_mu2</span> <span class="o">*</span> <span class="n">mu_n</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">ABsum_mu4</span> <span class="o">*</span> <span class="n">mu_n</span> <span class="o">**</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">ABsum_mu6</span> <span class="o">*</span> <span class="n">mu_n</span> <span class="o">**</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">ABsum_mu8</span> <span class="o">*</span> <span class="n">mu_n</span> <span class="o">**</span> <span class="mi">8</span>
         <span class="k">return</span> <span class="n">ABsum</span></div>
@@ -1269,7 +1567,24 @@
 <div class="viewcode-block" id="FASTPT.IRres">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IRres">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IRres</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">L</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.67</span><span class="p">,</span> <span class="n">rsdrag</span><span class="o">=</span><span class="mi">135</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the IR-resummed power spectrum, which includes BAO damping.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        L : float, optional</span>
+<span class="sd">            IR resummation scale, default is 0.2</span>
+<span class="sd">        h : float, optional</span>
+<span class="sd">            Dimensionless Hubble parameter, default is 0.67</span>
+<span class="sd">        rsdrag : float, optional</span>
+<span class="sd">            Sound horizon at drag epoch in Mpc, default is 135</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array_like</span>
+<span class="sd">            P_IRres : IR-resummed power spectrum with damped BAO features</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="c1"># based on script by M. Ivanov. See arxiv:1605.02149, eq 7.4</span>
 
         <span class="c1"># put this function in the typical fast-pt format, with minimal additional function calls.</span>

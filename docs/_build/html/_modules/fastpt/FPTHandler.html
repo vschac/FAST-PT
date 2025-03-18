@@ -109,7 +109,7 @@
 <span class="sd">    &gt;&gt;&gt; from fastpt import FASTPT, FPTHandler</span>
 <span class="sd">    &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">    &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
-<span class="sd">    &gt;&gt;&gt; P = np.abs(np.sin(k_values))  # Example power spectrum</span>
+<span class="sd">    &gt;&gt;&gt; P = np.abs(np.sin(k))  # Example power spectrum</span>
 <span class="sd">    &gt;&gt;&gt; fpt = FASTPT(k)</span>
 <span class="sd">    &gt;&gt;&gt; handler = FPTHandler(fpt, P=P, C_window=0.75)</span>
 <span class="sd">    &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;)</span>
@@ -118,6 +118,8 @@
 <div class="viewcode-block" id="FPTHandler.__init__">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fastpt_instance</span><span class="p">:</span> <span class="n">FASTPT</span><span class="p">,</span> <span class="n">do_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_all</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_cache_entries</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fastpt_instance</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fastpt_instance</span><span class="p">,</span> <span class="n">FASTPT</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You must provide a valid FASTPT instance.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span> <span class="o">=</span> <span class="n">fastpt_instance</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">do_cache</span> <span class="o">=</span> <span class="n">do_cache</span>
@@ -844,6 +846,12 @@
 <span class="sd">        </span>
 <span class="sd">        Returns:</span>
 <span class="sd">            tuple: A tuple of numpy arrays matching the original FASTPT function output format</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;, save_type=&#39;txt&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; loaded_data = handler.load(&#39;one_loop_dd_output.txt&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -959,6 +967,355 @@
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading output from </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="FPTHandler.plot">
+<a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">terms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+             <span class="n">log_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">legend_loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fig_size</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> 
+             <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale_factors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">return_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a plot of power spectrum terms.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : dict or array-like, optional</span>
+<span class="sd">            Data to plot. Can be:</span>
+<span class="sd">            - Dictionary mapping labels to arrays (direct plotting)</span>
+<span class="sd">            - Result from FAST-PT function call (will be plotted directly)</span>
+<span class="sd">            - None (requires &#39;terms&#39; parameter to get data)</span>
+<span class="sd">        terms : str or list, optional</span>
+<span class="sd">            Term name(s) to plot if data is not provided</span>
+<span class="sd">        k : array-like, optional</span>
+<span class="sd">            k values for x-axis. If None, uses handler&#39;s FASTPT k values</span>
+<span class="sd">        ax : matplotlib.axes.Axes, optional</span>
+<span class="sd">            Axes to plot on. If None, creates a new figure</span>
+<span class="sd">        title : str, optional</span>
+<span class="sd">            Plot title</span>
+<span class="sd">        log_scale : bool or tuple, optional</span>
+<span class="sd">            Whether to use log scale. If True, both axes are log.</span>
+<span class="sd">            Can provide (x_log, y_log) tuple to specify each axis</span>
+<span class="sd">        legend_loc : str, optional</span>
+<span class="sd">            Location of legend. Default is &#39;best&#39;</span>
+<span class="sd">        grid : bool, optional</span>
+<span class="sd">            Whether to display grid lines</span>
+<span class="sd">        style : dict or list of dict, optional</span>
+<span class="sd">            Plotting style(s) to apply to lines. Each dict can contain matplotlib</span>
+<span class="sd">            line properties (color, linestyle, marker, alpha, etc.)</span>
+<span class="sd">        colors : str or list, optional</span>
+<span class="sd">            Color(s) for plots. If a list, cycles through colors</span>
+<span class="sd">        linewidth : float, optional</span>
+<span class="sd">            Line width for plots</span>
+<span class="sd">        label_map : dict, optional</span>
+<span class="sd">            Mapping from term names to display labels</span>
+<span class="sd">        fig_size : tuple, optional</span>
+<span class="sd">            Figure size (width, height) in inches</span>
+<span class="sd">        save_path : str, optional</span>
+<span class="sd">            Path to save figure. If None, figure is not saved</span>
+<span class="sd">        dpi : int, optional</span>
+<span class="sd">            DPI for saved figure</span>
+<span class="sd">        xlim : tuple, optional</span>
+<span class="sd">            (min, max) for x-axis</span>
+<span class="sd">        ylim : tuple, optional</span>
+<span class="sd">            (min, max) for y-axis</span>
+<span class="sd">        scale_factors : dict or float, optional</span>
+<span class="sd">            Scaling factor(s) for plotted quantities</span>
+<span class="sd">        return_fig : bool, optional</span>
+<span class="sd">            Whether to return the figure object</span>
+<span class="sd">        show : bool, optional</span>
+<span class="sd">            Whether to show the plot immediately</span>
+<span class="sd">        **override_kwargs : dict</span>
+<span class="sd">            Additional parameters for FAST-PT function calls</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fig : matplotlib.figure.Figure, optional</span>
+<span class="sd">            Figure object if return_fig is True</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; # Basic plot from terms</span>
+<span class="sd">        &gt;&gt;&gt; handler.plot(terms=[&#39;P_1loop&#39;, &#39;P_E&#39;, &#39;P_B&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; # Plot with custom styling</span>
+<span class="sd">        &gt;&gt;&gt; handler.plot(terms=&#39;P_1loop&#39;, colors=&#39;red&#39;, title=&#39;1-loop SPT&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; # Plot with style dictionaries for fine control</span>
+<span class="sd">        &gt;&gt;&gt; handler.plot(terms=[&#39;P_1loop&#39;, &#39;P_E&#39;], style=[</span>
+<span class="sd">        ...     {&#39;color&#39;: &#39;red&#39;, &#39;linestyle&#39;: &#39;--&#39;, &#39;marker&#39;: &#39;o&#39;, &#39;alpha&#39;: 0.8},</span>
+<span class="sd">        ...     {&#39;color&#39;: &#39;blue&#39;, &#39;linestyle&#39;: &#39;-&#39;, &#39;linewidth&#39;: 2}</span>
+<span class="sd">        ... ])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cycle</span>
+        
+        <span class="c1"># Set up figure and axes if not provided</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">fig_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span>
+            
+        <span class="c1"># Set plot title if provided</span>
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+            
+        <span class="c1"># Set up x-axis values (k)</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span>
+            
+        <span class="c1"># Default color cycle</span>
+        <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;#1f77b4&#39;</span><span class="p">,</span> <span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="s1">&#39;#2ca02c&#39;</span><span class="p">,</span> <span class="s1">&#39;#d62728&#39;</span><span class="p">,</span> <span class="s1">&#39;#9467bd&#39;</span><span class="p">,</span> 
+                      <span class="s1">&#39;#8c564b&#39;</span><span class="p">,</span> <span class="s1">&#39;#e377c2&#39;</span><span class="p">,</span> <span class="s1">&#39;#7f7f7f&#39;</span><span class="p">,</span> <span class="s1">&#39;#bcbd22&#39;</span><span class="p">,</span> <span class="s1">&#39;#17becf&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">colors</span><span class="p">]</span>
+        <span class="n">color_cycle</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+        
+        <span class="c1"># Set up label mapping</span>
+        <span class="k">if</span> <span class="n">label_map</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">label_map</span> <span class="o">=</span> <span class="p">{}</span>
+            
+        <span class="c1"># Set up scale factors</span>
+        <span class="k">if</span> <span class="n">scale_factors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">scale_factors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale_factors</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="n">default_scale</span> <span class="o">=</span> <span class="n">scale_factors</span>
+            <span class="n">scale_factors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">default_scale</span> <span class="o">=</span> <span class="mf">1.0</span>
+        
+        <span class="c1"># Prepare style dictionaries</span>
+        <span class="k">if</span> <span class="n">style</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">style</span> <span class="o">=</span> <span class="p">[{}]</span>  <span class="c1"># Empty dict = use defaults</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">style</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">style</span> <span class="o">=</span> <span class="p">[</span><span class="n">style</span><span class="p">]</span>  <span class="c1"># Single style dict</span>
+        <span class="n">style_cycle</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">style</span><span class="p">)</span>
+        
+        <span class="c1"># Get data to plot</span>
+        <span class="n">to_plot</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Case 1: User provided data directly</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">to_plot</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+                        <span class="n">label</span> <span class="o">=</span> <span class="n">label_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Component </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">to_plot</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="n">label_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Data&quot;</span><span class="p">)</span>
+                    <span class="n">to_plot</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="n">data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported data format. Provide a dict, list, tuple, or numpy array.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">terms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Case 2: User provided term names to plot</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">terms</span> <span class="o">=</span> <span class="p">[</span><span class="n">terms</span><span class="p">]</span>
+                
+            <span class="c1"># Get data for each term</span>
+            <span class="n">term_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="o">*</span><span class="n">terms</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">term_name</span> <span class="o">=</span> <span class="n">terms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">display_label</span> <span class="o">=</span> <span class="n">label_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">term_name</span><span class="p">,</span> <span class="n">term_name</span><span class="p">)</span>
+                <span class="n">to_plot</span><span class="p">[</span><span class="n">display_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">term_data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">term_name</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
+                    <span class="n">display_label</span> <span class="o">=</span> <span class="n">label_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">term_name</span><span class="p">,</span> <span class="n">term_name</span><span class="p">)</span>
+                    <span class="n">to_plot</span><span class="p">[</span><span class="n">display_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">term_data</span><span class="p">[</span><span class="n">term_name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either &#39;data&#39; or &#39;terms&#39; must be provided.&quot;</span><span class="p">)</span>
+            
+        <span class="c1"># Plot each data series</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">data_array</span> <span class="ow">in</span> <span class="n">to_plot</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Get current style and color</span>
+            <span class="n">curr_style</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">style_cycle</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># Copy to avoid modifying the original</span>
+            
+            <span class="c1"># Add default color if not in style</span>
+            <span class="k">if</span> <span class="s1">&#39;color&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">curr_style</span><span class="p">:</span>
+                <span class="n">curr_style</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">color_cycle</span><span class="p">)</span>
+                
+            <span class="c1"># Set default linewidth if not in style</span>
+            <span class="k">if</span> <span class="s1">&#39;linewidth&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">curr_style</span><span class="p">:</span>
+                <span class="n">curr_style</span><span class="p">[</span><span class="s1">&#39;linewidth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linewidth</span>
+                
+            <span class="c1"># Apply scale factor if provided for this label</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">scale_factors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">default_scale</span><span class="p">)</span>
+            
+            <span class="c1"># Check if data contains negative values</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="c1"># Plot positive values</span>
+                <span class="n">mask_pos</span> <span class="o">=</span> <span class="n">data_array</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_pos</span><span class="p">):</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="n">mask_pos</span><span class="p">],</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">data_array</span><span class="p">[</span><span class="n">mask_pos</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">curr_style</span><span class="p">)</span>
+                
+                <span class="c1"># Plot negative values with dashed lines for visibility</span>
+                <span class="n">mask_neg</span> <span class="o">=</span> <span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_neg</span><span class="p">):</span>
+                    <span class="n">neg_style</span> <span class="o">=</span> <span class="n">curr_style</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">neg_style</span><span class="p">[</span><span class="s1">&#39;linestyle&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neg_style</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;--&#39;</span><span class="p">)</span>  <span class="c1"># Default to dashed</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">],</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data_array</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">]),</span> <span class="o">**</span><span class="n">neg_style</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Regular plotting for non-negative data</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">data_array</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">curr_style</span><span class="p">)</span>
+                
+        <span class="c1"># Set scales</span>
+        <span class="k">if</span> <span class="n">log_scale</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">log_scale</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">x_log</span><span class="p">,</span> <span class="n">y_log</span> <span class="o">=</span> <span class="n">log_scale</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_log</span> <span class="o">=</span> <span class="n">y_log</span> <span class="o">=</span> <span class="kc">True</span>
+                
+            <span class="k">if</span> <span class="n">x_log</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">y_log</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Set axis labels</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$k$ [$h$ Mpc$^{-1}$]&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$P(k)$ [$h^{-3}$ Mpc$^3$]&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        
+        <span class="c1"># Set limits if provided</span>
+        <span class="k">if</span> <span class="n">xlim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ylim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylim</span><span class="p">)</span>
+            
+        <span class="c1"># Add grid if requested</span>
+        <span class="k">if</span> <span class="n">grid</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+            
+        <span class="c1"># Add legend if there are labeled lines</span>
+        <span class="k">if</span> <span class="n">to_plot</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">legend_loc</span><span class="p">)</span>
+            
+        <span class="c1"># Apply tight layout</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            
+        <span class="c1"># Save figure if path provided</span>
+        <span class="k">if</span> <span class="n">save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="n">dpi</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Figure saved to: </span><span class="si">{</span><span class="n">save_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="c1"># Show the plot if requested</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+            
+        <span class="c1"># Return figure if requested</span>
+        <span class="k">if</span> <span class="n">return_fig</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fig</span></div>
+
+            
+<div class="viewcode-block" id="FPTHandler.plot_comparison">
+<a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.plot_comparison">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results_dict</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ratio_baseline</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">fig_size</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="o">**</span><span class="n">plot_kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create comparison plots for multiple results, optionally with ratio panel.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        results_dict : dict</span>
+<span class="sd">            Dictionary mapping labels to data arrays</span>
+<span class="sd">        k : array-like, optional</span>
+<span class="sd">            k values for x-axis. If None, uses handler&#39;s FASTPT k values</span>
+<span class="sd">        ratio : bool, optional</span>
+<span class="sd">            Whether to include a ratio panel</span>
+<span class="sd">        ratio_baseline : str, optional</span>
+<span class="sd">            Key in results_dict to use as baseline for ratio.</span>
+<span class="sd">            If None, uses the first key in results_dict</span>
+<span class="sd">        fig_size : tuple, optional</span>
+<span class="sd">            Figure size (width, height) in inches</span>
+<span class="sd">        **plot_kwargs : dict</span>
+<span class="sd">            Additional keyword arguments passed to the plot method</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fig : matplotlib.figure.Figure</span>
+<span class="sd">            The created figure</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop_result = handler.run(&#39;one_loop_dd&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ia_result = handler.run(&#39;IA_tt&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; handler.plot_comparison({&#39;1-loop&#39;: P_1loop_result, &#39;IA&#39;: ia_result})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+    
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">results_dict</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;results_dict cannot be empty&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">ratio_baseline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Use first key as baseline if not specified</span>
+            <span class="n">ratio_baseline</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">ratio</span> <span class="ow">and</span> <span class="n">ratio_baseline</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">results_dict</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ratio baseline &#39;</span><span class="si">{</span><span class="n">ratio_baseline</span><span class="si">}</span><span class="s2">&#39; not found in results&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Create figure and axes</span>
+        <span class="k">if</span> <span class="n">ratio</span><span class="p">:</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">fig_size</span><span class="p">)</span>
+            <span class="n">gs</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_gridspec</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">hspace</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sharex</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">fig_size</span><span class="p">)</span>
+            <span class="n">ax2</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Plot main data</span>
+        <span class="c1"># Remove parameters we&#39;re handling explicitly to avoid conflicts</span>
+        <span class="n">plot_kwargs_filtered</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">plot_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;show&#39;</span><span class="p">,</span> <span class="s1">&#39;save_path&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;ax&#39;</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">results_dict</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">plot_kwargs_filtered</span><span class="p">)</span>
+    
+        <span class="c1"># Plot ratio panel if requested</span>
+        <span class="k">if</span> <span class="n">ratio</span><span class="p">:</span>
+            <span class="n">baseline_data</span> <span class="o">=</span> <span class="n">results_dict</span><span class="p">[</span><span class="n">ratio_baseline</span><span class="p">]</span>
+            <span class="n">ratio_data</span> <span class="o">=</span> <span class="p">{}</span>
+        
+            <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">results_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">baseline_data</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                
+                <span class="c1"># Calculate ratio, handling potential zeros or NaNs</span>
+                <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+                    <span class="n">ratio_array</span> <span class="o">=</span> <span class="n">data</span> <span class="o">/</span> <span class="n">baseline_data</span>
+                    <span class="c1"># Replace inf/NaN with zeros for plotting</span>
+                    <span class="n">ratio_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">ratio_array</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                
+                <span class="n">ratio_data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ratio_baseline</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ratio_array</span>
+            
+            <span class="c1"># Plot the ratios</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">ratio_data</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> 
+                    <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+            <span class="c1"># Add horizontal line at y=1.0</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+        
+            <span class="c1"># Set y-label for ratio panel</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Ratio&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        
+            <span class="c1"># Remove x-label from top plot to avoid overlap</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        
+            <span class="c1"># Only show x tick labels on bottom panel</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="c1"># Save figure if path provided</span>
+        <span class="k">if</span> <span class="s1">&#39;save_path&#39;</span> <span class="ow">in</span> <span class="n">plot_kwargs</span><span class="p">:</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">plot_kwargs</span><span class="p">[</span><span class="s1">&#39;save_path&#39;</span><span class="p">],</span> <span class="n">dpi</span><span class="o">=</span><span class="n">plot_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dpi&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Figure saved to: </span><span class="si">{</span><span class="n">plot_kwargs</span><span class="p">[</span><span class="s1">&#39;save_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Show plot</span>
+        <span class="k">if</span> <span class="n">plot_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;show&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">fig</span></div>
 </div>
 
 </pre></div>

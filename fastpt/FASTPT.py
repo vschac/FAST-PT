@@ -72,19 +72,82 @@ def cached_property(method):
     return property(getter)
 
 class FASTPT:
+    """
+    FASTPT is a numerical algorithm to calculate
+	1-loop contributions to the matter power spectrum
+	and other integrals of a similar type.
+	The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978
+	Please cite these papers if you are using FASTPT in your research.
+
+    Parameters
+        ----------
+        k : array_like
+            The input k-grid (wavenumbers) in h/Mpc. Must be logarithmically spaced
+            with equal spacing in log(k) and contain an even number of elements.
+        
+        nu : float, optional
+            Deprecated. Previously used for scaling relations, no longer required.
+        
+        to_do : list of str, optional
+            List of calculations to prepare matrices for. Terms will be calculated as needed
+            even without specifying them here, but pre-computing matrices can save time on the 
+            initial run of any function. 'All' or 'everything' will initialize all terms.
+        
+        param_mat : array_like, optional
+            Custom parameter matrix for extensions (advanced usage).
+        
+        low_extrap : float, optional
+            If provided, extrapolate the power spectrum to lower k values 
+            down to 10^(low_extrap). Helps with edge effects. Typical value: -5.
+        
+        high_extrap : float, optional
+            If provided, extrapolate the power spectrum to higher k values 
+            up to 10^(high_extrap). Helps with edge effects. Typical value: 3.
+            Must be greater than low_extrap if both are provided.
+        
+        n_pad : int, optional
+            Number of zeros to pad the array with on both ends. 
+            Helps reduce edge effects in FFT calculations. If None, defaults to
+            half the length of the input k array.
+            
+        verbose : bool, optional
+            If True, prints additional information during calculations.
+        
+        simple : bool, optional
+            If True, uses the older, simplified FASTPT interface. Will be deprecated.
+        
+        Notes
+        -----
+        The input k array must be:
+        1. Strictly increasing
+        2. Logarithmically spaced with consistent spacing
+        3. Contain an even number of elements
+        
+        Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is 
+        recommended to reduce numerical artifacts from the FFT-based algorithm.
+        
+        Examples
+        --------
+        Basic initialization for 1-loop calculations:
+        
+        >>> import numpy as np
+        >>> from fastpt import FASTPT
+        >>> k = np.logspace(-3, 1, 200)
+        >>> P_linear = k**(-1.5) * 1000  # Example power spectrum
+        >>> fpt = FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=100)
+        >>> P_1loop = fpt.one_loop_dd(P_linear)[0]
+        
+        With multiple components:
+        
+        >>> fpt = FASTPT(k, to_do=['one_loop_dd', 'IA_tt', 'RSD'], 
+        ...              low_extrap=-5, high_extrap=3, n_pad=100)
+        >>> P_1loop = fpt.one_loop_dd(P_linear)[0]
+        >>> P_IA_E, P_IA_B = fpt.IA_tt(P_linear)
+        >>> A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = fpt.RSD_components(P_linear, f=0.55)
+    """
 
     def __init__(self, k, nu=None, to_do=None, param_mat=None, low_extrap=None, high_extrap=None, n_pad=None,
-                 verbose=False, simple=False, max_cache_size_mb=500):
-
-        ''' inputs:
-				* k grid
-				* the to_do list: e.g. one_loop density density , bias terms, ...
-				* low_extrap is the call to extrapolate the power spectrum to lower k-values,
-					this helps with edge effects
-				* n_pad is the number of zeros to add to both ends of the array. This helps with
-					edge effects.
-				* verbose is to turn on verbose settings.
-		'''
+                verbose=False, simple=False):
         
         if (k is None or len(k) == 0):
             raise ValueError('You must provide an input k array.')
@@ -107,7 +170,7 @@ class FASTPT:
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
         
 
-        self.cache = CacheManager(max_size_mb=max_cache_size_mb)
+        self.cache = CacheManager()
         self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
         self.extrap = False
@@ -512,7 +575,7 @@ class FASTPT:
         return result
 
 
-    def validate_params(self, P, **kwargs):
+    def _validate_params(self, P, **kwargs):
         if (P is None):
             raise ValueError('You must provide an input power spectrum array.')
         if (len(P) == 0):
@@ -573,7 +636,29 @@ class FASTPT:
         return hash(arrays)
 
     def compute_term(self, term, X, operation=None, P=None, P_window=None, C_window=None):
-        """Computes the individual terms of Fast-PT functions with caching"""
+        """
+        Computes a Fast-PT term with caching support.
+    
+        Parameters
+        ----------
+        term : str
+            Name of the term to compute, used for cache identification
+        X : tuple or list of tuples
+            Fast-PT coefficient matrices for the calculation
+        operation : callable, optional
+            Function to apply to the result(s) after computation
+        P : array_like
+            Input power spectrum
+        P_window : tuple, optional
+            Window parameters for tapering the power spectrum at the endpoints
+        C_window : float, optional
+            Window parameter for tapering the Fourier coefficients
+        
+        Returns
+        -------
+        array_like
+            The computed Fast-PT term
+        """
         if P is None: raise ValueError('Compute term requires an input power spectrum array.')
         hash_key = self._create_hash_key(term, X, P, P_window, C_window)
         result = self.cache.get(term, hash_key)
@@ -628,7 +713,17 @@ class FASTPT:
     ### Top-level functions to output final quantities ###
     
     def one_loop_dd(self, P, P_window=None, C_window=None): #Acts as its own get function (like IA_der)
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes the standard 1-loop density-density corrections to the power spectrum.
+    
+        Returns
+        -------
+        tuple
+            (P_1loop, Ps) where:
+        P_1loop : 1-loop correction (P_22 + P_13)
+        Ps : Smoothed input power spectrum
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Ps = self._apply_extrapolation(Ps)
         hash_key = self._create_hash_key("one_loop_dd", self.X_spt, P, P_window, C_window)
@@ -665,6 +760,22 @@ class FASTPT:
 
     #TODO add comments back explaining math behind one loop
     def one_loop_dd_bias(self, P, P_window=None, C_window=None):
+        """
+        Computes 1-loop corrections with standard bias terms.
+    
+        Returns
+        -------
+        tuple
+            (P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4) where:
+        P_1loop : 1-loop correction (P_22 + P_13)
+        Ps : Smoothed input power spectrum
+        Pd1d2 : First order density-second order density correlation
+        Pd2d2 : Second order density auto-correlation
+        Pd1s2 : First order density-second order tidal correlation
+        Pd2s2 : Second order density-second order tidal correlation
+        Ps2s2 : Second order tidal auto-correlation
+        sig4 : σ^4 integral for stochastic bias
+        """
         P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
         Pd1d2 = self._get_Pd1d2(P, P_window=P_window, C_window=C_window)
         Pd2d2 = self._get_Pd2d2(P, P_window=P_window, C_window=C_window)
@@ -738,7 +849,17 @@ class FASTPT:
 
     
     def one_loop_dd_bias_b3nl(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes 1-loop corrections with bias terms including third-order non-local bias.
+    
+        Returns
+        -------
+        tuple
+            (P_1loop, Ps, Pd1d2, Pd2d2, Pd1s2, Pd2s2, Ps2s2, sig4, sig3nl) where:
+        The first 8 terms are identical to those returned by one_loop_dd_bias
+        sig3nl : Third order non-local bias term
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
         Pd1d2 = self._get_Pd1d2(P, P_window=P_window, C_window=C_window)
         Pd2d2 = self._get_Pd2d2(P, P_window=P_window, C_window=C_window)
@@ -761,7 +882,22 @@ class FASTPT:
 
     
     def one_loop_dd_bias_lpt_NL(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes bias corrections in Lagrangian Perturbation Theory (LPT).
+    
+        Returns
+        -------
+        tuple
+            (Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4) where:
+        Ps : Smoothed input power spectrum
+        Pb1L : First-order Lagrangian bias correlation term
+        Pb1L_2 : First-order Lagrangian bias squared correlation
+        Pb1L_b2L : First-order and second-order Lagrangian bias cross-correlation
+        Pb2L : Second-order Lagrangian bias correlation
+        Pb2L_2 : Second-order Lagrangian bias squared correlation 
+        sig4 : σ^4 integral for stochastic bias
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         _, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
         Pb1L = self._get_Pb1L(P, P_window=P_window, C_window=C_window)
         Pb1L_2 = self._get_Pb1L_2(P, P_window=P_window, C_window=C_window)
@@ -840,7 +976,7 @@ class FASTPT:
         return Pb2L_2
     
     def cleft_Q_R(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        self._validate_params(P, P_window=P_window, C_window=C_window)
 
 
         nu_arr = -2
@@ -869,7 +1005,17 @@ class FASTPT:
 
     
     def IA_tt(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment tidal torque contributions.
+    
+        Returns
+        -------
+        tuple
+            (P_E, P_B) where:
+        P_E : E-mode (curl-free) tidal torque power spectrum
+        P_B : B-mode (divergence-free) tidal torque power spectrum
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_E = self.compute_term("P_E", self.X_IA_E, operation=lambda x: 2 * x, 
                                  P=P, P_window=P_window, C_window=C_window)
         P_B = self.compute_term("P_B", self.X_IA_B, operation=lambda x: 2 * x,
@@ -879,7 +1025,20 @@ class FASTPT:
     ## eq 21 EE; eq 21 BB
     
     def IA_mix(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes mixed intrinsic alignment contributions combining tidal 
+        alignment and tidal torque.
+    
+        Returns
+        -------
+        tuple
+            (P_A, P_Btype2, P_DEE, P_DBB) where:
+        P_A : Mixed tidal alignment/tidal torque term
+        P_Btype2 : Second-type B-mode term
+        P_DEE : Contribution to the E-mode power spectrum
+        P_DBB : Contribution to the B-mode power spectrum
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_A = self.compute_term("P_A", self.X_IA_A, operation=lambda x: 2 * x, 
                                  P=P, P_window=P_window, C_window=C_window)
         P_Btype2 = self._get_P_Btype2(P) #Calculated differently then other terms, can't use compute_term
@@ -902,7 +1061,19 @@ class FASTPT:
 
     
     def IA_ta(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment tidal alignment contributions.
+    
+        Returns
+        -------
+        tuple
+            (P_deltaE1, P_deltaE2, P_0E0E, P_0B0B) where:
+        P_deltaE1 : First density-E mode correlation
+        P_deltaE2 : Second density-E mode correlation
+        P_0E0E : E-mode auto-correlation
+        P_0B0B : B-mode auto-correlation
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_deltaE1 = self.compute_term("P_deltaE1", self.X_IA_deltaE1, operation=lambda x: 2 * x, 
                                        P=P, P_window=P_window, C_window=C_window)
         P_deltaE2 = self._get_P_deltaE2(P) #Calculated differently then other terms, can't use compute_term
@@ -924,16 +1095,36 @@ class FASTPT:
 
     
     def IA_der(self, P, P_window=None, C_window=None):
+        """
+        Computes k^2 * P(k) derivative term for intrinsic alignment models.
+    
+        Returns
+        -------
+        array_like
+            P_der : Derivative term of the power spectrum
+        """
         hash_key = self._create_hash_key("IA_der", None, P, P_window, C_window)
         result = self.cache.get("IA_der", hash_key)
         if result is not None: return result
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_der = (self.k_original**2)*P
         self.cache.set(P_der, "IA_der", hash_key)
         return P_der
     
     def IA_ct(self,P,P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment counter-term contributions.
+    
+        Returns
+        -------
+        tuple
+            (P_0tE, P_0EtE, P_E2tE, P_tEtE) where:
+        P_0tE : Density-tidal E-mode correlation
+        P_0EtE : E-mode-tidal E-mode correlation
+        P_E2tE : Second E-mode-tidal E-mode correlation
+        P_tEtE : Tidal E-mode auto-correlation
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_0tE = self._get_P_0tE(P, P_window=P_window, C_window=C_window)
         P_0EtE = self._get_P_0EtE(P, P_window=P_window, C_window=C_window)
         P_E2tE = self._get_P_E2tE(P, P_window=P_window, C_window=C_window)
@@ -1004,7 +1195,17 @@ class FASTPT:
         return P_tEtE
     
     def IA_ctbias(self,P,P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment counter-term bias contributions.
+    
+        Returns
+        -------
+        tuple
+            (P_d2tE, P_s2tE) where:
+        P_d2tE : Second-order density-tidal E-mode correlation
+        P_s2tE : Second-order tidal-tidal E-mode correlation
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         #Old Commnet: P_13S2F2 = P_IA_13S2F2(self.k_original, P)
         P_d2tE = self.compute_term(
             "P_d2tE",  
@@ -1026,7 +1227,18 @@ class FASTPT:
 
     
     def IA_gb2(self,P,P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment galaxy bias contributions (2nd order).
+    
+        Returns
+        -------
+        tuple
+            (P_gb2sij, P_gb2dsij, P_gb2sij2) where:
+        P_gb2sij : Galaxy bias-tidal correlation
+        P_gb2dsij : Galaxy bias-density-tidal correlation
+        P_gb2sij2 : Galaxy bias-tidal squared correlation
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_gb2sij = self.compute_term("P_gb2sij", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
                                       P=P, P_window=P_window, C_window=C_window)
         P_gb2dsij = self.compute_term("P_gb2dsij", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
@@ -1037,7 +1249,18 @@ class FASTPT:
     
 
     def IA_d2(self,P,P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment 2nd-order density correlations.
+    
+        Returns
+        -------
+        tuple
+            (P_d2E, P_d20E, P_d2E2) where:
+        P_d2E : 2nd-order density-E-mode correlation
+        P_d20E : 2nd-order density-density-E-mode correlation
+        P_d2E2 : 2nd-order density-E-mode squared correlation
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_d2E = self.compute_term("P_d2E", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
         P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_he, operation=lambda x: 2 * x,
@@ -1048,7 +1271,18 @@ class FASTPT:
 
     
     def IA_s2(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes intrinsic alignment 2nd-order tidal correlations.
+    
+        Returns
+        -------
+        tuple
+            (P_s2E, P_s20E, P_s2E2) where:
+        P_s2E : 2nd-order tidal-E-mode correlation
+        P_s20E : 2nd-order tidal-density-E-mode correlation
+        P_s2E2 : 2nd-order tidal-E-mode squared correlation
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
         P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
@@ -1059,7 +1293,15 @@ class FASTPT:
 
     
     def OV(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes the Ostriker-Vishniac effect power spectrum.
+    
+        Returns
+        -------
+        array_like
+            P_OV : Ostriker-Vishniac effect power spectrum
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         hash_key = self._create_hash_key("OV", None, P, P_window, C_window)
         result = self.cache.get("P_OV", hash_key)
         if result is not None: return result
@@ -1071,7 +1313,18 @@ class FASTPT:
 
     
     def kPol(self, P, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes k-dependent polarization power spectra.
+    
+        Returns
+        -------
+        tuple
+            (P1, P2, P3) where:
+        P1 : First k-dependent polarization power spectrum
+        P2 : Second k-dependent polarization power spectrum
+        P3 : Third k-dependent polarization power spectrum
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         P1 = self.compute_term("P_kP1", self.X_kP1, operation=lambda x: x / (80 * pi ** 2),
                                 P=P, P_window=P_window, C_window=C_window)
         P2 = self.compute_term("P_kP2", self.X_kP2, operation=lambda x: x / (160 * pi ** 2),
@@ -1082,7 +1335,23 @@ class FASTPT:
 
 
     def RSD_components(self, P, f, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes redshift-space distortion component terms.
+    
+        Parameters
+        ----------
+        f : float
+            Logarithmic growth rate
+    
+        Returns
+        -------
+        tuple
+            (A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5) where:
+        A1, A3, A5 : A-type RSD components with different powers of μ
+        B0, B2, B4, B6 : B-type RSD components with different powers of μ
+        P_Ap1, P_Ap3, P_Ap5 : Additional RSD A-prime components
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         _, A = self.J_k_tensor(P, self.X_RSDA, P_window=P_window, C_window=C_window)
 
         A1 = np.dot(self.A_coeff[:, 0], A) + f * np.dot(self.A_coeff[:, 1], A) + f ** 2 * np.dot(self.A_coeff[:, 2], A)
@@ -1106,7 +1375,24 @@ class FASTPT:
 
     
     def RSD_ABsum_components(self, P, f, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes combined redshift-space distortion terms by powers of μ.
+    
+        Parameters
+        ----------
+        f : float
+            Logarithmic growth rate
+    
+        Returns
+        -------
+        tuple
+            (ABsum_mu2, ABsum_mu4, ABsum_mu6, ABsum_mu8) where:
+        ABsum_mu2 : Combined term with μ^2 dependence
+        ABsum_mu4 : Combined term with μ^4 dependence
+        ABsum_mu6 : Combined term with μ^6 dependence
+        ABsum_mu8 : Combined term with μ^8 dependence
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = self.RSD_components(P, f, P_window, C_window)
         ABsum_mu2 = self.k_original * f * (A1 + P_Ap1) + (f * self.k_original) ** 2 * B0
         ABsum_mu4 = self.k_original * f * (A3 + P_Ap3) + (f * self.k_original) ** 2 * B2
@@ -1117,14 +1403,46 @@ class FASTPT:
 
     
     def RSD_ABsum_mu(self, P, f, mu_n, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes the total redshift-space distortion correction at a given μ.
+    
+        Parameters
+        ----------
+        f : float
+            Logarithmic growth rate
+        mu_n : float
+            Cosine of the angle between the wavevector and the line-of-sight
+    
+        Returns
+        -------
+        array_like
+            ABsum : The total RSD contribution at the specified μ angle
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         ABsum_mu2, ABsum_mu4, ABsum_mu6, ABsum_mu8 = self.RSD_ABsum_components(P, f, P_window, C_window)
         ABsum = ABsum_mu2 * mu_n ** 2 + ABsum_mu4 * mu_n ** 4 + ABsum_mu6 * mu_n ** 6 + ABsum_mu8 * mu_n ** 8
         return ABsum
 
     
     def IRres(self, P, L=0.2, h=0.67, rsdrag=135, P_window=None, C_window=None):
-        self.validate_params(P, P_window=P_window, C_window=C_window)
+        """
+        Computes the IR-resummed power spectrum, which includes BAO damping.
+    
+        Parameters
+        ----------
+        L : float, optional
+            IR resummation scale, default is 0.2
+        h : float, optional
+            Dimensionless Hubble parameter, default is 0.67
+        rsdrag : float, optional
+            Sound horizon at drag epoch in Mpc, default is 135
+    
+        Returns
+        -------
+        array_like
+            P_IRres : IR-resummed power spectrum with damped BAO features
+        """
+        self._validate_params(P, P_window=P_window, C_window=C_window)
         # based on script by M. Ivanov. See arxiv:1605.02149, eq 7.4
 
         # put this function in the typical fast-pt format, with minimal additional function calls.

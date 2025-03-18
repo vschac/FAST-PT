@@ -32,7 +32,7 @@ class FPTHandler:
     >>> from fastpt import FASTPT, FPTHandler
     >>> import numpy as np
     >>> k = np.logspace(-3, 1, 200)
-    >>> P = np.abs(np.sin(k_values))  # Example power spectrum
+    >>> P = np.abs(np.sin(k))  # Example power spectrum
     >>> fpt = FASTPT(k)
     >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
     >>> result = handler.run('one_loop_dd')
@@ -731,6 +731,12 @@ class FPTHandler:
         
         Returns:
             tuple: A tuple of numpy arrays matching the original FASTPT function output format
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> result = handler.run('one_loop_dd', save_type='txt')
+        >>> loaded_data = handler.load('one_loop_dd_output.txt')
         """
         import os
         import numpy as np
@@ -1108,6 +1114,13 @@ class FPTHandler:
         -------
         fig : matplotlib.figure.Figure
             The created figure
+
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> P_1loop_result = handler.run('one_loop_dd')
+        >>> ia_result = handler.run('IA_tt')
+        >>> handler.plot_comparison({'1-loop': P_1loop_result, 'IA': ia_result})
         """
         import matplotlib.pyplot as plt
     

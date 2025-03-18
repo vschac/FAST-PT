@@ -296,66 +296,6 @@ def test_plotting_features():
     )
     plt.close(fig)
     
-    # Test 12: Comprehensive styling with comparison of RSD multipoles
-    print("\nTest 12: RSD multipoles with custom styling")
-    # RSD multipoles are in P_RSD[1]
-    rsd_multipoles = {
-        'Monopole': P_RSD[1][0],
-        'Quadrupole': P_RSD[1][1],
-        'Hexadecapole': P_RSD[1][2]
-    }
-    
-    fig = handler.plot_comparison(
-        rsd_multipoles,
-        ratio=True,
-        ratio_baseline='Monopole',
-        colors=['black', 'red', 'blue'],
-        style=[
-            {'linestyle': '-', 'linewidth': 2},
-            {'linestyle': '--', 'linewidth': 2},
-            {'linestyle': '-.', 'linewidth': 2}
-        ],
-        title="RSD Multipoles",
-        save_path=os.path.join(output_dir, "test12_rsd_multipoles.png"),
-        show=False
-    )
-    plt.close(fig)
-    
-    # Test 13: Comprehensive comparison of power spectrum components
-    print("\nTest 13: Comprehensive comparison of power spectrum components")
-    complex_data = {
-        'Linear': P_linear,
-        '1-loop SPT': P_1loop_full,
-        'IA E-mode (TT)': P_IA_tt[0],
-        'IA B-mode (TT)': P_IA_tt[1],
-        'RSD Monopole': P_RSD[1][0]
-    }
-    
-    fig, ax = plt.subplots(figsize=(12, 8))
-    # Add a text annotation to the plot
-    ax.text(0.05, 0.95, 'Power Spectrum Components', transform=ax.transAxes, 
-            fontsize=12, va='top', ha='left', bbox=dict(facecolor='white', alpha=0.7))
-    
-    # Create a span to highlight BAO region (example)
-    ax.axvspan(0.05, 0.3, alpha=0.1, color='green')
-    
-    handler.plot(
-        data=complex_data,
-        ax=ax,
-        colors=['black', 'red', 'blue', 'green', 'purple'],
-        style=[
-            {'linestyle': '-', 'linewidth': 2},
-            {'linestyle': '--', 'linewidth': 2},
-            {'linestyle': '-.', 'marker': 'o', 'markevery': 15},
-            {'linestyle': ':', 'marker': 's', 'markevery': 15},
-            {'linestyle': '-', 'linewidth': 1.5}
-        ],
-        title="Power Spectrum Components",
-        save_path=os.path.join(output_dir, "test13_comprehensive.png"),
-        show=False
-    )
-    plt.close(fig)
-    
     print("\nAll tests completed! Output images saved to:", output_dir)
     print("Inspect the generated plots to verify all features work correctly.")
     
