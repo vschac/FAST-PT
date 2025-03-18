@@ -39,6 +39,8 @@ class FPTHandler:
     >>> P_1loop = handler.get('P_E')  # Direct access to the P_E term of fpt.IA_tt
     """
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
+        if fastpt_instance is None or not isinstance(fastpt_instance, FASTPT):
+            raise ValueError("You must provide a valid FASTPT instance.")
         self.__fastpt = fastpt_instance
         self.cache = {}
         self.do_cache = do_cache
@@ -844,3 +846,339 @@ class FPTHandler:
         except Exception as e:
             print(f"Error loading output from {full_path}: {str(e)}")
             return None
+
+    def plot(self, data=None, terms=None, k=None, ax=None, title=None, 
+             log_scale=True, legend_loc='best', grid=True, style=None,
+             colors=None, linewidth=1.5, label_map=None, fig_size=(10, 7), 
+             save_path=None, dpi=300, xlim=None, ylim=None, scale_factors=None,
+             return_fig=False, show=True, **override_kwargs):
+        """
+        Create a plot of power spectrum terms.
+        
+        Parameters
+        ----------
+        data : dict or array-like, optional
+            Data to plot. Can be:
+            - Dictionary mapping labels to arrays (direct plotting)
+            - Result from FAST-PT function call (will be plotted directly)
+            - None (requires 'terms' parameter to get data)
+        terms : str or list, optional
+            Term name(s) to plot if data is not provided
+        k : array-like, optional
+            k values for x-axis. If None, uses handler's FASTPT k values
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates a new figure
+        title : str, optional
+            Plot title
+        log_scale : bool or tuple, optional
+            Whether to use log scale. If True, both axes are log.
+            Can provide (x_log, y_log) tuple to specify each axis
+        legend_loc : str, optional
+            Location of legend. Default is 'best'
+        grid : bool, optional
+            Whether to display grid lines
+        style : dict or list of dict, optional
+            Plotting style(s) to apply to lines. Each dict can contain matplotlib
+            line properties (color, linestyle, marker, alpha, etc.)
+        colors : str or list, optional
+            Color(s) for plots. If a list, cycles through colors
+        linewidth : float, optional
+            Line width for plots
+        label_map : dict, optional
+            Mapping from term names to display labels
+        fig_size : tuple, optional
+            Figure size (width, height) in inches
+        save_path : str, optional
+            Path to save figure. If None, figure is not saved
+        dpi : int, optional
+            DPI for saved figure
+        xlim : tuple, optional
+            (min, max) for x-axis
+        ylim : tuple, optional
+            (min, max) for y-axis
+        scale_factors : dict or float, optional
+            Scaling factor(s) for plotted quantities
+        return_fig : bool, optional
+            Whether to return the figure object
+        show : bool, optional
+            Whether to show the plot immediately
+        **override_kwargs : dict
+            Additional parameters for FAST-PT function calls
+            
+        Returns
+        -------
+        fig : matplotlib.figure.Figure, optional
+            Figure object if return_fig is True
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> # Basic plot from terms
+        >>> handler.plot(terms=['P_1loop', 'P_E', 'P_B'])
+        >>> # Plot with custom styling
+        >>> handler.plot(terms='P_1loop', colors='red', title='1-loop SPT')
+        >>> # Plot with style dictionaries for fine control
+        >>> handler.plot(terms=['P_1loop', 'P_E'], style=[
+        ...     {'color': 'red', 'linestyle': '--', 'marker': 'o', 'alpha': 0.8},
+        ...     {'color': 'blue', 'linestyle': '-', 'linewidth': 2}
+        ... ])
+        """
+        import matplotlib.pyplot as plt
+        from itertools import cycle
+        
+        # Set up figure and axes if not provided
+        if ax is None:
+            fig, ax = plt.subplots(figsize=fig_size)
+        else:
+            fig = ax.figure
+            
+        # Set plot title if provided
+        if title is not None:
+            ax.set_title(title, fontsize=14)
+            
+        # Set up x-axis values (k)
+        if k is None:
+            k = self.fastpt.k_original
+            
+        # Default color cycle
+        if colors is None:
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+        if isinstance(colors, str):
+            colors = [colors]
+        color_cycle = cycle(colors)
+        
+        # Set up label mapping
+        if label_map is None:
+            label_map = {}
+            
+        # Set up scale factors
+        if scale_factors is None:
+            scale_factors = {}
+        if isinstance(scale_factors, (int, float)):
+            default_scale = scale_factors
+            scale_factors = {}
+        else:
+            default_scale = 1.0
+        
+        # Prepare style dictionaries
+        if style is None:
+            style = [{}]  # Empty dict = use defaults
+        elif isinstance(style, dict):
+            style = [style]  # Single style dict
+        style_cycle = cycle(style)
+        
+        # Get data to plot
+        to_plot = {}
+        
+        if data is not None:
+            # Case 1: User provided data directly
+            if isinstance(data, dict):
+                to_plot = data
+            elif isinstance(data, (list, tuple, np.ndarray)):
+                if isinstance(data, (list, tuple)) and len(data) > 1:
+                    for i, arr in enumerate(data):
+                        label = label_map.get(i, f"Component {i}")
+                        to_plot[label] = arr
+                else:
+                    label = label_map.get(0, "Data")
+                    to_plot[label] = data[0] if isinstance(data, (list, tuple)) else data
+            else:
+                raise ValueError("Unsupported data format. Provide a dict, list, tuple, or numpy array.")
+        elif terms is not None:
+            # Case 2: User provided term names to plot
+            if isinstance(terms, str):
+                terms = [terms]
+                
+            # Get data for each term
+            term_data = self.get(*terms, **override_kwargs)
+            
+            if len(terms) == 1:
+                term_name = terms[0]
+                display_label = label_map.get(term_name, term_name)
+                to_plot[display_label] = term_data
+            else:
+                for term_name in terms:
+                    display_label = label_map.get(term_name, term_name)
+                    to_plot[display_label] = term_data[term_name]
+        else:
+            raise ValueError("Either 'data' or 'terms' must be provided.")
+            
+        # Plot each data series
+        for label, data_array in to_plot.items():
+            # Get current style and color
+            curr_style = next(style_cycle).copy()  # Copy to avoid modifying the original
+            
+            # Add default color if not in style
+            if 'color' not in curr_style:
+                curr_style['color'] = next(color_cycle)
+                
+            # Set default linewidth if not in style
+            if 'linewidth' not in curr_style:
+                curr_style['linewidth'] = linewidth
+                
+            # Apply scale factor if provided for this label
+            scale = scale_factors.get(label, default_scale)
+            
+            # Check if data contains negative values
+            if isinstance(data_array, np.ndarray) and np.any(data_array < 0):
+                # Plot positive values
+                mask_pos = data_array >= 0
+                if np.any(mask_pos):
+                    ax.plot(k[mask_pos], scale * data_array[mask_pos], label=label, **curr_style)
+                
+                # Plot negative values with dashed lines for visibility
+                mask_neg = data_array < 0
+                if np.any(mask_neg):
+                    neg_style = curr_style.copy()
+                    neg_style['linestyle'] = neg_style.get('linestyle', '--')  # Default to dashed
+                    ax.plot(k[mask_neg], scale * np.abs(data_array[mask_neg]), **neg_style)
+            else:
+                # Regular plotting for non-negative data
+                ax.plot(k, scale * data_array, label=label, **curr_style)
+                
+        # Set scales
+        if log_scale:
+            if isinstance(log_scale, (list, tuple)):
+                x_log, y_log = log_scale
+            else:
+                x_log = y_log = True
+                
+            if x_log:
+                ax.set_xscale('log')
+            if y_log:
+                ax.set_yscale('log')
+        
+        # Set axis labels
+        ax.set_xlabel(r'$k$ [$h$ Mpc$^{-1}$]', fontsize=12)
+        ax.set_ylabel(r'$P(k)$ [$h^{-3}$ Mpc$^3$]', fontsize=12)
+        
+        # Set limits if provided
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+            
+        # Add grid if requested
+        if grid:
+            ax.grid(True, alpha=0.3)
+            
+        # Add legend if there are labeled lines
+        if to_plot:
+            ax.legend(loc=legend_loc)
+            
+        # Apply tight layout
+        fig.tight_layout()
+            
+        # Save figure if path provided
+        if save_path is not None:
+            fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
+            print(f"Figure saved to: {save_path}")
+            
+        # Show the plot if requested
+        if show:
+            plt.show()
+            
+        # Return figure if requested
+        if return_fig:
+            return fig
+            
+    def plot_comparison(self, results_dict, k=None, ratio=False, ratio_baseline=None,
+                    fig_size=(12, 8), **plot_kwargs):
+        """
+        Create comparison plots for multiple results, optionally with ratio panel.
+    
+        Parameters
+        ----------
+        results_dict : dict
+            Dictionary mapping labels to data arrays
+        k : array-like, optional
+            k values for x-axis. If None, uses handler's FASTPT k values
+        ratio : bool, optional
+            Whether to include a ratio panel
+        ratio_baseline : str, optional
+            Key in results_dict to use as baseline for ratio.
+            If None, uses the first key in results_dict
+        fig_size : tuple, optional
+            Figure size (width, height) in inches
+        **plot_kwargs : dict
+            Additional keyword arguments passed to the plot method
+        
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The created figure
+        """
+        import matplotlib.pyplot as plt
+    
+        if k is None:
+            k = self.fastpt.k_original
+        
+        if not results_dict:
+            raise ValueError("results_dict cannot be empty")
+        
+        if ratio_baseline is None:
+            # Use first key as baseline if not specified
+            ratio_baseline = list(results_dict.keys())[0]
+        
+        if ratio and ratio_baseline not in results_dict:
+            raise ValueError(f"Ratio baseline '{ratio_baseline}' not found in results")
+        
+        # Create figure and axes
+        if ratio:
+            fig = plt.figure(figsize=fig_size)
+            gs = fig.add_gridspec(nrows=2, ncols=1, height_ratios=(3, 1), hspace=0)
+            ax1 = fig.add_subplot(gs[0])
+            ax2 = fig.add_subplot(gs[1], sharex=ax1)
+        else:
+            fig, ax1 = plt.subplots(figsize=fig_size)
+            ax2 = None
+        
+        # Plot main data
+        # Remove parameters we're handling explicitly to avoid conflicts
+        plot_kwargs_filtered = {k: v for k, v in plot_kwargs.items() if k not in ('show', 'save_path', 'k', 'ax')}
+        self.plot(data=results_dict, k=k, ax=ax1, show=False, return_fig=False, **plot_kwargs_filtered)
+    
+        # Plot ratio panel if requested
+        if ratio:
+            baseline_data = results_dict[ratio_baseline]
+            ratio_data = {}
+        
+            for label, data in results_dict.items():
+                if np.array_equal(data, baseline_data):
+                    continue
+                
+                # Calculate ratio, handling potential zeros or NaNs
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    ratio_array = data / baseline_data
+                    # Replace inf/NaN with zeros for plotting
+                    ratio_array = np.nan_to_num(ratio_array, nan=0, posinf=0, neginf=0)
+                
+                ratio_data[f"{label}/{ratio_baseline}"] = ratio_array
+            
+            # Plot the ratios
+            self.plot(data=ratio_data, k=k, ax=ax2, log_scale=(True, False), 
+                    show=False, return_fig=False)
+        
+            # Add horizontal line at y=1.0
+            ax2.axhline(y=1.0, color='k', linestyle='-', alpha=0.3)
+        
+            # Set y-label for ratio panel
+            ax2.set_ylabel('Ratio', fontsize=12)
+        
+            # Remove x-label from top plot to avoid overlap
+            ax1.set_xlabel('')
+        
+            # Only show x tick labels on bottom panel
+            plt.setp(ax1.get_xticklabels(), visible=False)
+        
+        # Save figure if path provided
+        if 'save_path' in plot_kwargs:
+            fig.savefig(plot_kwargs['save_path'], dpi=plot_kwargs.get('dpi', 300), bbox_inches='tight')
+            print(f"Figure saved to: {plot_kwargs['save_path']}")
+        
+        # Show plot
+        if plot_kwargs.get('show', True):
+            plt.show()
+        
+        return fig
