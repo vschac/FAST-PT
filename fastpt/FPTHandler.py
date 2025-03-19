@@ -320,7 +320,7 @@ class FPTHandler:
             self.save_output(result, function_name, type=self.save_all, output_dir=output_directory)
         return result
     
-    def bulk_run(self, func_names, power_spectra, verbose=False, **override_kwargs):
+    def bulk_run(self, func_names, power_spectra, flip=False, verbose=False, **override_kwargs):
         """
         Run multiple functions with multiple power spectra.
         
@@ -333,6 +333,9 @@ class FPTHandler:
             List of FAST-PT function names to call
         power_spectra : list of array_like
             List of power spectra to use for each function call
+        flip : bool, optional
+            Whether to run each function at every power spectrum or every power spectrum at each function
+            (Default is False, which runs each function at every power spectrum)
         verbose : bool, optional
             Whether to print progress messages
         **override_kwargs : dict
@@ -353,12 +356,18 @@ class FPTHandler:
         >>> one_loop_P1 = results[('one_loop_dd', 0)]
         """
         results = {}
-        for func_name in func_names:
+        if flip:
             for i, P in enumerate(power_spectra):
-                # Combine override kwargs with the specific power spectrum
-                params = {**self.default_params, **override_kwargs, 'P': P}
-                if verbose: print(f"Running {func_name} with power spectrum {i}")
-                results[(func_name, i)] = self.run(func_name, **params)
+                for func_name in func_names:
+                    params = {**self.default_params, **override_kwargs, 'P': P}
+                    if verbose: print(f"Running {func_name} with power spectrum {i}")
+                    results[(func_name, i)] = self.run(func_name, **params)
+        else:
+            for func_name in func_names:
+                for i, P in enumerate(power_spectra):
+                    params = {**self.default_params, **override_kwargs, 'P': P}
+                    if verbose: print(f"Running {func_name} with power spectrum {i}")
+                    results[(func_name, i)] = self.run(func_name, **params)
         return results
     
     def get(self, *terms, **override_kwargs):
