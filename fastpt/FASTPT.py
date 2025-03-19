@@ -211,7 +211,12 @@ class FASTPT:
             raise ValueError('Input array must contain an even number of elements.')
         # can we just force the extrapolation to add an element if we need one more? how do we prevent the extrapolation from giving us an odd number of elements? is that hard coded into extrap? or just trim the lowest k value if there is an odd numebr and no extrapolation is requested.
 
-        if (n_pad != None):
+        if n_pad is None:
+            n_pad = int(0.5 * len(k))
+            if verbose:
+                print(f"WARNING: N_pad is recommended but none has been provided, defaulting to 0.5*len(k) = {n_pad}.")
+        self.n_pad = n_pad
+        if (n_pad > 0):
             # Make sure n_pad is an integer
             if not isinstance(n_pad, int):
                 n_pad = int(n_pad)
@@ -231,9 +236,6 @@ class FASTPT:
                 print(f'You should consider increasing your zero padding to at least {n_pad_check}')
                 print('to ensure that the minimum k_output is > 2k_min in the FASTPT universe.')
                 print(f'k_min in the FASTPT universe is {k[0]} while k_min_input is {self.k_extrap[0]}')
-        else:
-            print("WARNING: N_pad is recommended but none has been provided, defaulting to 0.5*len(k).")
-            self.n_pad = int(0.5*len(k))
 
         self.__k_final = k #log spaced k, with padding and extrap
         self.k_size = k.size
@@ -1577,7 +1579,7 @@ class FASTPT:
 
         P_b = P * self.k_extrap ** (-nu)
 
-        if (self.n_pad != 0):
+        if (self.n_pad > 0):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
 
         c_m = self._cache_fourier_coefficients(P_b, C_window)
@@ -1601,7 +1603,7 @@ class FASTPT:
         # discrete convolution
 
         P_out = irfft(c_m[self.m >= 0]) * self.k_final ** nu * float(self.N)
-        if (self.n_pad != 0):
+        if (self.n_pad > 0):
             # get rid of the elements created from padding
             P_out = P_out[self.id_pad]
             A_out = A_out[:, self.id_pad]
@@ -1644,7 +1646,7 @@ class FASTPT:
                 P_b1 = P_b1 * W
                 P_b2 = P_b2 * W
 
-            if (self.n_pad != 0):
+            if (self.n_pad > 0):
                 P_b1 = np.pad(P_b1, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
                 P_b2 = np.pad(P_b2, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
             c_m = self._cache_fourier_coefficients(P_b1, C_window)
@@ -1666,7 +1668,7 @@ class FASTPT:
             # discrete convolution
             P_fin += A_out[i, :]
         # P_out=irfft(c_m[self.m>=0])*self.k**self.nu*float(self.N)
-        if (self.n_pad != 0):
+        if (self.n_pad > 0):
             # get rid of the elements created from padding
             # P_out=P_out[self.id_pad]
             A_out = A_out[:, self.id_pad]
