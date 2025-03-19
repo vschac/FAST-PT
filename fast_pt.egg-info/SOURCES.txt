@@ -48,3 +48,4 @@ tests/test_benchmarks.py
 tests/test_cache.py
 tests/test_fastpt.py
 tests/test_handler.py
+tests/test_plots.py

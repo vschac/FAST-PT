@@ -11,9 +11,9 @@ C_window = 0.75
 P_window = np.array([0.2, 0.2])
 
 if __name__ == "__main__":
-    fpt = FASTPT(k, n_pad=int(0.5 * len(k)))
-    handler = FPTHandler(fpt, max_cache_entries=200, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-    handler.show_cache_info()
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
+    handler.run('one_loop_dd')
     
 
 @pytest.fixture
