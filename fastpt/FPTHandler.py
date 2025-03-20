@@ -476,6 +476,59 @@ class FPTHandler:
         if len(output) == 1 and len(terms) == 1:
             return output[list(output.keys())[0]]
         return output
+    
+    def get_tracer(self, tracer_name, **override_kwargs):
+        aliases = {
+            #Names used in CCL for FASTPT terms
+
+            "Pd1p3" : "sig3nl",
+
+            "a00e": "P_deltaE1", "c00e": "P_deltaE2", "a0e2": "P_A",
+            "b0e2": "P_Btype2", "tijsij" : "P_0tE", "gb2tij": "P_d2tE", 
+            "s2tij": "P_s2tE", "gb2sij" : "P_d2E", "gb2dsij" : "P_d20E", "gb2sij2" : "P_d2E2",
+            "s2sij" : "P_s2E", "s2dsij" : "P_s20E", "s2sij2" : "P_s2E2",
+
+            "a0e0e": "P_0E0E", "a0b0b": "P_0B0B", "ae2e2": "P_E", "ab2b2": "P_B",
+            "a0e2": "P_A", "b0e2": "P_Btype2", "d0ee2": "P_DEE", "d0bb2": "P_dDBB",
+            "tijdsij" : "P_0EtE", "tij2sij" : "P_E2tE", "tijtij" : "P_tEtE", "Pak2" : "P_der", #<< Sometimes der sometimes non fpt term?
+
+        }
+        tracer_map = {
+            "pgg": ("Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2","Pd1p3"), 
+            #^^ also needs Pd1d1 and Pd1k2
+            "pgi": ("a00e", "c00e", "a0e2", "b0e2", "tijsij", "gb2tij", "s2tij",
+                    "gb2sij", "gb2dsij", "gb2sij2", "s2sij", "s2dsij", "s2sij2",
+                    "sig3nl"),
+            #^^ also needs Pd1d1
+            "pgm": ("Pd1d2", "Pd1s2", "Pd1p3"),
+            #^^ also needs Pd1d1 and Pd1k2
+            "pii": ("a00e", "c00e", "a0e0e", "a0b0b", "ae2e2", "ab2b2", "a0e2", 
+                    "b0e2", "d0ee2", "d0bb2", "tijsij", "tijdsij", "tij2sij", "tijtij", "Pak2"),
+            #^^ also needs Pd1d1, Pak2 has a weird if check
+            "pim": ("a00e", "c00e", "a0e2", "b0e2", "tijsij", "Pak2"),
+            #^^ also needs Pd1d1, Pak2 has a weird if check
+            "pmm": ("P_1loop")
+        }
+
+        if tracer_name not in tracer_map.keys():
+            raise ValueError(f"Tracer '{tracer_name}' not currently supported. Available tracers are: {list(tracer_map.keys())}")
+        
+        result = {}
+        for term in tracer_map[tracer_name]:
+            try:
+                calc_term = self.get(term, **override_kwargs)
+            except ValueError as e:
+                error_msg = str(e)
+                if "not found in FASTPT" in error_msg:
+                    if term in aliases:
+                        calc_term = self.get(aliases[term], **override_kwargs)
+                    else:
+                        raise e
+                else:
+                    raise e
+            result[term] = calc_term
+        return result
+
 
     def clear_cache(self, function_name=None):
         """
