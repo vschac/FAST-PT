@@ -478,6 +478,38 @@ class FPTHandler:
         return output
     
     def get_tracer(self, tracer_name, **override_kwargs):
+        """
+        Get Fast-PT terms relevant to specific tracer.
+        
+        Parameters
+        ----------
+        tracer_name : str
+            Name of tracer terms to retrieve
+        **override_kwargs : dict
+            Parameters for the underlying FAST-PT calculations
+            
+        Returns
+        -------
+        dict
+            Returns a dictionary of key-value pairs where the key is the term name
+            and the value is the calculated term from Fast-PT.
+            
+        Raises
+        ------
+        ValueError
+            If a requested tracer is not found or parameters are invalid
+
+        Notes
+        -----
+            Some terms have different names in FAST-PT than in CCL, see the "aliases" dictionary.
+            
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
+        >>> P_1loop = handler.get('pgm')
+        >>> #returns Pd1d2, Pd1s2, Pd1p3 (sig3nl)
+
+        """
         aliases = {
             #Names used in CCL for FASTPT terms
 

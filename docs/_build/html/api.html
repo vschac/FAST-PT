@@ -85,13 +85,16 @@
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.clear_default_params"><code class="docutils literal notranslate"><span class="pre">FPTHandler.clear_default_params()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.fastpt"><code class="docutils literal notranslate"><span class="pre">FPTHandler.fastpt</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.get"><code class="docutils literal notranslate"><span class="pre">FPTHandler.get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.get_tracer"><code class="docutils literal notranslate"><span class="pre">FPTHandler.get_tracer()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.list_available_functions"><code class="docutils literal notranslate"><span class="pre">FPTHandler.list_available_functions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.list_available_terms"><code class="docutils literal notranslate"><span class="pre">FPTHandler.list_available_terms()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.load"><code class="docutils literal notranslate"><span class="pre">FPTHandler.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.load_params"><code class="docutils literal notranslate"><span class="pre">FPTHandler.load_params()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.plot"><code class="docutils literal notranslate"><span class="pre">FPTHandler.plot()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.plot_comparison"><code class="docutils literal notranslate"><span class="pre">FPTHandler.plot_comparison()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.run"><code class="docutils literal notranslate"><span class="pre">FPTHandler.run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.save_output"><code class="docutils literal notranslate"><span class="pre">FPTHandler.save_output()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.save_params"><code class="docutils literal notranslate"><span class="pre">FPTHandler.save_params()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.show_cache_info"><code class="docutils literal notranslate"><span class="pre">FPTHandler.show_cache_info()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.update_default_params"><code class="docutils literal notranslate"><span class="pre">FPTHandler.update_default_params()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.update_fastpt_instance"><code class="docutils literal notranslate"><span class="pre">FPTHandler.update_fastpt_instance()</span></code></a></li>
@@ -626,7 +629,7 @@ outputs, and direct access to specific power spectrum terms.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.bulk_run">
-<span class="sig-name descname"><span class="pre">bulk_run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_spectra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.bulk_run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.bulk_run" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">bulk_run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_spectra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.bulk_run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.bulk_run" title="Link to this definition"></a></dt>
 <dd><p>Run multiple functions with multiple power spectra.</p>
 <p>This method provides a convenient way to run multiple FAST-PT functions
 with different power spectra and collect all the results.</p>
@@ -635,6 +638,8 @@ with different power spectra and collect all the results.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>func_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – List of FAST-PT function names to call</p></li>
 <li><p><strong>power_spectra</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><em>array_like</em>) – List of power spectra to use for each function call</p></li>
+<li><p><strong>flip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to run each function at every power spectrum or every power spectrum at each function
+(Default is False, which runs each function at every power spectrum)</p></li>
 <li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to print progress messages</p></li>
 <li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional parameters to pass to all function calls</p></li>
 </ul>
@@ -739,6 +744,38 @@ term names to their values.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="fastpt.FPTHandler.get_tracer">
+<span class="sig-name descname"><span class="pre">get_tracer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracer_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.get_tracer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.get_tracer" title="Link to this definition"></a></dt>
+<dd><p>Get Fast-PT terms relevant to specific tracer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracer_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of tracer terms to retrieve</p></li>
+<li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Parameters for the underlying FAST-PT calculations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a dictionary of key-value pairs where the key is the term name
+and the value is the calculated term from Fast-PT.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If a requested tracer is not found or parameters are invalid</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Some terms have different names in FAST-PT than in CCL, see the “aliases” dictionary.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pgm&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#returns Pd1d2, Pd1s2, Pd1p3 (sig3nl)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.list_available_functions">
 <span class="sig-name descname"><span class="pre">list_available_functions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.list_available_functions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.list_available_functions" title="Link to this definition"></a></dt>
 <dd><p>List all callable FAST-PT functions.</p>
@@ -787,6 +824,43 @@ If file_path already includes a directory, load_dir is ignored.</p></li>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="n">save_type</span><span class="o">=</span><span class="s1">&#39;txt&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">loaded_data</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;one_loop_dd_output.txt&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fastpt.FPTHandler.load_params">
+<span class="sig-name descname"><span class="pre">load_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.load_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.load_params" title="Link to this definition"></a></dt>
+<dd><p>Load parameters from a saved .npz file.</p>
+<p>Loads both array and non-array parameters from a file created with save_params().
+Arrays are loaded directly, while scalar values are extracted from the metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to the parameter file. If the path doesn’t end with ‘.npz’,
+the extension will be added automatically.</p></li>
+<li><p><strong>load_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to load parameters from. If None, uses default output directory.
+If filename already contains a directory path, load_dir is ignored.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing all loaded parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method automatically handles the separation between array parameters and
+scalar metadata that was created during saving.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">load_params</span><span class="p">(</span><span class="s1">&#39;my_params.npz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use loaded parameters in a calculation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load from specific directory</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">load_params</span><span class="p">(</span><span class="s1">&#39;custom_params&#39;</span><span class="p">,</span> <span class="n">load_dir</span><span class="o">=</span><span class="s1">&#39;/path/to/load&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -934,6 +1008,40 @@ caches results if enabled, and optionally saves the output to a file.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">save_output</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fastpt.FPTHandler.save_params">
+<span class="sig-name descname"><span class="pre">save_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.save_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.save_params" title="Link to this definition"></a></dt>
+<dd><p>Save parameters to a compressed numpy .npz file.</p>
+<p>This method saves both numpy arrays and other Python objects (strings, floats, ints, etc.)
+in a single file. Arrays are stored directly, while non-array values are collected
+in a metadata dictionary and stored as a special array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path where parameters will be saved. If the path doesn’t end with ‘.npz’,
+the extension will be added automatically.</p></li>
+<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save parameters. If None, uses default output directory.
+If filename already contains a directory path, output_dir is ignored.</p></li>
+<li><p><strong>**params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Parameters to save. If no parameters are provided, the handler’s default
+parameters will be saved instead.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Non-array values are stored in a special array with key ‘__metadata__’.
+Arrays and scalars can be freely mixed in the parameters.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Save specific parameters</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">save_params</span><span class="p">(</span><span class="s1">&#39;my_params&#39;</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Save default parameters</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">save_params</span><span class="p">(</span><span class="s1">&#39;default_params&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Save to specific directory</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">save_params</span><span class="p">(</span><span class="s1">&#39;custom_params&#39;</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="s1">&#39;/path/to/save&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>

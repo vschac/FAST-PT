@@ -405,7 +405,7 @@
     
 <div class="viewcode-block" id="FPTHandler.bulk_run">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.bulk_run">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">bulk_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">power_spectra</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bulk_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">power_spectra</span><span class="p">,</span> <span class="n">flip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run multiple functions with multiple power spectra.</span>
 <span class="sd">        </span>
@@ -418,6 +418,9 @@
 <span class="sd">            List of FAST-PT function names to call</span>
 <span class="sd">        power_spectra : list of array_like</span>
 <span class="sd">            List of power spectra to use for each function call</span>
+<span class="sd">        flip : bool, optional</span>
+<span class="sd">            Whether to run each function at every power spectrum or every power spectrum at each function</span>
+<span class="sd">            (Default is False, which runs each function at every power spectrum)</span>
 <span class="sd">        verbose : bool, optional</span>
 <span class="sd">            Whether to print progress messages</span>
 <span class="sd">        **override_kwargs : dict</span>
@@ -438,12 +441,18 @@
 <span class="sd">        &gt;&gt;&gt; one_loop_P1 = results[(&#39;one_loop_dd&#39;, 0)]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">flip</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">power_spectra</span><span class="p">):</span>
-                <span class="c1"># Combine override kwargs with the specific power spectrum</span>
-                <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
-                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
+                    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">power_spectra</span><span class="p">):</span>
+                    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">results</span></div>
 
     
@@ -555,6 +564,94 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="k">return</span> <span class="n">output</span></div>
+
+    
+<div class="viewcode-block" id="FPTHandler.get_tracer">
+<a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.get_tracer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tracer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracer_name</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get Fast-PT terms relevant to specific tracer.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tracer_name : str</span>
+<span class="sd">            Name of tracer terms to retrieve</span>
+<span class="sd">        **override_kwargs : dict</span>
+<span class="sd">            Parameters for the underlying FAST-PT calculations</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Returns a dictionary of key-value pairs where the key is the term name</span>
+<span class="sd">            and the value is the calculated term from Fast-PT.</span>
+<span class="sd">            </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If a requested tracer is not found or parameters are invalid</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">            Some terms have different names in FAST-PT than in CCL, see the &quot;aliases&quot; dictionary.</span>
+<span class="sd">            </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop = handler.get(&#39;pgm&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; #returns Pd1d2, Pd1s2, Pd1p3 (sig3nl)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1">#Names used in CCL for FASTPT terms</span>
+
+            <span class="s2">&quot;Pd1p3&quot;</span> <span class="p">:</span> <span class="s2">&quot;sig3nl&quot;</span><span class="p">,</span>
+
+            <span class="s2">&quot;a00e&quot;</span><span class="p">:</span> <span class="s2">&quot;P_deltaE1&quot;</span><span class="p">,</span> <span class="s2">&quot;c00e&quot;</span><span class="p">:</span> <span class="s2">&quot;P_deltaE2&quot;</span><span class="p">,</span> <span class="s2">&quot;a0e2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_A&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;b0e2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_Btype2&quot;</span><span class="p">,</span> <span class="s2">&quot;tijsij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_0tE&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2tij&quot;</span><span class="p">:</span> <span class="s2">&quot;P_d2tE&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;s2tij&quot;</span><span class="p">:</span> <span class="s2">&quot;P_s2tE&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2sij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_d2E&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2dsij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_d20E&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2sij2&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_d2E2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;s2sij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_s2E&quot;</span><span class="p">,</span> <span class="s2">&quot;s2dsij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_s20E&quot;</span><span class="p">,</span> <span class="s2">&quot;s2sij2&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_s2E2&quot;</span><span class="p">,</span>
+
+            <span class="s2">&quot;a0e0e&quot;</span><span class="p">:</span> <span class="s2">&quot;P_0E0E&quot;</span><span class="p">,</span> <span class="s2">&quot;a0b0b&quot;</span><span class="p">:</span> <span class="s2">&quot;P_0B0B&quot;</span><span class="p">,</span> <span class="s2">&quot;ae2e2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_E&quot;</span><span class="p">,</span> <span class="s2">&quot;ab2b2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_B&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;a0e2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_A&quot;</span><span class="p">,</span> <span class="s2">&quot;b0e2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_Btype2&quot;</span><span class="p">,</span> <span class="s2">&quot;d0ee2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_DEE&quot;</span><span class="p">,</span> <span class="s2">&quot;d0bb2&quot;</span><span class="p">:</span> <span class="s2">&quot;P_dDBB&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tijdsij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_0EtE&quot;</span><span class="p">,</span> <span class="s2">&quot;tij2sij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_E2tE&quot;</span><span class="p">,</span> <span class="s2">&quot;tijtij&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_tEtE&quot;</span><span class="p">,</span> <span class="s2">&quot;Pak2&quot;</span> <span class="p">:</span> <span class="s2">&quot;P_der&quot;</span><span class="p">,</span> <span class="c1">#&lt;&lt; Sometimes der sometimes non fpt term?</span>
+
+        <span class="p">}</span>
+        <span class="n">tracer_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;pgg&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Pd1d2&quot;</span><span class="p">,</span> <span class="s2">&quot;Pd2d2&quot;</span><span class="p">,</span> <span class="s2">&quot;Pd1s2&quot;</span><span class="p">,</span> <span class="s2">&quot;Pd2s2&quot;</span><span class="p">,</span> <span class="s2">&quot;Ps2s2&quot;</span><span class="p">,</span><span class="s2">&quot;Pd1p3&quot;</span><span class="p">),</span> 
+            <span class="c1">#^^ also needs Pd1d1 and Pd1k2</span>
+            <span class="s2">&quot;pgi&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;a00e&quot;</span><span class="p">,</span> <span class="s2">&quot;c00e&quot;</span><span class="p">,</span> <span class="s2">&quot;a0e2&quot;</span><span class="p">,</span> <span class="s2">&quot;b0e2&quot;</span><span class="p">,</span> <span class="s2">&quot;tijsij&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2tij&quot;</span><span class="p">,</span> <span class="s2">&quot;s2tij&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;gb2sij&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2dsij&quot;</span><span class="p">,</span> <span class="s2">&quot;gb2sij2&quot;</span><span class="p">,</span> <span class="s2">&quot;s2sij&quot;</span><span class="p">,</span> <span class="s2">&quot;s2dsij&quot;</span><span class="p">,</span> <span class="s2">&quot;s2sij2&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sig3nl&quot;</span><span class="p">),</span>
+            <span class="c1">#^^ also needs Pd1d1</span>
+            <span class="s2">&quot;pgm&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;Pd1d2&quot;</span><span class="p">,</span> <span class="s2">&quot;Pd1s2&quot;</span><span class="p">,</span> <span class="s2">&quot;Pd1p3&quot;</span><span class="p">),</span>
+            <span class="c1">#^^ also needs Pd1d1 and Pd1k2</span>
+            <span class="s2">&quot;pii&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;a00e&quot;</span><span class="p">,</span> <span class="s2">&quot;c00e&quot;</span><span class="p">,</span> <span class="s2">&quot;a0e0e&quot;</span><span class="p">,</span> <span class="s2">&quot;a0b0b&quot;</span><span class="p">,</span> <span class="s2">&quot;ae2e2&quot;</span><span class="p">,</span> <span class="s2">&quot;ab2b2&quot;</span><span class="p">,</span> <span class="s2">&quot;a0e2&quot;</span><span class="p">,</span> 
+                    <span class="s2">&quot;b0e2&quot;</span><span class="p">,</span> <span class="s2">&quot;d0ee2&quot;</span><span class="p">,</span> <span class="s2">&quot;d0bb2&quot;</span><span class="p">,</span> <span class="s2">&quot;tijsij&quot;</span><span class="p">,</span> <span class="s2">&quot;tijdsij&quot;</span><span class="p">,</span> <span class="s2">&quot;tij2sij&quot;</span><span class="p">,</span> <span class="s2">&quot;tijtij&quot;</span><span class="p">,</span> <span class="s2">&quot;Pak2&quot;</span><span class="p">),</span>
+            <span class="c1">#^^ also needs Pd1d1, Pak2 has a weird if check</span>
+            <span class="s2">&quot;pim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;a00e&quot;</span><span class="p">,</span> <span class="s2">&quot;c00e&quot;</span><span class="p">,</span> <span class="s2">&quot;a0e2&quot;</span><span class="p">,</span> <span class="s2">&quot;b0e2&quot;</span><span class="p">,</span> <span class="s2">&quot;tijsij&quot;</span><span class="p">,</span> <span class="s2">&quot;Pak2&quot;</span><span class="p">),</span>
+            <span class="c1">#^^ also needs Pd1d1, Pak2 has a weird if check</span>
+            <span class="s2">&quot;pmm&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;P_1loop&quot;</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">tracer_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tracer_map</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tracer &#39;</span><span class="si">{</span><span class="n">tracer_name</span><span class="si">}</span><span class="s2">&#39; not currently supported. Available tracers are: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">tracer_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">tracer_map</span><span class="p">[</span><span class="n">tracer_name</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">calc_term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;not found in FASTPT&quot;</span> <span class="ow">in</span> <span class="n">error_msg</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">aliases</span><span class="p">:</span>
+                        <span class="n">calc_term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">aliases</span><span class="p">[</span><span class="n">term</span><span class="p">],</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">e</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">term</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_term</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
 
 
 <div class="viewcode-block" id="FPTHandler.clear_cache">
@@ -967,6 +1064,143 @@
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading output from </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span></div>
+
+        
+
+<div class="viewcode-block" id="FPTHandler.save_params">
+<a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.save_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save parameters to a compressed numpy .npz file.</span>
+<span class="sd">        </span>
+<span class="sd">        This method saves both numpy arrays and other Python objects (strings, floats, ints, etc.)</span>
+<span class="sd">        in a single file. Arrays are stored directly, while non-array values are collected</span>
+<span class="sd">        in a metadata dictionary and stored as a special array.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path where parameters will be saved. If the path doesn&#39;t end with &#39;.npz&#39;,</span>
+<span class="sd">            the extension will be added automatically.</span>
+<span class="sd">        output_dir : str, optional</span>
+<span class="sd">            Directory to save parameters. If None, uses default output directory.</span>
+<span class="sd">            If filename already contains a directory path, output_dir is ignored.</span>
+<span class="sd">        **params : dict</span>
+<span class="sd">            Parameters to save. If no parameters are provided, the handler&#39;s default</span>
+<span class="sd">            parameters will be saved instead.</span>
+<span class="sd">            </span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Non-array values are stored in a special array with key &#39;__metadata__&#39;.</span>
+<span class="sd">        Arrays and scalars can be freely mixed in the parameters.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; # Save specific parameters</span>
+<span class="sd">        &gt;&gt;&gt; handler.save_params(&#39;my_params&#39;, P=P_linear, C_window=0.75, bias=1.5)</span>
+<span class="sd">        &gt;&gt;&gt; # Save default parameters</span>
+<span class="sd">        &gt;&gt;&gt; handler.save_params(&#39;default_params&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; # Save to specific directory</span>
+<span class="sd">        &gt;&gt;&gt; handler.save_params(&#39;custom_params&#39;, output_dir=&#39;/path/to/save&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No parameters stored or provided to save.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saving default params...&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">arrays</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">metadata</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">arrays</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        
+        <span class="k">if</span> <span class="n">metadata</span><span class="p">:</span>
+            <span class="n">arrays</span><span class="p">[</span><span class="s1">&#39;__metadata__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">metadata</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="c1"># If filename is absolute, use it directly</span>
+            <span class="n">full_path</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Otherwise, determine the base directory</span>
+            <span class="n">directory</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span>
+            <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">full_path</span><span class="p">)),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">full_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">):</span>
+            <span class="n">full_path</span> <span class="o">+=</span> <span class="s1">&#39;.npz&#39;</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="o">**</span><span class="n">arrays</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FPTHandler.load_params">
+<a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.load_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">load_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load parameters from a saved .npz file.</span>
+<span class="sd">        </span>
+<span class="sd">        Loads both array and non-array parameters from a file created with save_params().</span>
+<span class="sd">        Arrays are loaded directly, while scalar values are extracted from the metadata.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path to the parameter file. If the path doesn&#39;t end with &#39;.npz&#39;,</span>
+<span class="sd">            the extension will be added automatically.</span>
+<span class="sd">        load_dir : str, optional</span>
+<span class="sd">            Directory to load parameters from. If None, uses default output directory.</span>
+<span class="sd">            If filename already contains a directory path, load_dir is ignored.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary containing all loaded parameters.</span>
+<span class="sd">            </span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This method automatically handles the separation between array parameters and</span>
+<span class="sd">        scalar metadata that was created during saving.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; params = handler.load_params(&#39;my_params.npz&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print(params.keys())</span>
+<span class="sd">        &gt;&gt;&gt; # Use loaded parameters in a calculation</span>
+<span class="sd">        &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;, **params)</span>
+<span class="sd">        &gt;&gt;&gt; # Load from specific directory</span>
+<span class="sd">        &gt;&gt;&gt; params = handler.load_params(&#39;custom_params&#39;, load_dir=&#39;/path/to/load&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="n">full_path</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">directory</span> <span class="o">=</span> <span class="n">load_dir</span> <span class="k">if</span> <span class="n">load_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span>
+            <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">full_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">):</span>
+            <span class="n">full_path</span> <span class="o">+=</span> <span class="s1">&#39;.npz&#39;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameter file &#39;</span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">)</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;__metadata__&#39;</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;__metadata__&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;__metadata__&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">params</span></div>
 
 
 <div class="viewcode-block" id="FPTHandler.plot">

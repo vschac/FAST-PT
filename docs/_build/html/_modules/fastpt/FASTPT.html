@@ -290,7 +290,12 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input array must contain an even number of elements.&#39;</span><span class="p">)</span>
         <span class="c1"># can we just force the extrapolation to add an element if we need one more? how do we prevent the extrapolation from giving us an odd number of elements? is that hard coded into extrap? or just trim the lowest k value if there is an odd numebr and no extrapolation is requested.</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="n">n_pad</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">n_pad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_pad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WARNING: N_pad is recommended but none has been provided, defaulting to 0.5*len(k) = </span><span class="si">{</span><span class="n">n_pad</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">=</span> <span class="n">n_pad</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
             <span class="c1"># Make sure n_pad is an integer</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_pad</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
                 <span class="n">n_pad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_pad</span><span class="p">)</span>
@@ -310,9 +315,6 @@
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;You should consider increasing your zero padding to at least </span><span class="si">{</span><span class="n">n_pad_check</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;to ensure that the minimum k_output is &gt; 2k_min in the FASTPT universe.&#39;</span><span class="p">)</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;k_min in the FASTPT universe is </span><span class="si">{</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1"> while k_min_input is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k_extrap</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: N_pad is recommended but none has been provided, defaulting to 0.5*len(k).&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">__k_final</span> <span class="o">=</span> <span class="n">k</span> <span class="c1">#log spaced k, with padding and extrap</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">k_size</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">size</span>
@@ -1726,7 +1728,7 @@
 
         <span class="n">P_b</span> <span class="o">=</span> <span class="n">P</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_extrap</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">nu</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
             <span class="n">P_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">P_b</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="n">c_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
@@ -1750,7 +1752,7 @@
         <span class="c1"># discrete convolution</span>
 
         <span class="n">P_out</span> <span class="o">=</span> <span class="n">irfft</span><span class="p">(</span><span class="n">c_m</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_final</span> <span class="o">**</span> <span class="n">nu</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
             <span class="c1"># get rid of the elements created from padding</span>
             <span class="n">P_out</span> <span class="o">=</span> <span class="n">P_out</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id_pad</span><span class="p">]</span>
             <span class="n">A_out</span> <span class="o">=</span> <span class="n">A_out</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_pad</span><span class="p">]</span>
@@ -1793,7 +1795,7 @@
                 <span class="n">P_b1</span> <span class="o">=</span> <span class="n">P_b1</span> <span class="o">*</span> <span class="n">W</span>
                 <span class="n">P_b2</span> <span class="o">=</span> <span class="n">P_b2</span> <span class="o">*</span> <span class="n">W</span>
 
-            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
                 <span class="n">P_b1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">P_b1</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
                 <span class="n">P_b2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">P_b2</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">c_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b1</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
@@ -1815,7 +1817,7 @@
             <span class="c1"># discrete convolution</span>
             <span class="n">P_fin</span> <span class="o">+=</span> <span class="n">A_out</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
         <span class="c1"># P_out=irfft(c_m[self.m&gt;=0])*self.k**self.nu*float(self.N)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
             <span class="c1"># get rid of the elements created from padding</span>
             <span class="c1"># P_out=P_out[self.id_pad]</span>
             <span class="n">A_out</span> <span class="o">=</span> <span class="n">A_out</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_pad</span><span class="p">]</span>
