@@ -3,6 +3,7 @@ import numpy as np
 from fastpt import FASTPT
 from fastpt.FPTHandler import FPTHandler
 import os
+import tempfile
 
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
 P = np.loadtxt(data_path)[:, 1]
@@ -13,7 +14,7 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k)
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-    handler.run('one_loop_dd')
+
     
 
 @pytest.fixture
@@ -22,9 +23,12 @@ def fpt():
     n_pad=int(0.5*len(k))
     return FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=n_pad)
 
+@pytest.fixture
+def handler(fpt):
+    return FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+
 ################# FUNCTIONALITY TESTS #################
-def test_init_with_valid_params(fpt):
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+def test_init_with_valid_params(handler):
     assert isinstance(handler.fastpt, FASTPT)
     assert handler.default_params['P'] is not None
     assert handler.default_params['P_window'].all() == P_window.all()
@@ -112,8 +116,7 @@ def test_cache_with_other_params(fpt):
     handler.run('one_loop_dd', P=modified_P)
     assert len(handler.cache) > cache_size, "Different P values should create new cache entry"
 
-def test_invalid_function_call(fpt):
-    handler = FPTHandler(fpt, P=P)
+def test_invalid_function_call(handler):
     with pytest.raises(ValueError, match="Function 'nonexistent_function' not found"):
         handler.run('nonexistent_function')
 
@@ -199,13 +202,11 @@ def test_all_fastpt_functions_with_run_params(fpt):
         except Exception as e:
             pytest.fail(f"Function {func_name} failed to run with error: {str(e)}")
 
-def test_clear_params(fpt):
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+def test_clear_params(handler):
     handler.clear_default_params()
     assert handler.default_params == {}
 
-def test_override_params(fpt):
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+def test_override_params(handler):
     original_params = handler.default_params.copy()
     r1 = handler.run('one_loop_dd')
     new_params = {'P': P * 2, 'P_window': np.array([0.1, 0.1]), 'C_window': 0.5}
@@ -219,14 +220,12 @@ def test_override_params(fpt):
         else:
             assert handler.default_params[key] == original_params[key]
 
-def test_update_params(fpt):
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+def test_update_params(handler):
     new_params = {'P': P * 2, 'P_window': np.array([0.1, 0.1]), 'C_window': 0.5}
     handler.update_default_params(**new_params)
     assert handler.default_params == new_params
 
-def test_update_fpt_instance(fpt):
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+def test_update_fpt_instance(fpt, handler):
     handler.run('one_loop_dd')  # Run to initialize cache
     new_fpt = FASTPT(fpt.k_original)
     handler.update_fastpt_instance(new_fpt)
@@ -293,9 +292,8 @@ def test_handler_function_equality(fpt):
 
 
 ########### GET METHOD TESTING ############
-def test_get_method_basics(fpt):
+def test_get_method_basics(fpt, handler):
         """Test the basic functionality of the get method"""
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
         
         # Test single term retrieval
         p_deltaE1 = handler.get("P_deltaE1")
@@ -324,7 +322,7 @@ def test_get_method_basics(fpt):
                                        "P_d2E", "P_d20E", "P_d2E2",
                                        "P_OV",
                                        "P_kP1", "P_kP2", "P_kP3"])                   
-def test_get_all_terms(fpt, term_name):
+def test_get_all_terms(fpt, handler, term_name):
     term_sources = {
             "P_1loop": ("one_loop_dd", 0),
             "Ps": ("one_loop_dd", 1),
@@ -404,7 +402,6 @@ def test_get_all_terms(fpt, term_name):
 
             # "P_IRres": ("IRres", 0),
         }
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
     term_source = term_sources[term_name]
     result = handler.get(term_name)
     result_direct = getattr(fpt, term_source[0])(P=P, P_window=P_window, C_window=C_window)
@@ -470,23 +467,19 @@ def test_get_with_different_params(fpt):
         
     assert not np.array_equal(result1, result3)
 
-def test_get_invalid_term(fpt):
+def test_get_invalid_term(handler):
     """Test get method with invalid term name"""
-    handler = FPTHandler(fpt, P=P)
-        
     with pytest.raises(ValueError, match="Term 'nonexistent_term' not found in FASTPT"):
         handler.get("nonexistent_term")
 
 def test_get_missing_params(fpt):
         """Test get method with missing required parameters"""
         handler = FPTHandler(fpt)
-        
         with pytest.raises(ValueError, match="Missing required parameters"):
             handler.get("P_deltaE1")  # P is required
 
-def test_get_special_terms(fpt):
+def test_get_special_terms(fpt, handler):
     """Test get method with special terms that have their own functions"""
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
         
     p_btype2 = handler.get("P_Btype2")
     fpt.cache.clear()
@@ -560,9 +553,8 @@ def test_bulk_run_basic(fpt):
             assert (func, i) in results
             assert results[(func, i)] is not None
 
-def test_bulk_run_results_correctness(fpt):
+def test_bulk_run_results_correctness(handler):
     """Test that bulk_run results match individual run calls"""
-    handler = FPTHandler(fpt, P_window=P_window, C_window=C_window)
     funcs = ['one_loop_dd', 'IA_tt']
     power_spectra = [P, P * 1.5]
     
@@ -582,9 +574,8 @@ def test_bulk_run_results_correctness(fpt):
             else:
                 assert np.array_equal(individual_result, bulk_result)
 
-def test_bulk_run_with_overrides(fpt):
+def test_bulk_run_with_overrides(handler):
     """Test bulk_run with additional override parameters"""
-    handler = FPTHandler(fpt)
     funcs = ['RSD_components']
     power_spectra = [P]
     
@@ -595,10 +586,8 @@ def test_bulk_run_with_overrides(fpt):
     assert (funcs[0], 0) in results
     assert results[(funcs[0], 0)] is not None
 
-def test_bulk_run_empty_inputs(fpt):
-    """Test bulk_run with empty function list or power spectra list"""
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-    
+def test_bulk_run_empty_inputs(handler):
+    """Test bulk_run with empty function list or power spectra list"""    
     # Empty function list
     empty_results = handler.bulk_run([], [P])
     assert len(empty_results) == 0
@@ -625,24 +614,19 @@ def test_bulk_run_with_caching(fpt):
     handler.bulk_run(funcs, [P * 1.1], P_window=P_window, C_window=C_window)
     assert len(handler.cache) > cache_size
 
-def test_bulk_run_with_invalid_function(fpt):
-    """Test bulk_run with invalid function name"""
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-    
+def test_bulk_run_with_invalid_function(handler):
+    """Test bulk_run with invalid function name"""    
     with pytest.raises(ValueError, match="Function 'invalid_function' not found in FASTPT"):
         handler.bulk_run(['invalid_function'], [P])
 
-def test_bulk_run_missing_params(fpt):
-    """Test bulk_run with missing required parameters"""
-    handler = FPTHandler(fpt)
-    
+def test_bulk_run_missing_params(handler):
+    """Test bulk_run with missing required parameters"""    
     with pytest.raises(ValueError, match="Missing required parameters"):
         handler.bulk_run(['RSD_components'], [P], P_window=P_window, C_window=C_window)
         # Missing 'f' parameter for RSD_components
 
-def test_bulk_run_large_input(fpt):
+def test_bulk_run_large_input(handler):
     """Test bulk_run with larger number of functions and spectra"""
-    handler = FPTHandler(fpt)
     funcs = ['one_loop_dd', 'IA_tt', 'IA_mix', 'OV', 'kPol']
     power_spectra = [P, P * 1.1, P * 1.2, P * 1.3, P * 1.4]
     
@@ -657,7 +641,6 @@ def test_bulk_run_large_input(fpt):
 def test_bulk_run_with_save_all(fpt):
     """Test bulk_run with save_all flag"""
     # Create a temporary outputs directory to avoid cluttering
-    import tempfile
     
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a mock save_output that just records calls rather than saving files
@@ -690,17 +673,12 @@ def test_bulk_run_with_save_all(fpt):
             FPTHandler.save_output = original_save_output
 
 ################# OUTPUT FILE TESTS #################
-def test_save_output_file_types(fpt):
+def test_save_output_file_types(handler):
     """Test saving output in different file formats"""
-    import os
-    import tempfile
     import json
     import csv
-    import numpy as np
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # Test txt format
         txt_result = handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
         txt_file = os.path.join(temp_dir, "one_loop_dd_output.txt")
@@ -733,14 +711,10 @@ def test_save_output_file_types(fpt):
             if isinstance(json_result, tuple):
                 assert len(json_data['one_loop_dd_bias']) == len(json_result)
 
-def test_save_output_auto_naming(fpt):
+def test_save_output_auto_naming(handler):
     """Test automatic filename adjustment when files already exist"""
-    import os
-    import tempfile
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # First run - should create base filename
         handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
         base_file = os.path.join(temp_dir, "one_loop_dd_output.txt")
@@ -763,8 +737,6 @@ def test_save_output_auto_naming(fpt):
 
 def test_output_directory_precedence(fpt):
     """Test precedence of different output directory parameters"""
-    import os
-    import tempfile
     
     with tempfile.TemporaryDirectory() as tempdir1:
         with tempfile.TemporaryDirectory() as tempdir2:
@@ -780,24 +752,17 @@ def test_output_directory_precedence(fpt):
             assert os.path.exists(os.path.join(tempdir2, "IA_tt_output.txt"))
             assert not os.path.exists(os.path.join(tempdir1, "IA_tt_output.txt"))
 
-def test_invalid_file_type(fpt):
+def test_invalid_file_type(handler):
     """Test that invalid file types raise appropriate errors"""
-    import tempfile
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         with pytest.raises(ValueError, match="Invalid file type"):
             handler.run('one_loop_dd', save_type="invalid", save_dir=temp_dir)
 
-def test_save_output_direct_call(fpt):
+def test_save_output_direct_call(handler):
     """Test direct calls to save_output method"""
-    import os
-    import tempfile
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # Run function to get a result
         result = handler.run('one_loop_dd')
         
@@ -811,13 +776,10 @@ def test_save_output_direct_call(fpt):
         assert os.path.exists(os.path.join(temp_dir, "one_loop_dd_output.csv"))
         assert os.path.exists(os.path.join(temp_dir, "one_loop_dd_output.json"))
 
-def test_bulk_run_with_save_options(fpt):
+def test_bulk_run_with_save_options(handler):
     """Test bulk_run with file saving options"""
-    import os
-    import tempfile
     
     with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P_window=P_window, C_window=C_window)
         funcs = ['one_loop_dd', 'IA_tt']
         power_spectra = [P, P * 1.1]
         
@@ -833,14 +795,10 @@ def test_bulk_run_with_save_options(fpt):
                     base_path = os.path.join(temp_dir, f"{func}_{i}_output.txt")
                 assert os.path.exists(base_path)
 
-def test_load_method(fpt):
+def test_load_method(handler):
     """Test the load method for loading saved output files of different types"""
-    import tempfile
-    import numpy as np
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # Test txt format
         txt_result = handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
         txt_loaded = handler.load('one_loop_dd_output.txt', load_dir=temp_dir)
@@ -865,15 +823,10 @@ def test_load_method(fpt):
         for r1, r2 in zip(json_result, json_loaded):
             assert np.allclose(r1, r2), f"r1: {r1}, r2: {r2}"
 
-def test_load_with_absolute_path(fpt):
+def test_load_with_absolute_path(handler):
     """Test loading files using absolute paths"""
-    import os
-    import tempfile
-    import numpy as np
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # Save a result
         result = handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
         file_path = os.path.join(temp_dir, "one_loop_dd_output.txt")
@@ -892,9 +845,7 @@ def test_load_with_absolute_path(fpt):
                 assert np.allclose(r1, r2)
 
 def test_load_with_default_dir(fpt):
-    """Test loading from the default output directory"""
-    import tempfile
-    import numpy as np
+    """Test loading from the default output directory""" 
     
     with tempfile.TemporaryDirectory() as temp_dir:
         # Initialize handler with custom output directory
@@ -909,13 +860,10 @@ def test_load_with_default_dir(fpt):
         for r1, r2 in zip(result, loaded_result):
             assert np.allclose(r1, r2)
 
-def test_load_error_handling(fpt):
+def test_load_error_handling(handler):
     """Test error handling in the load method"""
-    import tempfile
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # Test file not found
         with pytest.raises(FileNotFoundError):
             handler.load('nonexistent_file.txt', load_dir=temp_dir)
@@ -923,7 +871,7 @@ def test_load_error_handling(fpt):
         # Test unsupported file type
         handler.run('one_loop_dd', save_type="txt", save_dir=temp_dir)
         # Create a file with unsupported extension by renaming
-        import os
+        
         import shutil
         src = os.path.join(temp_dir, "one_loop_dd_output.txt")
         dst = os.path.join(temp_dir, "one_loop_dd_output.xyz")
@@ -932,14 +880,10 @@ def test_load_error_handling(fpt):
         with pytest.raises(FileNotFoundError):
             handler.load('one_loop_dd_output.xyz', load_dir=temp_dir)
 
-def test_load_consistency_across_types(fpt):
-    """Test that loading from different file types produces consistent results"""
-    import tempfile
-    import numpy as np
+def test_load_consistency_across_types(handler):
+    """Test that loading from different file types produces consistent results"""  
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-        
+    with tempfile.TemporaryDirectory() as temp_dir:        
         # Save the same result in different formats
         result = handler.run('one_loop_dd')
         handler.save_output(result, 'one_loop_dd', type="txt", output_dir=temp_dir)
@@ -961,12 +905,8 @@ def test_load_consistency_across_types(fpt):
             assert np.allclose(result[i], csv_loaded[i])
             assert np.allclose(result[i], json_loaded[i])
 
-def test_load_with_relative_paths(fpt):
-    """Test loading using relative paths"""
-    import tempfile
-    import os
-    import numpy as np
-    
+def test_load_with_relative_paths(handler):
+    """Test loading using relative paths"""  
     # Get current working directory
     orig_cwd = os.getcwd()
     
@@ -974,15 +914,10 @@ def test_load_with_relative_paths(fpt):
         try:
             # Change to the temporary directory
             os.chdir(temp_dir)
-            
             # Create a subdirectory for outputs
-            os.makedirs('outputs', exist_ok=True)
-            
-            handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
-            
+            os.makedirs('outputs', exist_ok=True)                        
             # Save a result
-            result = handler.run('one_loop_dd', save_type="txt", save_dir='outputs')
-            
+            result = handler.run('one_loop_dd', save_type="txt", save_dir='outputs')            
             # Load using relative path
             loaded_result = handler.load(os.path.join('outputs', 'one_loop_dd_output.txt'))
             
@@ -992,3 +927,244 @@ def test_load_with_relative_paths(fpt):
         finally:
             # Make sure to return to original directory
             os.chdir(orig_cwd)
+
+import shutil
+@pytest.fixture
+def temp_output_dir():
+    """Create a temporary directory for test outputs"""
+    temp_dir = tempfile.mkdtemp()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
+################# PARAMS SAVER BASIC FUNCTIONALITY TESTS #################
+def test_save_and_load_basic(handler, temp_output_dir):
+    """Test basic save and load functionality"""
+    # Save parameters
+    param_file = os.path.join(temp_output_dir, "test_params")
+    handler.save_params(param_file)
+    
+    # Load parameters
+    loaded_params = handler.load_params(param_file)
+    
+    # Check that loaded parameters match original parameters
+    for key, value in handler.default_params.items():
+        assert key in loaded_params
+        if isinstance(value, np.ndarray):
+            assert np.array_equal(value, loaded_params[key])
+        else:
+            assert value == loaded_params[key]
+
+def test_save_and_load_custom_params(handler, temp_output_dir):
+    """Test saving and loading with custom parameters"""
+    # Create custom parameters
+    custom_params = {
+        'P': P * 1.5,
+        'C_window': 0.5,
+        'f': 0.7,
+        'mu_n': 0.3
+    }
+    
+    # Save custom parameters
+    param_file = os.path.join(temp_output_dir, "custom_params")
+    handler.save_params(param_file, **custom_params)
+    
+    # Load parameters
+    loaded_params = handler.load_params(param_file)
+    
+    # Check that loaded parameters match custom parameters
+    for key, value in custom_params.items():
+        assert key in loaded_params
+        if isinstance(value, np.ndarray):
+            assert np.array_equal(value, loaded_params[key])
+        else:
+            assert value == loaded_params[key]
+
+def test_save_empty_params(fpt, temp_output_dir):
+    """Test saving when no parameters are available"""
+    # Create handler with no parameters
+    handler = FPTHandler(fpt)
+    handler.clear_default_params()
+    with pytest.raises(ValueError, match="No parameters stored or provided to save"):
+        handler.save_params(os.path.join(temp_output_dir, "empty_params"))
+
+################# FILE PATH TESTS #################
+def test_file_path_handling(handler, temp_output_dir):
+    """Test different ways of specifying file paths"""
+    # 1. Relative filename with output_dir
+    handler.save_params("params1", output_dir=temp_output_dir)
+    assert os.path.exists(os.path.join(temp_output_dir, "params1.npz"))
+    
+    # 2. Absolute path (output_dir should be ignored)
+    abs_path = os.path.join(temp_output_dir, "params2")
+    handler.save_params(abs_path, output_dir="/should/be/ignored")
+    assert os.path.exists(abs_path + ".npz")
+    
+    # 3. Relative path with directory component
+    subdir = "subdir"
+    os.makedirs(os.path.join(temp_output_dir, subdir), exist_ok=True)
+    rel_path = os.path.join(subdir, "params3")
+    handler.save_params(rel_path, output_dir=temp_output_dir)
+    assert os.path.exists(os.path.join(temp_output_dir, rel_path + ".npz"))
+
+def test_file_extension_handling(handler, temp_output_dir):
+    """Test handling of file extensions"""
+    # Without extension (should add .npz)
+    handler.save_params("no_extension", output_dir=temp_output_dir)
+    assert os.path.exists(os.path.join(temp_output_dir, "no_extension.npz"))
+    
+    # With .npz extension (should not duplicate)
+    handler.save_params("with_extension.npz", output_dir=temp_output_dir)
+    assert os.path.exists(os.path.join(temp_output_dir, "with_extension.npz"))
+    assert not os.path.exists(os.path.join(temp_output_dir, "with_extension.npz.npz"))
+    
+    # With other extension (should still add .npz)
+    handler.save_params("other_extension.txt", output_dir=temp_output_dir)
+    assert os.path.exists(os.path.join(temp_output_dir, "other_extension.txt.npz"))
+
+def test_directory_creation(handler):
+    """Test automatic directory creation"""
+    # Create a nested directory path that doesn't exist
+    temp_dir = tempfile.mkdtemp()
+    try:
+        nested_path = os.path.join(temp_dir, "a", "b", "c")
+        param_file = os.path.join(nested_path, "params")
+        
+        # This should create the directory structure
+        handler.save_params(param_file)
+        
+        # Check that the directories were created
+        assert os.path.exists(nested_path)
+        assert os.path.exists(param_file + ".npz")
+    finally:
+        shutil.rmtree(temp_dir)
+
+def test_default_directory_fallback(fpt):
+    """Test fallback to default output directory"""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create handler with custom output directory
+        handler = FPTHandler(fpt, P=P, save_dir=temp_dir)
+        
+        # Save without specifying output_dir (should use default)
+        handler.save_params("default_dir_params")
+        assert os.path.exists(os.path.join(temp_dir, "default_dir_params.npz"))
+        
+        # Load without specifying load_dir (should use default)
+        loaded_params = handler.load_params("default_dir_params")
+        assert loaded_params is not None
+
+################# LOAD TESTS #################
+def test_load_nonexistent_file(handler):
+    """Test loading a file that doesn't exist"""
+    with pytest.raises(FileNotFoundError):
+        handler.load_params("nonexistent_file")
+
+def test_load_with_different_handler(fpt, temp_output_dir):
+    """Test loading parameters with a different handler than the one that saved them"""
+    # Save parameters with first handler
+    handler1 = FPTHandler(fpt, P=P, C_window=0.8)
+    param_file = os.path.join(temp_output_dir, "shared_params")
+    handler1.save_params(param_file)
+    
+    # Load parameters with second handler
+    handler2 = FPTHandler(fpt)  # Different handler
+    loaded_params = handler2.load_params(param_file)
+    
+    # Check that loaded parameters match what was saved
+    assert np.array_equal(loaded_params['P'], P)
+    assert loaded_params['C_window'] == 0.8
+
+def test_load_with_absolute_path(handler, temp_output_dir):
+    """Test loading using an absolute file path"""
+    # Save parameters
+    param_file = os.path.join(temp_output_dir, "abs_path_params")
+    handler.save_params(param_file)
+    
+    # Load using absolute path
+    loaded_params = handler.load_params(param_file)
+    assert loaded_params is not None
+    
+    # Load using absolute path with .npz extension
+    loaded_params = handler.load_params(param_file + ".npz")
+    assert loaded_params is not None
+    
+    # Load with absolute path but specifying load_dir (should ignore load_dir)
+    loaded_params = handler.load_params(param_file, load_dir="/should/be/ignored")
+    assert loaded_params is not None
+
+################# INTEGRATION TESTS #################
+def test_save_and_use_in_run(fpt, temp_output_dir):
+    """Test saving parameters and then using them in a run"""
+    # Create and save parameters
+    custom_params = {
+        'P': P,
+        'P_window': P_window,
+        'C_window': C_window
+    }
+    handler = FPTHandler(fpt)
+    param_file = os.path.join(temp_output_dir, "run_params")
+    handler.save_params(param_file, **custom_params)
+    
+    # Load parameters
+    loaded_params = handler.load_params(param_file)
+    
+    # Use loaded parameters in a run
+    result = handler.run('one_loop_dd', **loaded_params)
+    
+    # Compare with direct run
+    direct_result = handler.run('one_loop_dd', **custom_params)
+    
+    # Results should be identical
+    assert np.array_equal(result, direct_result)
+
+def test_load_and_update_defaults(fpt, temp_output_dir):
+    """Test loading parameters and updating default parameters"""
+    # Create and save parameters
+    custom_params = {
+        'P': P,
+        'C_window': 0.6,
+        'f': 0.7
+    }
+    handler = FPTHandler(fpt)
+    param_file = os.path.join(temp_output_dir, "update_params")
+    handler.save_params(param_file, **custom_params)
+    
+    # Load parameters
+    loaded_params = handler.load_params(param_file)
+    
+    # Update default parameters
+    handler.update_default_params(**loaded_params)
+    
+    # Check that default parameters were updated
+    for key, value in custom_params.items():
+        assert key in handler.default_params
+        if isinstance(value, np.ndarray):
+            assert np.array_equal(handler.default_params[key], value)
+        else:
+            assert handler.default_params[key] == value
+            
+def test_load_params_in_bulk_run(fpt, temp_output_dir):
+    """Test loading parameters for use in bulk_run"""
+    # Create and save parameters
+    base_params = {
+        'P_window': P_window,
+        'C_window': C_window,
+        'f': 0.5
+    }
+    handler = FPTHandler(fpt)
+    param_file = os.path.join(temp_output_dir, "bulk_params")
+    handler.save_params(param_file, **base_params)
+    
+    # Load parameters
+    loaded_params = handler.load_params(param_file)
+    
+    # Use loaded parameters in bulk_run
+    power_spectra = [P, P * 1.1]
+    funcs = ['one_loop_dd', 'IA_tt']
+    
+    # Run with loaded parameters
+    results = handler.bulk_run(funcs, power_spectra, **loaded_params)
+    
+    # Check that results were generated for all combinations
+    assert len(results) == len(funcs) * len(power_spectra)
+    for func in funcs:
+        for i in range(len(power_spectra)):
+            assert (func, i) in results

@@ -861,6 +861,137 @@ class FPTHandler:
         except Exception as e:
             print(f"Error loading output from {full_path}: {str(e)}")
             return None
+        
+
+    def save_params(self, filename, output_dir=None, **params):
+        """
+        Save parameters to a compressed numpy .npz file.
+        
+        This method saves both numpy arrays and other Python objects (strings, floats, ints, etc.)
+        in a single file. Arrays are stored directly, while non-array values are collected
+        in a metadata dictionary and stored as a special array.
+        
+        Parameters
+        ----------
+        filename : str
+            Path where parameters will be saved. If the path doesn't end with '.npz',
+            the extension will be added automatically.
+        output_dir : str, optional
+            Directory to save parameters. If None, uses default output directory.
+            If filename already contains a directory path, output_dir is ignored.
+        **params : dict
+            Parameters to save. If no parameters are provided, the handler's default
+            parameters will be saved instead.
+            
+        Notes
+        -----
+        Non-array values are stored in a special array with key '__metadata__'.
+        Arrays and scalars can be freely mixed in the parameters.
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> # Save specific parameters
+        >>> handler.save_params('my_params', P=P_linear, C_window=0.75, bias=1.5)
+        >>> # Save default parameters
+        >>> handler.save_params('default_params')
+        >>> # Save to specific directory
+        >>> handler.save_params('custom_params', output_dir='/path/to/save')
+        """
+        metadata = {}
+        arrays = {}
+        if not params and not self.default_params:
+            raise ValueError("No parameters stored or provided to save.")
+        if not params:
+            print("Saving default params...")
+            for param in self.default_params.keys():
+                value = self.default_params[param]
+                if isinstance(value, np.ndarray):
+                    arrays[param] = value
+                else:
+                    metadata[param] = value
+        else:
+            for key, value in params.items():
+                if isinstance(value, np.ndarray):
+                    arrays[key] = value
+                else:
+                    metadata[key] = value
+        
+        if metadata:
+            arrays['__metadata__'] = np.array([metadata], dtype=object)
+        
+        if os.path.isabs(filename):
+            # If filename is absolute, use it directly
+            full_path = filename
+        else:
+            # Otherwise, determine the base directory
+            directory = output_dir if output_dir is not None else self.output_dir
+            full_path = os.path.join(directory, filename)
+        
+        os.makedirs(os.path.dirname(os.path.abspath(full_path)), exist_ok=True)
+        
+        if not full_path.endswith('.npz'):
+            full_path += '.npz'
+        np.savez_compressed(full_path, **arrays)
+
+    def load_params(self, filename, load_dir=None):
+        """
+        Load parameters from a saved .npz file.
+        
+        Loads both array and non-array parameters from a file created with save_params().
+        Arrays are loaded directly, while scalar values are extracted from the metadata.
+        
+        Parameters
+        ----------
+        filename : str
+            Path to the parameter file. If the path doesn't end with '.npz',
+            the extension will be added automatically.
+        load_dir : str, optional
+            Directory to load parameters from. If None, uses default output directory.
+            If filename already contains a directory path, load_dir is ignored.
+            
+        Returns
+        -------
+        dict
+            Dictionary containing all loaded parameters.
+            
+        Notes
+        -----
+        This method automatically handles the separation between array parameters and
+        scalar metadata that was created during saving.
+        
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> params = handler.load_params('my_params.npz')
+        >>> print(params.keys())
+        >>> # Use loaded parameters in a calculation
+        >>> result = handler.run('one_loop_dd', **params)
+        >>> # Load from specific directory
+        >>> params = handler.load_params('custom_params', load_dir='/path/to/load')
+        """
+        if os.path.isabs(filename) or os.path.dirname(filename):
+            full_path = filename
+        else:
+            directory = load_dir if load_dir is not None else self.output_dir
+            full_path = os.path.join(directory, filename)
+        
+        if not full_path.endswith('.npz'):
+            full_path += '.npz'
+        
+        if not os.path.exists(full_path):
+            raise FileNotFoundError(f"Parameter file '{full_path}' not found.")
+        
+        data = np.load(full_path, allow_pickle=True)
+        params = {}
+        for key in data.files:
+            if key != '__metadata__':
+                params[key] = data[key]
+        if '__metadata__' in data.files:
+            metadata = data['__metadata__'][0]
+            params.update(metadata)
+        
+        return params
 
     def plot(self, data=None, terms=None, k=None, ax=None, title=None, 
              log_scale=True, legend_loc='best', grid=True, style=None,
