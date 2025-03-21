@@ -57,6 +57,14 @@ from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
 from .CacheManager import CacheManager
 
+
+try:
+    from .cython_pt.fastpt_core import compute_fourier_coefficients, compute_convolution
+    CYTHON_AVAILABLE = True
+except ImportError:
+    CYTHON_AVAILABLE = False
+    print("Cython optimizations not available. Using pure Python implementation.")
+
 log2 = log(2.)
 
 
@@ -1510,6 +1518,13 @@ class FASTPT:
     def _cache_fourier_coefficients(self, P_b, C_window=None):
         """Cache and return Fourier coefficients for a given biased power spectrum"""
         hash_key = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
+
+        if CYTHON_AVAILABLE:
+            c_window_func = c_window if C_window is not None else None
+            return compute_fourier_coefficients(self.cache, hash_key, 
+                                                P_b, self.m, self.N, 
+                                                c_window_func, C_window,
+                                                self.verbose)
         result = self.cache.get("fourier_coefficients", hash_key)
         if result is not None: return result
         from numpy.fft import rfft
@@ -1540,6 +1555,12 @@ class FASTPT:
         for h in hash_list:
             if h is not None:
                 hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+
+        if CYTHON_AVAILABLE and two_part_l is not None:
+            return compute_convolution(self.cache, hash_key, c1, c2, g_m, g_n, h_l, two_part_l)
+        elif CYTHON_AVAILABLE:
+            return compute_convolution(self.cache, hash_key, c1, c2, g_m, g_n, h_l)
+
         result = self.cache.get("convolution", hash_key)
         if result is not None: return result
 
@@ -1680,92 +1701,4 @@ class FASTPT:
 
 
 
-
-
-### Example script ###
-if __name__ == "__main__":
-    # An example script to run FASTPT for (P_22 + P_13) and IA.
-    # Makes a plot for P_22 + P_13.
-    from time import time
-
-    # Version check
-    print(f'This is FAST-PT version {__version__}')
-
-    # load the data file
-
-    d = np.loadtxt('Pk_test.dat')
-    # declare k and the power spectrum
-    k = d[:, 0]
-    P = d[:, 1]
-
-    # set the parameters for the power spectrum window and
-    # Fourier coefficient window
-    # P_window=np.array([.2,.2])
-    C_window = .75
-    # document this better in the user manual
-
-    # padding length
-    n_pad = int(0.5 * len(k))
-    #	to_do=['one_loop_dd','IA_tt']
-    to_do = ['one_loop_dd']
-    #	to_do=['dd_bias','IA_all']
-    # to_do=['all']
-
-    # initialize the FASTPT class
-    # including extrapolation to higher and lower k
-    t1 = time()
-    fpt = FASTPT(k, to_do=to_do, low_extrap=-5, high_extrap=3, n_pad=n_pad)
-
-    t2 = time()
-    # calculate 1loop SPT (and time the operation)
-    # P_spt=fastpt.one_loop_dd(P,C_window=C_window)
-    P_lpt = fpt.one_loop_dd_bias_lpt(P, C_window=C_window)
-
-    # for M = 10**14 M_sun/h
-    b1L = 1.02817
-    b2L = -0.0426292
-    b3L = -2.55751
-    b1E = 1 + b1L
-
-    # for M = 10**14 M_sun/h
-    # b1_lag = 1.1631
-    # b2_lag = 0.1162
-
-    # [Ps, Pnb, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, Pb3L, Pb1L_b3L] = [P_lpt[0],P_lpt[1],P_lpt[2],P_lpt[3],P_lpt[4],P_lpt[5],P_lpt[6],P_lpt[7],P_lpt[8]]
-    [Ps, Pnb, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2] = [P_lpt[0], P_lpt[1], P_lpt[2], P_lpt[3], P_lpt[4], P_lpt[5],
-                                                       P_lpt[6]]
-
-    # Pgg_lpt = (b1E**2)*P + Pnb + (b1L)*(Pb1L) + (b1L**2)*Pb1L_2 + (b1L*b2L)*Pb1L_b2L + (b2L)*(Pb2L) + (b2L**2)*Pb2L_2 + (b3L)*(Pb3L) + (b1L*b3L)*Pb1L_b3L
-    Pgg_lpt = (b1E ** 2) * P + Pnb + (b1L) * (Pb1L) + (b1L ** 2) * Pb1L_2 + (b1L * b2L) * Pb1L_b2L + (b2L) * (Pb2L) + (
-            b2L ** 2) * Pb2L_2
-
-    # print([pnb,pb1L,pb1L_2,pb2L,Pb1L_b2L])
-
-    t3 = time()
-    print('initialization time for', to_do, "%10.3f" % (t2 - t1), 's')
-    print('one_loop_dd recurring time', "%10.3f" % (t3 - t2), 's')
-
-    # calculate tidal torque EE and BB P(k)
-    # P_IA_tt=fastpt.IA_tt(P,C_window=C_window)
-    # P_IA_ta=fastpt.IA_ta(P,C_window=C_window)
-    # P_IA_mix=fastpt.IA_mix(P,C_window=C_window)
-    # P_RSD=fastpt.RSD_components(P,1.0,C_window=C_window)
-    # P_kPol=fastpt.kPol(P,C_window=C_window)
-    # P_OV=fastpt.OV(P,C_window=C_window)
-    # P_IRres=fastpt.IRres(P,C_window=C_window)
-    # make a plot of 1loop SPT results
-    import matplotlib.pyplot as plt
-
-    ax = plt.subplot(111)
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_ylabel(r'$P(k)$', size=30)
-    ax.set_xlabel(r'$k$', size=30)
-
-    ax.plot(k, P, label='linear')
-    # ax.plot(k,P_spt[0], label=r'$P_{22}(k) + P_{13}(k)$' )
-    ax.plot(k, Pgg_lpt, label='P_lpt')
-
-    plt.legend(loc=3)
-    plt.grid()
-    plt.show()
+#removed the original example, retrieve it from history if needed

@@ -479,7 +479,7 @@ class FPTHandler:
     
     def get_tracer(self, tracer_name, **override_kwargs):
         """
-        Get Fast-PT terms relevant to specific tracer.
+        Get Fast-PT terms relevant to a specific tracer.
         
         Parameters
         ----------

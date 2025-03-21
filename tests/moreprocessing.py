@@ -83,7 +83,7 @@ if __name__ == "__main__":
     gc.collect()
     print(f"Memory usage: {get_memory_usage():.2f} MB")
     start = time()
-    handler.bulk_run_threads(funcs, spectra)
+    handler.bulk_run(funcs, spectra)
     stop = time()
     print(f"Memory usage: {get_memory_usage():.2f} MB")
     print(f"Total cumulative time for bulk run: {stop - start:.2f} seconds")
