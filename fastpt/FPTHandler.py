@@ -358,6 +358,8 @@ class FPTHandler:
         results = {}
         if flip:
             for i, P in enumerate(power_spectra):
+                # if i % 10 == 0:
+                #     self.fastpt.clear_workspace()
                 for func_name in func_names:
                     params = {**self.default_params, **override_kwargs, 'P': P}
                     if verbose: print(f"Running {func_name} with power spectrum {i}")
@@ -365,11 +367,13 @@ class FPTHandler:
         else:
             for func_name in func_names:
                 for i, P in enumerate(power_spectra):
+                    # if i % 10 == 0:
+                    #     self.fastpt.clear_workspace()
                     params = {**self.default_params, **override_kwargs, 'P': P}
                     if verbose: print(f"Running {func_name} with power spectrum {i}")
                     results[(func_name, i)] = self.run(func_name, **params)
         return results
-    
+       
     def get(self, *terms, **override_kwargs):
         """
         Get specific power spectrum terms directly.
