@@ -1,4 +1,3 @@
-# Add this import at the top
 import gc
 import numpy as np
 from classy import Class
@@ -59,13 +58,14 @@ if __name__ == "__main__":
     
     # Initialize FASTPT once
     fpt = FASTPT(k, to_do=['all'], n_pad=int(0.5*len(k)))
-    funcs = ["one_loop_dd", "one_loop_dd_bias", "one_loop_dd_bias_b3nl", "one_loop_dd_bias_lpt_NL", 
-            "IA_tt", "IA_mix", "IA_ta", "OV", "kPol"]
+    # funcs = ["one_loop_dd", "one_loop_dd_bias", "one_loop_dd_bias_b3nl", "one_loop_dd_bias_lpt_NL", 
+    #         "IA_tt", "IA_mix", "IA_ta", "OV", "kPol"]
+    funcs = ["IA_tt"]
     
     handler = FPTHandler(fpt, P_window=P_window, C_window=C_window)
     spectra = []
     print("Generating power spectra...")
-    for i in range(100):
+    for i in range(1000):
         cosmo_params = random_cosmology()
         k, pk = generate_power_spectrum(
             omega_cdm=cosmo_params['omega_cdm'],
@@ -83,7 +83,8 @@ if __name__ == "__main__":
     gc.collect()
     print(f"Memory usage: {get_memory_usage():.2f} MB")
     start = time()
-    handler.bulk_run(funcs, spectra)
+    handler.bulk_run(funcs, spectra, flip=False)
     stop = time()
+    print(fpt.cache.stats())
     print(f"Memory usage: {get_memory_usage():.2f} MB")
     print(f"Total cumulative time for bulk run: {stop - start:.2f} seconds")
