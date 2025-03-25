@@ -21,7 +21,7 @@ class CacheManager:
         try:
             from pympler import asizeof
             actual_size = asizeof.asizeof(self.cache) / (1024 * 1024)
-            return f"Actual cache size (pympler): {actual_size:.2f} MB"
+            return f"{actual_size:.2f}"
         except ImportError:
             pass
         
@@ -137,6 +137,7 @@ class CacheManager:
         return {
             'items': len(self.cache),
             'size_bytes': total_size_bytes,
+            'Pympler_size': self.measure_actual_size(),
             'size_mb': total_size_mb,
             'key_size_mb': key_size_mb,
             'value_size_mb': value_size_mb,
