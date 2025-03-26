@@ -379,12 +379,6 @@ cpdef np.ndarray compute_convolution(
     object two_part_l=None):
     """
     Cache and compute convolution of Fourier coefficients with array reuse.
-    
-    This function optimizes memory usage by:
-    1. Reusing pre-allocated workspaces
-    2. Using scipy's optimized FFT implementation
-    3. Performing operations in-place wherever possible
-    4. Utilizing Cython typing for performance
     """
     
     # Create cache key using hash_arrays_cy like the Python version does
@@ -410,6 +404,7 @@ cpdef np.ndarray compute_convolution(
         int output_len = c1_len + c2_len - 1
         tuple expected_shapes = (c1_len, c2_len, output_len)
         np.ndarray[COMPLEX_t, ndim=1] C_l
+        int h_l_len = len(h_l)
     
     # Initialize or resize workspaces if needed
     global _c1g_workspace, _c2g_workspace, _conv_result_workspace, _last_conv_shapes
@@ -430,11 +425,42 @@ cpdef np.ndarray compute_convolution(
     # Use our optimized FFT convolution
     _conv_result_workspace[:] = optimized_fft_convolution(_c1g_workspace, _c2g_workspace)
     
-    # Apply additional terms in-place
-    if two_part_l is not None:
-        _conv_result_workspace *= h_l * two_part_l
+    # Check if h_l size matches the convolution output size
+    if h_l_len != output_len:
+        # Resize h_l to match convolution output - use central portion or pad with zeros
+        h_l_resized = np.zeros(output_len, dtype=h_l.dtype)
+        if h_l_len < output_len:
+            # Center the smaller h_l in the larger array
+            start_idx = (output_len - h_l_len) // 2
+            h_l_resized[start_idx:start_idx+h_l_len] = h_l
+        else:
+            # Use the central portion of h_l
+            start_idx = (h_l_len - output_len) // 2
+            h_l_resized = h_l[start_idx:start_idx+output_len]
+        
+        # Apply additional terms in-place with resized h_l
+        if two_part_l is not None:
+            # Also resize two_part_l if needed
+            if len(two_part_l) != output_len:
+                two_part_l_resized = np.ones(output_len, dtype=two_part_l.dtype)
+                if len(two_part_l) < output_len:
+                    start_idx = (output_len - len(two_part_l)) // 2
+                    two_part_l_resized[start_idx:start_idx+len(two_part_l)] = two_part_l
+                else:
+                    start_idx = (len(two_part_l) - output_len) // 2
+                    two_part_l_resized = two_part_l[start_idx:start_idx+output_len]
+                _conv_result_workspace *= h_l_resized * two_part_l_resized
+            else:
+                _conv_result_workspace *= h_l_resized * two_part_l
+        else:
+            _conv_result_workspace *= h_l_resized
     else:
-        _conv_result_workspace *= h_l
+        # Original behavior - shapes match
+        # Apply additional terms in-place
+        if two_part_l is not None:
+            _conv_result_workspace *= h_l * two_part_l
+        else:
+            _conv_result_workspace *= h_l
     
     # Create a copy for caching to prevent mutation of cached values
     C_l = np.array(_conv_result_workspace, copy=True)
@@ -471,9 +497,6 @@ cpdef np.ndarray compute_fourier_coefficients(
         int final_size = 2 * rfft_output_size - 1  # Size of combined array
         bint need_resize = False
         np.ndarray window_values
-        int workspace_size
-        np.ndarray temp_m
-        int midpoint, i
         
     # Initialize or resize workspaces if needed
     global _fft_input_workspace, _fft_pos_workspace, _fft_neg_workspace, _fft_combined_workspace, _last_fft_shape
@@ -522,32 +545,26 @@ cpdef np.ndarray compute_fourier_coefficients(
             print('windowing the Fourier coefficients')
         window_param = int(c_window_param * N / 2.0)
         
-        # Create a numpy array of integers directly
-        workspace_size = _fft_combined_workspace.shape[0]
-        temp_m = np.zeros(workspace_size, dtype=np.float64)  # Use float64 to match expected type
-        midpoint = workspace_size // 2
+        # This is a key fix - use the original m array and interpolate the window values
+        # to match the _fft_combined_workspace size
+        window_values = c_window_func(m, window_param)
         
-        # Fill the array with integers centered around zero
-        for i in range(workspace_size):
-            temp_m[i] = i - midpoint
-        
-        # Apply window function and ensure we get back the right shape
-        try:
-            window_values = c_window_func(temp_m, window_param)
+        # Resample the window values to match the FFT output size
+        if window_values.shape[0] != _fft_combined_workspace.shape[0]:
+            # Create an interpolator
+            from scipy.interpolate import interp1d
             
-            # Safety check - if window size doesn't match workspace size, create a new one
-            if window_values.shape[0] != workspace_size:
-                print(f"Warning: Window size {window_values.shape[0]} doesn't match workspace size {workspace_size}.")
-                window_values = np.ones(workspace_size, dtype=np.float64)
-                
-                # Try to copy values from the original window where possible
-                copy_size = min(window_values.shape[0], workspace_size)
-                window_values[:copy_size] = window_values[:copy_size]
+            # The original window is centered around 0 with indices from m
+            # We need to map it to the FFT output size
+            x_orig = np.linspace(-1, 1, window_values.shape[0])
+            x_new = np.linspace(-1, 1, _fft_combined_workspace.shape[0])
+            
+            # Create interpolation function and apply it
+            f_interp = interp1d(x_orig, window_values, bounds_error=False, fill_value=1)
+            window_values = f_interp(x_new)
         
-            _fft_combined_workspace *= window_values
-        except Exception as e:
-            print(f"Error applying window function: {e}")
-            # Continue without windowing if there's an error
+        # Apply the window
+        _fft_combined_workspace *= window_values
     
     # Create a copy for caching to prevent mutation of cached values
     cdef np.ndarray[COMPLEX_t, ndim=1] c_m = np.array(_fft_combined_workspace, copy=True)
