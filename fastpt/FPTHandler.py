@@ -110,8 +110,8 @@ class FPTHandler:
             "P_E2tE": ("IA_ct", None),
             "P_tEtE": ("IA_ct", None),
         
-            "P_d2tE": ("IA_ctbias", ("X_IA_gb2_F2", "X_IA_gb2_G2"), lambda results: 2 * (results[1] - results[0])),
-            "P_s2tE": ("IA_ctbias", ("X_IA_gb2_S2F2", "X_IA_gb2_S2G2"), lambda results: 2 * (results[1] - results[0])),
+            "P_d2tE": ("IA_ctbias", None),
+            "P_s2tE": ("IA_ctbias", None),
         
             "P_s2E": ("IA_s2", "X_IA_gb2_S2F2", lambda x: 2 * x),
             "P_s20E": ("IA_s2", "X_IA_gb2_S2fe", lambda x: 2 * x),
@@ -432,7 +432,9 @@ class FPTHandler:
                     "Pb1L_2": "_get_Pb1L_2",
                     "Pb1L_b2L": "_get_Pb1L_b2L",
                     "Pb2L": "_get_Pb2L",
-                    "Pb2L_2": "_get_Pb2L_2"
+                    "Pb2L_2": "_get_Pb2L_2",
+                    "P_d2tE": "_get_P_d2tE",
+                    "P_s2tE": "_get_P_s2tE"
                 }
         for term in terms:
             if term not in self.term_sources:

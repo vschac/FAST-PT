@@ -73,7 +73,7 @@ try:
 except ImportError as e:
     import warnings
     warnings.warn(f"FASTPT: Failed to import Cython modules: {e}. Falling back to Python implementation.")
-    CYTHON_AVAILABLE = False
+CYTHON_AVAILABLE = False
 
 log2 = log(2.)
 
@@ -1270,21 +1270,33 @@ class FASTPT:
         P_s2tE : Second-order tidal-tidal E-mode correlation
         """
         self._validate_params(P, P_window=P_window, C_window=C_window)
-        
-        # Calculate each term separately
+        P_d2tE = self._get_P_d2tE(P, P_window=P_window, C_window=C_window)
+        P_s2tE = self._get_P_s2tE(P, P_window=P_window, C_window=C_window)
+        return P_d2tE, P_s2tE
+
+    def _get_P_d2tE(self, P, P_window=None, C_window=None):
+        hash_key = self._create_hash_key("Pd2tE", self.X_IA_gb2_F2, P, P_window, C_window)
+        result = self.cache.get("Pd2tE", hash_key)
+        if result is not None: return result
         P_F2, _ = self.J_k_tensor(P, self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         P_G2, _ = self.J_k_tensor(P, self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
         P_F2 = self._apply_extrapolation(P_F2)
         P_G2 = self._apply_extrapolation(P_G2)
         P_d2tE = 2 * (P_G2 - P_F2)
-        
+        self.cache.set(P_d2tE, "Pd2tE", hash_key)
+        return P_d2tE
+    
+    def _get_P_s2tE(self, P, P_window=None, C_window=None):
+        hash_key = self._create_hash_key("P_s2tE", self.X_IA_gb2_S2F2, P, P_window, C_window)
+        result = self.cache.get("P_s2tE", hash_key)
+        if result is not None: return result
         P_S2F2, _ = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         P_S2G2, _ = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
         P_S2F2 = self._apply_extrapolation(P_S2F2)
         P_S2G2 = self._apply_extrapolation(P_S2G2)
         P_s2tE = 2 * (P_S2G2 - P_S2F2)
-        
-        return P_d2tE, P_s2tE
+        self.cache.set(P_s2tE, "P_s2tE", hash_key)
+        return P_s2tE
 
     
     def IA_gb2(self,P,P_window=None, C_window=None):
