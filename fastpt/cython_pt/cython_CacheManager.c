@@ -3,12 +3,6 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
-        "define_macros": [
-            [
-                "NPY_NO_DEPRECATED_API",
-                "NPY_1_7_API_VERSION"
-            ]
-        ],
         "depends": [
             "/Users/vincentschacknies/RubinRoman/nuke/v/lib/python3.13/site-packages/numpy/core/include/numpy/arrayobject.h",
             "/Users/vincentschacknies/RubinRoman/nuke/v/lib/python3.13/site-packages/numpy/core/include/numpy/arrayscalars.h",
@@ -1531,6 +1525,7 @@ static const char *__pyx_f[] = {
   "cython_CacheManager.pyx",
   "<stringsource>",
   "__init__.cython-30.pxd",
+  "./cython_CacheManager.pxd",
   "type.pxd",
 };
 /* #### Code section: utility_code_proto_before_types ### */
@@ -1784,8 +1779,8 @@ typedef npy_cdouble __pyx_t_5numpy_complex_t;
  * cimport numpy as np
  * 
  * cdef class CacheManager_cy:             # <<<<<<<<<<<<<<
- *     cdef dict cache
- *     cdef dict hit_counts
+ *     cdef:
+ *         public dict cache
  */
 struct __pyx_obj_19cython_CacheManager_CacheManager_cy {
   PyObject_HEAD
@@ -2972,6 +2967,7 @@ static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_ImportError[] = "ImportError";
 static const char __pyx_k_key_size_mb[] = "key_size_mb";
 static const char __pyx_k_max_size_mb[] = "max_size_mb";
+static const char __pyx_k_CCCCCCCitems[] = "CCCCCCCitems";
 static const char __pyx_k_initializing[] = "_initializing";
 static const char __pyx_k_is_coroutine[] = "_is_coroutine";
 static const char __pyx_k_stringsource[] = "<stringsource>";
@@ -3005,6 +3001,20 @@ static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_4get(struct __
 static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_6set(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value, PyObject *__pyx_v_category, PyObject *__pyx_v_hash_key); /* proto */
 static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_8clear(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_10stats(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache_4__del__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts_4__del__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_10cache_size___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_10cache_size_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_14max_size_bytes___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_4hits___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_4hits_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_6misses___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_6misses_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
 static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_12__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_14__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_tp_new_19cython_CacheManager_CacheManager_cy(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -3089,6 +3099,7 @@ typedef struct {
   PyTypeObject *__pyx_ptype_19cython_CacheManager___pyx_scope_struct_2_genexpr;
   PyObject *__pyx_kp_u_2f;
   PyObject *__pyx_kp_u_Basic_cache_size_sys_getsizeof;
+  PyObject *__pyx_n_u_CCCCCCCitems;
   PyObject *__pyx_n_s_CacheManager_cy;
   PyObject *__pyx_n_s_CacheManager_cy___reduce_cython;
   PyObject *__pyx_n_s_CacheManager_cy___setstate_cytho;
@@ -3128,7 +3139,6 @@ typedef struct {
   PyObject *__pyx_n_s_is_coroutine;
   PyObject *__pyx_kp_u_isenabled;
   PyObject *__pyx_n_s_items;
-  PyObject *__pyx_n_u_items;
   PyObject *__pyx_n_u_key_size_mb;
   PyObject *__pyx_n_s_main;
   PyObject *__pyx_n_s_max_size_mb;
@@ -3250,6 +3260,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_type_19cython_CacheManager___pyx_scope_struct_2_genexpr);
   Py_CLEAR(clear_module_state->__pyx_kp_u_2f);
   Py_CLEAR(clear_module_state->__pyx_kp_u_Basic_cache_size_sys_getsizeof);
+  Py_CLEAR(clear_module_state->__pyx_n_u_CCCCCCCitems);
   Py_CLEAR(clear_module_state->__pyx_n_s_CacheManager_cy);
   Py_CLEAR(clear_module_state->__pyx_n_s_CacheManager_cy___reduce_cython);
   Py_CLEAR(clear_module_state->__pyx_n_s_CacheManager_cy___setstate_cytho);
@@ -3289,7 +3300,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_is_coroutine);
   Py_CLEAR(clear_module_state->__pyx_kp_u_isenabled);
   Py_CLEAR(clear_module_state->__pyx_n_s_items);
-  Py_CLEAR(clear_module_state->__pyx_n_u_items);
   Py_CLEAR(clear_module_state->__pyx_n_u_key_size_mb);
   Py_CLEAR(clear_module_state->__pyx_n_s_main);
   Py_CLEAR(clear_module_state->__pyx_n_s_max_size_mb);
@@ -3389,6 +3399,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_type_19cython_CacheManager___pyx_scope_struct_2_genexpr);
   Py_VISIT(traverse_module_state->__pyx_kp_u_2f);
   Py_VISIT(traverse_module_state->__pyx_kp_u_Basic_cache_size_sys_getsizeof);
+  Py_VISIT(traverse_module_state->__pyx_n_u_CCCCCCCitems);
   Py_VISIT(traverse_module_state->__pyx_n_s_CacheManager_cy);
   Py_VISIT(traverse_module_state->__pyx_n_s_CacheManager_cy___reduce_cython);
   Py_VISIT(traverse_module_state->__pyx_n_s_CacheManager_cy___setstate_cytho);
@@ -3428,7 +3439,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_is_coroutine);
   Py_VISIT(traverse_module_state->__pyx_kp_u_isenabled);
   Py_VISIT(traverse_module_state->__pyx_n_s_items);
-  Py_VISIT(traverse_module_state->__pyx_n_u_items);
   Py_VISIT(traverse_module_state->__pyx_n_u_key_size_mb);
   Py_VISIT(traverse_module_state->__pyx_n_s_main);
   Py_VISIT(traverse_module_state->__pyx_n_s_max_size_mb);
@@ -3558,6 +3568,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_ptype_19cython_CacheManager___pyx_scope_struct_2_genexpr __pyx_mstate_global->__pyx_ptype_19cython_CacheManager___pyx_scope_struct_2_genexpr
 #define __pyx_kp_u_2f __pyx_mstate_global->__pyx_kp_u_2f
 #define __pyx_kp_u_Basic_cache_size_sys_getsizeof __pyx_mstate_global->__pyx_kp_u_Basic_cache_size_sys_getsizeof
+#define __pyx_n_u_CCCCCCCitems __pyx_mstate_global->__pyx_n_u_CCCCCCCitems
 #define __pyx_n_s_CacheManager_cy __pyx_mstate_global->__pyx_n_s_CacheManager_cy
 #define __pyx_n_s_CacheManager_cy___reduce_cython __pyx_mstate_global->__pyx_n_s_CacheManager_cy___reduce_cython
 #define __pyx_n_s_CacheManager_cy___setstate_cytho __pyx_mstate_global->__pyx_n_s_CacheManager_cy___setstate_cytho
@@ -3597,7 +3608,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_is_coroutine __pyx_mstate_global->__pyx_n_s_is_coroutine
 #define __pyx_kp_u_isenabled __pyx_mstate_global->__pyx_kp_u_isenabled
 #define __pyx_n_s_items __pyx_mstate_global->__pyx_n_s_items
-#define __pyx_n_u_items __pyx_mstate_global->__pyx_n_u_items
 #define __pyx_n_u_key_size_mb __pyx_mstate_global->__pyx_n_u_key_size_mb
 #define __pyx_n_s_main __pyx_mstate_global->__pyx_n_s_main
 #define __pyx_n_s_max_size_mb __pyx_mstate_global->__pyx_n_s_max_size_mb
@@ -7855,7 +7865,7 @@ static PyObject *__pyx_f_19cython_CacheManager_15CacheManager_cy_stats(struct __
  *         hit_rate = self.hits / total_accesses if total_accesses > 0 else 0.0
  * 
  *         return {             # <<<<<<<<<<<<<<
- *             'items': len(self.cache),
+ *             'CCCCCCCitems': len(self.cache),
  *             'size_mb': total_size_mb,
  */
   __Pyx_XDECREF(__pyx_r);
@@ -7863,7 +7873,7 @@ static PyObject *__pyx_f_19cython_CacheManager_15CacheManager_cy_stats(struct __
   /* "cython_CacheManager.pyx":137
  * 
  *         return {
- *             'items': len(self.cache),             # <<<<<<<<<<<<<<
+ *             'CCCCCCCitems': len(self.cache),             # <<<<<<<<<<<<<<
  *             'size_mb': total_size_mb,
  *             'key_size_mb': key_size_mb,
  */
@@ -7879,12 +7889,12 @@ static PyObject *__pyx_f_19cython_CacheManager_15CacheManager_cy_stats(struct __
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_3 = PyInt_FromSsize_t(__pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 137, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_u_items, __pyx_t_3) < 0) __PYX_ERR(0, 137, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_u_CCCCCCCitems, __pyx_t_3) < 0) __PYX_ERR(0, 137, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
   /* "cython_CacheManager.pyx":138
  *         return {
- *             'items': len(self.cache),
+ *             'CCCCCCCitems': len(self.cache),
  *             'size_mb': total_size_mb,             # <<<<<<<<<<<<<<
  *             'key_size_mb': key_size_mb,
  *             'value_size_mb': value_size_mb,
@@ -7895,7 +7905,7 @@ static PyObject *__pyx_f_19cython_CacheManager_15CacheManager_cy_stats(struct __
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
   /* "cython_CacheManager.pyx":139
- *             'items': len(self.cache),
+ *             'CCCCCCCitems': len(self.cache),
  *             'size_mb': total_size_mb,
  *             'key_size_mb': key_size_mb,             # <<<<<<<<<<<<<<
  *             'value_size_mb': value_size_mb,
@@ -8045,6 +8055,566 @@ static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_10stats(struct
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "cython_CacheManager.pxd":5
+ * cdef class CacheManager_cy:
+ *     cdef:
+ *         public dict cache             # <<<<<<<<<<<<<<
+ *         public dict hit_counts
+ *         public Py_ssize_t cache_size
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_1__get__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache___get__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(__pyx_v_self->cache);
+  __pyx_r = __pyx_v_self->cache;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache_2__set__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 1);
+  if (!(likely(PyDict_CheckExact(__pyx_v_value))||((__pyx_v_value) == Py_None) || __Pyx_RaiseUnexpectedTypeError("dict", __pyx_v_value))) __PYX_ERR(3, 5, __pyx_L1_error)
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->cache);
+  __Pyx_DECREF(__pyx_v_self->cache);
+  __pyx_v_self->cache = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.cache.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_5__del__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache_4__del__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_5cache_4__del__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 1);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->cache);
+  __Pyx_DECREF(__pyx_v_self->cache);
+  __pyx_v_self->cache = ((PyObject*)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "cython_CacheManager.pxd":6
+ *     cdef:
+ *         public dict cache
+ *         public dict hit_counts             # <<<<<<<<<<<<<<
+ *         public Py_ssize_t cache_size
+ *         public Py_ssize_t max_size_bytes
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_1__get__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts___get__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(__pyx_v_self->hit_counts);
+  __pyx_r = __pyx_v_self->hit_counts;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts_2__set__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 1);
+  if (!(likely(PyDict_CheckExact(__pyx_v_value))||((__pyx_v_value) == Py_None) || __Pyx_RaiseUnexpectedTypeError("dict", __pyx_v_value))) __PYX_ERR(3, 6, __pyx_L1_error)
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->hit_counts);
+  __Pyx_DECREF(__pyx_v_self->hit_counts);
+  __pyx_v_self->hit_counts = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.hit_counts.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_5__del__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts_4__del__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_10hit_counts_4__del__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 1);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->hit_counts);
+  __Pyx_DECREF(__pyx_v_self->hit_counts);
+  __pyx_v_self->hit_counts = ((PyObject*)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "cython_CacheManager.pxd":7
+ *         public dict cache
+ *         public dict hit_counts
+ *         public Py_ssize_t cache_size             # <<<<<<<<<<<<<<
+ *         public Py_ssize_t max_size_bytes
+ *         public Py_ssize_t hits
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_10cache_size_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_10cache_size_1__get__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_10cache_size___get__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_10cache_size___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__get__", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyInt_FromSsize_t(__pyx_v_self->cache_size); if (unlikely(!__pyx_t_1)) __PYX_ERR(3, 7, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.cache_size.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_10cache_size_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_10cache_size_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_10cache_size_2__set__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_10cache_size_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  Py_ssize_t __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __pyx_t_1 = __Pyx_PyIndex_AsSsize_t(__pyx_v_value); if (unlikely((__pyx_t_1 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(3, 7, __pyx_L1_error)
+  __pyx_v_self->cache_size = __pyx_t_1;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.cache_size.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  return __pyx_r;
+}
+
+/* "cython_CacheManager.pxd":8
+ *         public dict hit_counts
+ *         public Py_ssize_t cache_size
+ *         public Py_ssize_t max_size_bytes             # <<<<<<<<<<<<<<
+ *         public Py_ssize_t hits
+ *         public Py_ssize_t misses
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_1__get__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_14max_size_bytes___get__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_14max_size_bytes___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__get__", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyInt_FromSsize_t(__pyx_v_self->max_size_bytes); if (unlikely(!__pyx_t_1)) __PYX_ERR(3, 8, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.max_size_bytes.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_2__set__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  Py_ssize_t __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __pyx_t_1 = __Pyx_PyIndex_AsSsize_t(__pyx_v_value); if (unlikely((__pyx_t_1 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(3, 8, __pyx_L1_error)
+  __pyx_v_self->max_size_bytes = __pyx_t_1;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.max_size_bytes.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  return __pyx_r;
+}
+
+/* "cython_CacheManager.pxd":9
+ *         public Py_ssize_t cache_size
+ *         public Py_ssize_t max_size_bytes
+ *         public Py_ssize_t hits             # <<<<<<<<<<<<<<
+ *         public Py_ssize_t misses
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_4hits_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_4hits_1__get__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_4hits___get__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_4hits___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__get__", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyInt_FromSsize_t(__pyx_v_self->hits); if (unlikely(!__pyx_t_1)) __PYX_ERR(3, 9, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.hits.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_4hits_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_4hits_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_4hits_2__set__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_4hits_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  Py_ssize_t __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __pyx_t_1 = __Pyx_PyIndex_AsSsize_t(__pyx_v_value); if (unlikely((__pyx_t_1 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(3, 9, __pyx_L1_error)
+  __pyx_v_self->hits = __pyx_t_1;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.hits.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  return __pyx_r;
+}
+
+/* "cython_CacheManager.pxd":10
+ *         public Py_ssize_t max_size_bytes
+ *         public Py_ssize_t hits
+ *         public Py_ssize_t misses             # <<<<<<<<<<<<<<
+ * 
+ *     cdef Py_ssize_t _get_array_size(self, object arr)
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_6misses_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_19cython_CacheManager_15CacheManager_cy_6misses_1__get__(PyObject *__pyx_v_self) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_6misses___get__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_19cython_CacheManager_15CacheManager_cy_6misses___get__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__get__", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyInt_FromSsize_t(__pyx_v_self->misses); if (unlikely(!__pyx_t_1)) __PYX_ERR(3, 10, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.misses.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_6misses_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_19cython_CacheManager_15CacheManager_cy_6misses_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  __pyx_r = __pyx_pf_19cython_CacheManager_15CacheManager_cy_6misses_2__set__(((struct __pyx_obj_19cython_CacheManager_CacheManager_cy *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_19cython_CacheManager_15CacheManager_cy_6misses_2__set__(struct __pyx_obj_19cython_CacheManager_CacheManager_cy *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  Py_ssize_t __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __pyx_t_1 = __Pyx_PyIndex_AsSsize_t(__pyx_v_value); if (unlikely((__pyx_t_1 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(3, 10, __pyx_L1_error)
+  __pyx_v_self->misses = __pyx_t_1;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("cython_CacheManager.CacheManager_cy.misses.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
   return __pyx_r;
 }
 
@@ -8334,10 +8904,102 @@ static int __pyx_tp_clear_19cython_CacheManager_CacheManager_cy(PyObject *o) {
   return 0;
 }
 
+static PyObject *__pyx_getprop_19cython_CacheManager_15CacheManager_cy_cache(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_1__get__(o);
+}
+
+static int __pyx_setprop_19cython_CacheManager_15CacheManager_cy_cache(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_5cache_5__del__(o);
+  }
+}
+
+static PyObject *__pyx_getprop_19cython_CacheManager_15CacheManager_cy_hit_counts(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_1__get__(o);
+}
+
+static int __pyx_setprop_19cython_CacheManager_15CacheManager_cy_hit_counts(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_10hit_counts_5__del__(o);
+  }
+}
+
+static PyObject *__pyx_getprop_19cython_CacheManager_15CacheManager_cy_cache_size(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_19cython_CacheManager_15CacheManager_cy_10cache_size_1__get__(o);
+}
+
+static int __pyx_setprop_19cython_CacheManager_15CacheManager_cy_cache_size(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_10cache_size_3__set__(o, v);
+  }
+  else {
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
+  }
+}
+
+static PyObject *__pyx_getprop_19cython_CacheManager_15CacheManager_cy_max_size_bytes(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_1__get__(o);
+}
+
+static int __pyx_setprop_19cython_CacheManager_15CacheManager_cy_max_size_bytes(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_14max_size_bytes_3__set__(o, v);
+  }
+  else {
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
+  }
+}
+
+static PyObject *__pyx_getprop_19cython_CacheManager_15CacheManager_cy_hits(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_19cython_CacheManager_15CacheManager_cy_4hits_1__get__(o);
+}
+
+static int __pyx_setprop_19cython_CacheManager_15CacheManager_cy_hits(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_4hits_3__set__(o, v);
+  }
+  else {
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
+  }
+}
+
+static PyObject *__pyx_getprop_19cython_CacheManager_15CacheManager_cy_misses(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_19cython_CacheManager_15CacheManager_cy_6misses_1__get__(o);
+}
+
+static int __pyx_setprop_19cython_CacheManager_15CacheManager_cy_misses(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_19cython_CacheManager_15CacheManager_cy_6misses_3__set__(o, v);
+  }
+  else {
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
+  }
+}
+
 static PyMethodDef __pyx_methods_19cython_CacheManager_CacheManager_cy[] = {
   {"__reduce_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_19cython_CacheManager_15CacheManager_cy_13__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
   {"__setstate_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_19cython_CacheManager_15CacheManager_cy_15__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
   {0, 0, 0, 0}
+};
+
+static struct PyGetSetDef __pyx_getsets_19cython_CacheManager_CacheManager_cy[] = {
+  {(char *)"cache", __pyx_getprop_19cython_CacheManager_15CacheManager_cy_cache, __pyx_setprop_19cython_CacheManager_15CacheManager_cy_cache, (char *)0, 0},
+  {(char *)"hit_counts", __pyx_getprop_19cython_CacheManager_15CacheManager_cy_hit_counts, __pyx_setprop_19cython_CacheManager_15CacheManager_cy_hit_counts, (char *)0, 0},
+  {(char *)"cache_size", __pyx_getprop_19cython_CacheManager_15CacheManager_cy_cache_size, __pyx_setprop_19cython_CacheManager_15CacheManager_cy_cache_size, (char *)0, 0},
+  {(char *)"max_size_bytes", __pyx_getprop_19cython_CacheManager_15CacheManager_cy_max_size_bytes, __pyx_setprop_19cython_CacheManager_15CacheManager_cy_max_size_bytes, (char *)0, 0},
+  {(char *)"hits", __pyx_getprop_19cython_CacheManager_15CacheManager_cy_hits, __pyx_setprop_19cython_CacheManager_15CacheManager_cy_hits, (char *)0, 0},
+  {(char *)"misses", __pyx_getprop_19cython_CacheManager_15CacheManager_cy_misses, __pyx_setprop_19cython_CacheManager_15CacheManager_cy_misses, (char *)0, 0},
+  {0, 0, 0, 0, 0}
 };
 #if CYTHON_USE_TYPE_SPECS
 static PyType_Slot __pyx_type_19cython_CacheManager_CacheManager_cy_slots[] = {
@@ -8346,6 +9008,7 @@ static PyType_Slot __pyx_type_19cython_CacheManager_CacheManager_cy_slots[] = {
   {Py_tp_traverse, (void *)__pyx_tp_traverse_19cython_CacheManager_CacheManager_cy},
   {Py_tp_clear, (void *)__pyx_tp_clear_19cython_CacheManager_CacheManager_cy},
   {Py_tp_methods, (void *)__pyx_methods_19cython_CacheManager_CacheManager_cy},
+  {Py_tp_getset, (void *)__pyx_getsets_19cython_CacheManager_CacheManager_cy},
   {Py_tp_new, (void *)__pyx_tp_new_19cython_CacheManager_CacheManager_cy},
   {0, 0},
 };
@@ -8398,7 +9061,7 @@ static PyTypeObject __pyx_type_19cython_CacheManager_CacheManager_cy = {
   0, /*tp_iternext*/
   __pyx_methods_19cython_CacheManager_CacheManager_cy, /*tp_methods*/
   0, /*tp_members*/
-  0, /*tp_getset*/
+  __pyx_getsets_19cython_CacheManager_CacheManager_cy, /*tp_getset*/
   0, /*tp_base*/
   0, /*tp_dict*/
   0, /*tp_descr_get*/
@@ -8961,6 +9624,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
   __Pyx_StringTabEntry __pyx_string_tab[] = {
     {&__pyx_kp_u_2f, __pyx_k_2f, sizeof(__pyx_k_2f), 0, 1, 0, 0},
     {&__pyx_kp_u_Basic_cache_size_sys_getsizeof, __pyx_k_Basic_cache_size_sys_getsizeof, sizeof(__pyx_k_Basic_cache_size_sys_getsizeof), 0, 1, 0, 0},
+    {&__pyx_n_u_CCCCCCCitems, __pyx_k_CCCCCCCitems, sizeof(__pyx_k_CCCCCCCitems), 0, 1, 0, 1},
     {&__pyx_n_s_CacheManager_cy, __pyx_k_CacheManager_cy, sizeof(__pyx_k_CacheManager_cy), 0, 0, 1, 1},
     {&__pyx_n_s_CacheManager_cy___reduce_cython, __pyx_k_CacheManager_cy___reduce_cython, sizeof(__pyx_k_CacheManager_cy___reduce_cython), 0, 0, 1, 1},
     {&__pyx_n_s_CacheManager_cy___setstate_cytho, __pyx_k_CacheManager_cy___setstate_cytho, sizeof(__pyx_k_CacheManager_cy___setstate_cytho), 0, 0, 1, 1},
@@ -9000,7 +9664,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_is_coroutine, __pyx_k_is_coroutine, sizeof(__pyx_k_is_coroutine), 0, 0, 1, 1},
     {&__pyx_kp_u_isenabled, __pyx_k_isenabled, sizeof(__pyx_k_isenabled), 0, 1, 0, 0},
     {&__pyx_n_s_items, __pyx_k_items, sizeof(__pyx_k_items), 0, 0, 1, 1},
-    {&__pyx_n_u_items, __pyx_k_items, sizeof(__pyx_k_items), 0, 1, 0, 1},
     {&__pyx_n_u_key_size_mb, __pyx_k_key_size_mb, sizeof(__pyx_k_key_size_mb), 0, 1, 0, 1},
     {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
     {&__pyx_n_s_max_size_mb, __pyx_k_max_size_mb, sizeof(__pyx_k_max_size_mb), 0, 0, 1, 1},
@@ -9327,7 +9990,7 @@ static int __Pyx_modinit_type_import_code(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_import_code", 0);
   /*--- Type import code ---*/
-  __pyx_t_1 = PyImport_ImportModule(__Pyx_BUILTIN_MODULE_NAME); if (unlikely(!__pyx_t_1)) __PYX_ERR(3, 9, __pyx_L1_error)
+  __pyx_t_1 = PyImport_ImportModule(__Pyx_BUILTIN_MODULE_NAME); if (unlikely(!__pyx_t_1)) __PYX_ERR(4, 9, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_ptype_7cpython_4type_type = __Pyx_ImportType_3_0_12(__pyx_t_1, __Pyx_BUILTIN_MODULE_NAME, "type", 
   #if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x050B0000
@@ -9337,7 +10000,7 @@ static int __Pyx_modinit_type_import_code(void) {
   #else
   sizeof(PyHeapTypeObject), __PYX_GET_STRUCT_ALIGNMENT_3_0_12(PyHeapTypeObject),
   #endif
-  __Pyx_ImportType_CheckSize_Warn_3_0_12); if (!__pyx_ptype_7cpython_4type_type) __PYX_ERR(3, 9, __pyx_L1_error)
+  __Pyx_ImportType_CheckSize_Warn_3_0_12); if (!__pyx_ptype_7cpython_4type_type) __PYX_ERR(4, 9, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_1 = PyImport_ImportModule("numpy"); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 202, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);

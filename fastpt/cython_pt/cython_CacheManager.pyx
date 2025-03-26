@@ -134,7 +134,7 @@ cdef class CacheManager_cy:
         hit_rate = self.hits / total_accesses if total_accesses > 0 else 0.0
         
         return {
-            'items': len(self.cache),
+            'CCCCCCCitems': len(self.cache),
             'size_mb': total_size_mb,
             'key_size_mb': key_size_mb,
             'value_size_mb': value_size_mb,

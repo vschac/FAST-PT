@@ -739,6 +739,7 @@ class FASTPT:
                 term, 
                 self.X_registry.get(id(X), f"unknown_{id(X)}"),
                 X,
+                self.m,
                 operation,
                 P,
                 P_window=P_window,

@@ -1,6 +1,8 @@
 import numpy as np
 cimport numpy as np
 from libc.stdlib cimport malloc, free
+from libc.stdint cimport int64_t, uint64_t
+from libc.math cimport sin, log10, pi
 from numpy import exp 
 from math import exp as math_exp  # Alternative import from math
 from scipy import fft as scipy_fft
@@ -9,52 +11,104 @@ from numpy.fft import rfft as np_rfft
 from scipy.fft import next_fast_len
 import importlib.util
 
-# Import CacheManager from the correct module
-from cython_CacheManager cimport CacheManager_cy
 
 # Import scalar_stuff and tensor_stuff explicitly
 from ..initialize_params import scalar_stuff, tensor_stuff
 
-# Try to import fastpt_extr, if it fails, implement the functions directly
-try:
-    from .. import fastpt_extr
-    p_window = fastpt_extr.p_window
-    c_window = fastpt_extr.c_window
-except ImportError:
-    # Direct implementation of window functions if import fails
-    def p_window(k, k0, n=2):
-        """Window function for power spectrum."""
-        k_cut = k[k > k0]
-        cut = np.exp(-(k_cut - k0)**n)
-        return np.concatenate((np.ones(k.size-k_cut.size), cut))
+
+def p_window(np.ndarray[double, ndim=1] k, double log_k_left, double log_k_right):
+    cdef int i, k_size = k.shape[0]
+    cdef np.ndarray[double, ndim=1] log_k = np.empty(k_size, dtype=np.float64)
+    cdef double max_val, min_val
+    cdef np.ndarray[double, ndim=1] W = np.ones(k_size, dtype=np.float64)
+    cdef int left_count = 0
+    cdef double x_left
+    cdef np.ndarray[double, ndim=1] left
+    cdef int right_count = 0
+    cdef double x_right
+    cdef np.ndarray[double, ndim=1] right
+    cdef int idx
     
-    def c_window(m, s=1, n_cut=6, cut_type='hard'):
-        """Window function for Fourier coefficients."""
-        if cut_type == 'hard':
-            # Hard cut window
-            m_cut = m[(m >= -n_cut) & (m <= n_cut)]
-            cut = np.ones(m_cut.size)
-            c_window = np.zeros(m.size)
-            startind = np.where(m == -n_cut)[0][0]
-            c_window[startind:startind+m_cut.size] = cut
-        else:
-            # Soft cut window
-            m_cut = m[(m>=-n_cut) & (m<=n_cut)]
-            cut_high = 1.0 / (1.0 + ((m_cut-s) / (n_cut-s))**4)
-            cut_low = 1.0 / (1.0 + ((m_cut+s) / (n_cut-s))**4)
-            cut = np.ones(m_cut.size)
-            small_m = m_cut[(m_cut>=-s) & (m_cut<=s)]
-            cut_small = np.ones(small_m.size)
-            startind1 = np.where(m_cut == -n_cut)[0][0]
-            endind1 = np.where(m_cut == -s)[0][0]
-            startind2 = np.where(m_cut == s)[0][0]
-            endind2 = np.where(m_cut == n_cut)[0][0]
-            cut[startind1:endind1] = cut_low[startind1:endind1]
-            cut[startind2:endind2] = cut_high[startind2:endind2]
-            c_window = np.zeros(m.size)
-            startind = np.where(m == -n_cut)[0][0]
-            c_window[startind:startind+m_cut.size] = cut
-        return c_window
+    # Calculate log10 of k
+    for i in range(k_size):
+        log_k[i] = log10(k[i])
+    
+    max_val = log_k.max()
+    min_val = log_k.min()
+    
+    # Calculate window boundaries
+    log_k_left = min_val + log_k_left
+    log_k_right = max_val - log_k_right
+    
+    # Process left boundary
+    for i in range(k_size):
+        if log_k[i] <= log_k_left:
+            left_count += 1
+    
+    if left_count > 0:
+        left = np.empty(left_count, dtype=np.float64)
+        idx = 0
+        for i in range(k_size):
+            if log_k[i] <= log_k_left:
+                left[idx] = log_k[i]
+                idx += 1
+        
+        for i in range(left_count):
+            x_left = (min_val - left[i]) / (min_val - left[left_count-1])
+            W[i] = x_left - 1.0/(2.0*pi)*sin(2.0*pi*x_left)
+    
+    # Process right boundary
+    for i in range(k_size):
+        if log_k[i] >= log_k_right:
+            right_count += 1
+    
+    if right_count > 0:
+        right = np.empty(right_count, dtype=np.float64)
+        idx = 0
+        for i in range(k_size):
+            if log_k[i] >= log_k_right:
+                right[idx] = log_k[i]
+                idx += 1
+        
+        for i in range(k_size - right_count, k_size):
+            x_right = (right[i - (k_size - right_count)] - right[right_count-1]) / (right[0] - max_val)
+            W[i] = x_right - 1.0/(2.0*pi)*sin(2.0*pi*x_right)
+    
+    return W
+
+
+def c_window(np.ndarray n, int n_cut):
+    """Window function for smoothing in coefficient space.
+    
+    Creates a smooth tapering at the edges of the coefficient array.
+    Always returns an array with exactly the same shape as the input.
+    """
+    cdef int n_size = n.shape[0]
+    cdef np.ndarray[double, ndim=1] W = np.ones(n_size, dtype=np.float64)
+    cdef np.ndarray[double, ndim=1] n_array
+    cdef int i
+    cdef double n_right, n_left, theta_left, theta_right
+    
+    # Convert input array to float64 if needed
+    if n.dtype != np.float64:
+        n_array = n.astype(np.float64)
+    else:
+        n_array = n
+    
+    # Calculate boundary positions
+    n_right = n_array[n_size-1] - n_cut
+    n_left = n_array[0] + n_cut
+    
+    # Process left and right boundaries
+    for i in range(n_size):
+        if n_array[i] < n_left:
+            theta_left = (n_array[i] - n_array[0]) / float(n_left - n_array[0] - 1)
+            W[i] = theta_left - 1.0/(2.0*pi)*sin(2.0*pi*theta_left)
+        elif n_array[i] > n_right:
+            theta_right = (n_array[n_size-1] - n_array[i]) / float(n_array[n_size-1] - n_right - 1)
+            W[i] = theta_right - 1.0/(2.0*pi)*sin(2.0*pi*theta_right)
+    
+    return W
 
 ctypedef np.complex128_t COMPLEX_t
 ctypedef np.float64_t FLOAT_t
@@ -141,72 +195,71 @@ cdef object _interpolate_to_original_grid(object arr, object k_extrap, object k_
     return interp_func(k_original)
 
 
-cdef long _hash_arrays_internal(object arrays):
+cdef int64_t _hash_arrays_internal(object arrays):
     """
     Internal helper function for hash_arrays_cy that handles the recursion.
     """
     cdef Py_ssize_t i
-    cdef long hash_key_hash = 0
-    cdef long item_hash
+    cdef uint64_t hash_key_hash = 0
+    cdef uint64_t item_hash
     
     if arrays is None:
         return hash(None)
         
+    if arrays is None:
+        return hash(None) & 0x7FFFFFFF
+        
     if isinstance(arrays, (tuple, list)):
-        # Avoid creating intermediate lists for storing hashes
-        # Instead build the hash directly using a single hash_key value
         for i in range(len(arrays)):
             item = arrays[i]
             if isinstance(item, np.ndarray):
-                # Use a prime multiplier to avoid collisions
-                item_hash = hash(item.tobytes())
+                item_hash = abs(hash(item.tobytes())) & 0x7FFFFFFF
             elif isinstance(item, (tuple, list)):
-                # Recursively compute hash of nested structure
-                item_hash = _hash_arrays_internal(item)  # Call the internal function
+                item_hash = _hash_arrays_internal(item) & 0x7FFFFFFF
             else:
-                item_hash = hash(item)
-            # Combine hashes using a prime-based approach to reduce collisions
-            hash_key_hash = hash_key_hash ^ (item_hash + 0x9e3779b9 + (hash_key_hash << 6) + (hash_key_hash >> 2))
-        return hash_key_hash
+                item_hash = abs(hash(item)) & 0x7FFFFFFF
+            hash_key_hash = hash_key_hash ^ ((item_hash + 0x9e3779b9) + (hash_key_hash << 6) + (hash_key_hash >> 2))
+            hash_key_hash = hash_key_hash & 0x7FFFFFFF
+        return <int64_t>hash_key_hash
 
-    # Single item case
     if isinstance(arrays, np.ndarray):
-        return hash(arrays.tobytes())
-    return hash(arrays)
+        return abs(hash(arrays.tobytes())) & 0x7FFFFFFF
+    return abs(hash(arrays)) & 0x7FFFFFFF
 
 
-cpdef object hash_arrays_cy(object arrays):
+cpdef int64_t hash_arrays_cy(object arrays):
     """
     Helper function to create a hash from multiple numpy arrays or scalars.
     Cython implementation of FASTPT._hash_arrays for faster hash computation.
     """
-    return _hash_arrays_internal(arrays)
+    return _hash_arrays_internal(arrays) & 0x7FFFFFFF
 
 
-cdef long _create_hash_key_internal(list hash_list):
+cdef int64_t _create_hash_key_internal(list hash_list):
     """
     Internal function to combine hashes into a single key.
     """
-    cdef long hash_key = 0
-    cdef long h
+    cdef uint64_t hash_key = 0
+    cdef uint64_t h
     cdef Py_ssize_t i
     
     for i in range(len(hash_list)):
-        h = hash_list[i]
-        if h is not None:
-            hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        if hash_list[i] is not None:
+            h = abs(hash(hash_list[i])) & 0x7FFFFFFF
+            hash_key = hash_key ^ ((h + 0x9e3779b9) + (hash_key << 6) + (hash_key >> 2))
+            hash_key = hash_key & 0x7FFFFFFF
     
-    return hash_key
+    return <int64_t>hash_key
 
-cpdef long create_hash_key_cy(str term, str X, object P, object P_window, object C_window):
+cpdef int64_t create_hash_key_cy(str term, str X, object P, object P_window, object C_window):
     """
     Create a hash key from the term and input parameters.
     Cython implementation of FASTPT._create_hash_key for faster hash computation.
     """
-    cdef long P_hash = hash_arrays_cy(P)
-    cdef long P_win_hash = hash_arrays_cy(P_window)
-    cdef long X_hash
-    cdef long term_hash
+    cdef int64_t P_hash = hash_arrays_cy(P)
+    cdef int64_t P_win_hash = hash_arrays_cy(P_window)
+    cdef int64_t X_hash
+    cdef int64_t term_hash
     cdef list hash_list
     
     # Get term hash
@@ -221,10 +274,11 @@ cpdef long create_hash_key_cy(str term, str X, object P, object P_window, object
 
 
 cpdef object compute_term_cy(
-    CacheManager_cy cache_manager,
+    object cache_manager,
     str term,
     str X_name,
     object X,
+    object m,
     object operation,
     np.ndarray P,
     object P_window=None,
@@ -255,8 +309,8 @@ cpdef object compute_term_cy(
         k_extrap,
         P,
         X,
+        m,
         k_final=k_extrap,
-        m=None,
         eta_m=None,
         l=None,
         tau_l=None,
@@ -316,7 +370,7 @@ cdef np.ndarray[COMPLEX_t, ndim=1] optimized_fft_convolution(
 
 
 cpdef np.ndarray compute_convolution(
-    CacheManager_cy cache_manager,
+    object cache_manager,
     np.ndarray c1,
     np.ndarray c2,
     np.ndarray g_m,
@@ -392,7 +446,7 @@ cpdef np.ndarray compute_convolution(
 
 
 cpdef np.ndarray compute_fourier_coefficients(
-    CacheManager_cy cache_manager,
+    object cache_manager,
     np.ndarray P_b,
     np.ndarray m,
     double N,
@@ -416,7 +470,11 @@ cpdef np.ndarray compute_fourier_coefficients(
         int rfft_output_size = input_size//2 + 1
         int final_size = 2 * rfft_output_size - 1  # Size of combined array
         bint need_resize = False
-    
+        np.ndarray window_values
+        int workspace_size
+        np.ndarray temp_m
+        int midpoint, i
+        
     # Initialize or resize workspaces if needed
     global _fft_input_workspace, _fft_pos_workspace, _fft_neg_workspace, _fft_combined_workspace, _last_fft_shape
     if (_fft_input_workspace is None or _fft_pos_workspace is None or 
@@ -463,7 +521,33 @@ cpdef np.ndarray compute_fourier_coefficients(
         if verbose:
             print('windowing the Fourier coefficients')
         window_param = int(c_window_param * N / 2.0)
-        _fft_combined_workspace *= c_window_func(m, window_param)
+        
+        # Create a numpy array of integers directly
+        workspace_size = _fft_combined_workspace.shape[0]
+        temp_m = np.zeros(workspace_size, dtype=np.float64)  # Use float64 to match expected type
+        midpoint = workspace_size // 2
+        
+        # Fill the array with integers centered around zero
+        for i in range(workspace_size):
+            temp_m[i] = i - midpoint
+        
+        # Apply window function and ensure we get back the right shape
+        try:
+            window_values = c_window_func(temp_m, window_param)
+            
+            # Safety check - if window size doesn't match workspace size, create a new one
+            if window_values.shape[0] != workspace_size:
+                print(f"Warning: Window size {window_values.shape[0]} doesn't match workspace size {workspace_size}.")
+                window_values = np.ones(workspace_size, dtype=np.float64)
+                
+                # Try to copy values from the original window where possible
+                copy_size = min(window_values.shape[0], workspace_size)
+                window_values[:copy_size] = window_values[:copy_size]
+        
+            _fft_combined_workspace *= window_values
+        except Exception as e:
+            print(f"Error applying window function: {e}")
+            # Continue without windowing if there's an error
     
     # Create a copy for caching to prevent mutation of cached values
     cdef np.ndarray[COMPLEX_t, ndim=1] c_m = np.array(_fft_combined_workspace, copy=True)
@@ -475,7 +559,7 @@ cpdef np.ndarray compute_fourier_coefficients(
 
 
 cpdef tuple J_k_scalar_cy(
-    CacheManager_cy cache_manager,
+    object cache_manager,
     str X_name,
     np.ndarray k,
     np.ndarray P,
@@ -597,13 +681,13 @@ cpdef tuple J_k_scalar_cy(
 
 
 cpdef tuple J_k_tensor_cy(
-    CacheManager_cy cache_manager,
+    object cache_manager,
     str X_name,  # Changed from object hash_key to str X_name for consistency
     np.ndarray k,
     np.ndarray P, 
     object X,
+    np.ndarray m,
     object k_final=None,
-    np.ndarray m=None,
     np.ndarray eta_m=None,  # Added eta_m parameter
     np.ndarray l=None,
     np.ndarray tau_l=None,  # Added tau_l parameter
