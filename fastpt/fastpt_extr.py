@@ -4,12 +4,8 @@
 '''
 
 import numpy as np
-from numpy import pi, cos, sin, log 
-from numpy.fft import rfft, irfft, fft, ifft 
+from numpy import pi, sin 
 import sys
-from scipy import signal
-from scipy.special import erf
-from scipy.signal import butter, lfilter, filtfilt, lfilter_zi
 
 	
 def p_window(k,log_k_left,log_k_right):

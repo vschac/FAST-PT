@@ -2,7 +2,7 @@
 	J.E. McEwen 
 '''
 import numpy as np
-from numpy import exp, pi, sin, cos, log, sqrt 
+from numpy import exp, pi, log, sqrt 
 from scipy.special import gamma 
 	
 def log_gamma(z):

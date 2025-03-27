@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 from .J_table import J_table
-from .get_nu1_nu2 import nu1_nu2
 from copy import copy
 import sys
 

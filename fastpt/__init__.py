@@ -35,5 +35,7 @@
 
 from .info import __version__
 from .FASTPT import *
+from .FPTHandler import *
+from .CacheManager import *
 
 from . import HT

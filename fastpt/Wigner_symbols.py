@@ -25,8 +25,9 @@ import sys
 
 # store factorials in an array
 def factorial_list(N):
-	x=np.arange(N+1)
-	return factorial(x)
+	x = np.arange(N + 1)
+	return np.exp(np.cumsum(np.log(np.where(x > 0, x, 1))))
+
 
 # old way for the factorials, no longer used.
 # def factorial_list(N):
@@ -43,6 +44,11 @@ def factorial_list(N):
 # 		return FL[:int(N) + 1]
 # 	else:
 # 		return FL
+#
+#other old way:
+#def factorial_list(N):
+#	x=np.arange(N+1)
+#	return factorial(x)
 
 
 def three_j(j,m):
@@ -62,7 +68,7 @@ def three_j(j,m):
 
 
 	PF= int((-1) ** int(j_1 - j_2 - m_3))
-	M=-m_3;
+	M=-m_3
 
 	a1 = j_1 + j_2 - j_3
 	if a1 < 0:

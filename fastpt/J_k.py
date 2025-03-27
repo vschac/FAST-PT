@@ -8,9 +8,8 @@
 '''
 from __future__ import division
 import numpy as np
-from numpy.fft import fft, ifft , rfft, irfft , fftfreq
-from numpy import exp, log, log10, cos, sin, pi, cosh, sinh , sqrt
-from scipy.special import gamma
+from numpy.fft import ifft , rfft, irfft
+from numpy import exp, log, pi
 import sys
 from time import time
 from .fastpt_extr import p_window, c_window, pad_left, pad_right

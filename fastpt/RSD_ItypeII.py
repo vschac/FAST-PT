@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import sys
 from time import time 
-from numpy import log, sqrt, exp, pi
+from numpy import log, exp, pi
 from scipy.signal import fftconvolve as convolve 
 
 

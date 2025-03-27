@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import butter, lfilter, filtfilt, lfilter_zi
+from scipy.signal import butter, lfilter, filtfilt
 import copy
 from .P_extend import k_extend 
 
@@ -92,7 +92,7 @@ def filter_lowk(k,P_in,start,end):
 
 def BW_filter(P_in,order=3,nf=.01):
 
-	# print 'at butter, freq=', nf
+	print('at butter, freq=', nf)
 
 	B, A = butter(order, nf, 'low')
 
