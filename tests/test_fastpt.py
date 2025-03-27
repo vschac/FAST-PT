@@ -471,9 +471,20 @@ def test_hash_power_spectrum(fpt, monkeypatch):
     P_hash = fpt._hash_arrays(P)
     assert isinstance(P_hash, int)
     
+    # Test that create_hash_key returns both the hash_key and P_hash
+    # Use some dummy values for testing
+    term = "test_term"
+    X = fpt.X_spt
+    P_window = None
+    C_window = 0.75
+    
+    hash_key, returned_P_hash = fpt._create_hash_key(term, X, P, P_window, C_window)
+    assert isinstance(hash_key, int)
+    assert isinstance(returned_P_hash, int)
+    assert returned_P_hash == P_hash, "P_hash should match the direct hash of P"
+    
     # Test access to cached properties creates entries in X_registry
-    X_spt = fpt.X_spt
-    assert id(X_spt) in fpt.X_registry
+    assert id(X) in fpt.X_registry
     
     mock_gets = []
     mock_sets = []
@@ -511,6 +522,17 @@ def test_hash_power_spectrum(fpt, monkeypatch):
     # Different P should create different hash
     P_modified = np.copy(P)
     P_modified[0] *= 1.01
+    
+    # Verify P_hash correctly identifies different arrays
+    P_hash_original = fpt._hash_arrays(P)
+    P_hash_modified = fpt._hash_arrays(P_modified)
+    assert P_hash_original != P_hash_modified, "Different P arrays should have different hash values"
+    
+    # Test that create_hash_key returns different P_hash values for different P
+    hash_key1, P_hash1 = fpt._create_hash_key(term, X, P, P_window, C_window)
+    hash_key2, P_hash2 = fpt._create_hash_key(term, X, P_modified, P_window, C_window)
+    assert P_hash1 != P_hash2, "P_hash values should differ for different P arrays"
+    assert hash_key1 != hash_key2, "Hash keys should differ for different P arrays"
     
     mock_gets.clear()
     mock_sets.clear()

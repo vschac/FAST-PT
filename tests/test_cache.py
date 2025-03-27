@@ -34,14 +34,14 @@ def test_init_custom_size():
 def test_init_unlimited_cache(sample_arrays):
     """Test initialization with unlimited cache size"""
     cm = CacheManager(max_size_mb=0)
-    cm.set(sample_arrays[2], "category", 12345)  # Using an integer hash key
+    cm.set(sample_arrays[2], "category", 12345, None)  # Using an integer hash key
     assert cm.max_size_bytes == 0  # No limit
 
 ####################GET/SET TESTS####################
 def test_get_set_simple(cache_manager):
     """Test basic get and set operations with simple values"""
     # Set and get a simple value with an integer hash key
-    cache_manager.set("test_value", "category", 123456)
+    cache_manager.set("test_value", "category", 123456, None)
     result = cache_manager.get("category", 123456)
     assert result == "test_value"
     
@@ -54,7 +54,7 @@ def test_get_set_array(cache_manager, sample_arrays):
     small_array, _, _ = sample_arrays
     
     # Set and get an array with an integer hash key
-    cache_manager.set(small_array, "array_category", 12345)
+    cache_manager.set(small_array, "array_category", 12345, None)
     result = cache_manager.get("array_category", 12345)
     assert np.array_equal(result, small_array)
 
@@ -66,7 +66,7 @@ def test_get_set_list_of_arrays(cache_manager, sample_arrays):
     array_list = [small_array, small_array.copy() * 2]
     
     # Set and get a list of arrays with an integer hash key
-    cache_manager.set(array_list, "list_category", 54321)
+    cache_manager.set(array_list, "list_category", 54321, None)
     result = cache_manager.get("list_category", 54321)
     
     # Verify result is a list with correct arrays
@@ -87,7 +87,7 @@ def test_cache_hits_misses(cache_manager):
     assert cache_manager.misses == 1
     
     # Set value and access again (hit)
-    cache_manager.set("value", "category", 12345)
+    cache_manager.set("value", "category", 12345, None)
     cache_manager.get("category", 12345)
     assert cache_manager.hits == 1
     assert cache_manager.misses == 1
@@ -144,12 +144,12 @@ def test_cache_size_tracking(cache_manager, sample_arrays):
     assert cache_manager.cache_size == 0
     
     # Add small array
-    cache_manager.set(small_array, "category", 12345)
+    cache_manager.set(small_array, "category", 12345, None)
     initial_size = cache_manager.cache_size
     assert initial_size >= 800  # At least the array size, plus key overhead
     
     # Add medium array
-    cache_manager.set(medium_array, "category", 67890)
+    cache_manager.set(medium_array, "category", 67890, None)
     assert cache_manager.cache_size > initial_size + 80000
 
 def test_cache_size_tracking_with_list(cache_manager, sample_arrays):
@@ -161,7 +161,7 @@ def test_cache_size_tracking_with_list(cache_manager, sample_arrays):
     
     # Add list to cache
     initial_size = cache_manager.cache_size
-    cache_manager.set(array_list, "category", 54321)
+    cache_manager.set(array_list, "category", 54321, None)
     assert cache_manager.cache_size > initial_size + 800 + 80000
 
 ####################EVICTION TESTS####################
@@ -173,18 +173,18 @@ def test_eviction_when_full(sample_arrays):
     _, medium_array, large_array = sample_arrays
     
     # Add medium array (about 0.08 MB)
-    cm.set(medium_array, "category", "medium")
+    cm.set(medium_array, "category", "medium", None)
     assert "category" in [k[0] for k in cm.cache.keys()]
     
     # Add large array (about 2 MB) - should trigger eviction
-    cm.set(large_array, "category", "large")
+    cm.set(large_array, "category", "large", None)
     
     # Verify both can fit
     assert cm.get("category", "medium") is not None
     assert cm.get("category", "large") is not None
     
     # Add another large array - should trigger eviction
-    cm.set(large_array, "category", "large2")
+    cm.set(large_array, "category", "large2", None)
     
     # The total size would be ~4MB, over the limit
     # One of the entries must have been evicted
@@ -209,8 +209,8 @@ def test_unlimited_cache(sample_arrays):
     
     # Add arrays - should not trigger eviction
     for i in range(10):
-        cm.set(medium_array, "category", f"medium{i}")
-        cm.set(large_array, "category", f"large{i}")
+        cm.set(medium_array, "category", f"medium{i}", None)
+        cm.set(large_array, "category", f"large{i}", None)
     
     # Verify all entries are still in cache
     for i in range(10):
@@ -223,8 +223,8 @@ def test_clear(cache_manager, sample_arrays):
     small_array, medium_array, _ = sample_arrays
     
     # Add some items
-    cache_manager.set(small_array, "category", "small")
-    cache_manager.set(medium_array, "category", "medium")
+    cache_manager.set(small_array, "category", "small", None)
+    cache_manager.set(medium_array, "category", "medium", None)
     
     # Verify items are in cache
     assert cache_manager.get("category", "small") is not None
@@ -244,8 +244,8 @@ def test_stats(cache_manager, sample_arrays):
     small_array, medium_array, _ = sample_arrays
     
     # Add some items and perform some gets
-    cache_manager.set(small_array, "category", "small")
-    cache_manager.set(medium_array, "category", "medium")
+    cache_manager.set(small_array, "category", "small", None)
+    cache_manager.set(medium_array, "category", "medium", None)
     cache_manager.get("category", "small")
     cache_manager.get("category", "medium")
     cache_manager.get("category", "nonexistent")
@@ -280,11 +280,11 @@ def test_overwrite_same_key(cache_manager, sample_arrays):
     small_array, medium_array, _ = sample_arrays
     
     # Set a value
-    cache_manager.set(small_array, "category", "key")
+    cache_manager.set(small_array, "category", "key", None)
     original_size = cache_manager.cache_size
     
     # Overwrite with a different value
-    cache_manager.set(medium_array, "category", "key")
+    cache_manager.set(medium_array, "category", "key", None)
     
     # Verify the value was updated
     result = cache_manager.get("category", "key")
@@ -300,3 +300,29 @@ def test_overwrite_same_key(cache_manager, sample_arrays):
     tolerance = max(100, expected_size_change * 0.01)  # 1% or 100 bytes, whichever is larger
     assert abs(actual_size_change - expected_size_change) <= tolerance, \
         f"Size change {actual_size_change} differs from expected {expected_size_change} by more than tolerance {tolerance}"
+    
+##################### New P Dump Tests #####################
+def test_P_dump(cache_manager):
+    P = np.logspace(0, 1, 1000)
+    P_hash = hash(P.tobytes())
+    cache_manager.set(P, "test", 12345, P_hash)
+    cache_manager.set(P, "test", 45678, P_hash)
+    assert len(cache_manager.cache) == 2
+    assert cache_manager.current_P_hash == P_hash
+    P2 = np.logspace(1, 2, 1000)
+    P2_hash = hash(P2.tobytes())
+    cache_manager.set(P2, "test", 98765, P2_hash)
+    assert len(cache_manager.cache) == 1
+    assert cache_manager.get("test", 12345) is None
+    assert cache_manager.get("test", 45678) is None
+    assert cache_manager.current_P_hash == P2_hash
+
+def test_dont_dump(cache_manager):
+    cache_manager.dump_cache = False
+    P = np.logspace(0, 1, 1000)
+    P_hash = hash(P.tobytes())
+    cache_manager.set(P, "test", 12345, P_hash)
+    P2 = np.logspace(1, 2, 1000)
+    P2_hash = hash(P2.tobytes())
+    cache_manager.set(P2, "test", 98765, P2_hash)
+    assert len(cache_manager.cache) == 2
