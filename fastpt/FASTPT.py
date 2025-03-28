@@ -56,8 +56,6 @@ from . import RSD_ItypeII
 from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
 from .CacheManager import CacheManager
-from .timing_utils import timing_checkpoint, time_function
-
 
 try:
     from .cython_pt.fastpt_core import (
@@ -690,9 +688,7 @@ class FASTPT:
             return hash(arrays.tobytes())
         return hash(arrays)
     
-    @time_function
     def _create_hash_key(self, term, X, P, P_window, C_window):
-        timing_checkpoint("hash:start")
         """Create a hash key from the term and input parameters"""
         P_hash = self._hash_arrays(P)
         P_win_hash = self._hash_arrays(P_window)
@@ -706,7 +702,6 @@ class FASTPT:
         for h in hash_list:
             if h is not None:
                 hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
-        timing_checkpoint("hash:end")
         return hash_key, P_hash
 
     def compute_term(self, term, X, operation=None, P=None, P_window=None, C_window=None):
@@ -1583,9 +1578,7 @@ class FASTPT:
     ######################################################################################
     ### Core functions used by top-level functions ###
 
-    @time_function
     def _cache_fourier_coefficients(self, P_b, C_window=None):
-        timing_checkpoint("fourier:start")
         """Cache and return Fourier coefficients for a given biased power spectrum"""
 
         if CYTHON_AVAILABLE:
@@ -1599,9 +1592,7 @@ class FASTPT:
 
         result = self.cache.get("fourier_coefficients", hash_key)
         if result is not None: 
-            timing_checkpoint("fourier:cache_hit")
             return result
-        timing_checkpoint("fourier:before_calc")
         from numpy.fft import rfft
     
         c_m_positive = rfft(P_b)
@@ -1613,14 +1604,10 @@ class FASTPT:
             if self.verbose:
                 print('windowing the Fourier coefficients')
             c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
-        timing_checkpoint("fourier:after_calc")
         self.cache.set(c_m, "fourier_coefficients", hash_key, None)
-        timing_checkpoint("fourier:end")
         return c_m
 
-    @time_function
     def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
-        timing_checkpoint("convolution:start")
         """Cache and return convolution results"""
         if CYTHON_AVAILABLE:
             return compute_convolution(self.cache, c1, c2, g_m, g_n, h_l)
@@ -1639,11 +1626,9 @@ class FASTPT:
 
         result = self.cache.get("convolution", hash_key)
         if result is not None: 
-            timing_checkpoint("convolution:cache_hit")
             return result
 
         from scipy.signal import fftconvolve
-        timing_checkpoint("convolution:before_calc")
         # Calculate convolution
         C_l = fftconvolve(c1 * g_m, c2 * g_n)
         #Old comments about C_l
@@ -1656,10 +1641,8 @@ class FASTPT:
             C_l = C_l * h_l * two_part_l
         else:
             C_l = C_l * h_l
-        timing_checkpoint("convolution:after_calc")
         # Cache and return
         self.cache.set(C_l, "convolution", hash_key, None)
-        timing_checkpoint("convolution:end")
         return C_l
 
 

@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 import sys
-from .timing_utils import timing_checkpoint, time_function
 
 class CacheManager:
     """Unified cache manager for FASTPT with memory efficiency features"""
@@ -50,11 +49,9 @@ class CacheManager:
                 return sys.getsizeof(arr)
             except:
                 return 64  # Default estimate if sys.getsizeof fails
-    
-    @time_function    
+        
     def get(self, category, hash_key):
         """Get an item from cache using category and arguments as key"""
-        timing_checkpoint("get:start")
         key = (category, hash_key)
         if key in self.cache:
             self.hits += 1
@@ -63,10 +60,8 @@ class CacheManager:
                 self.hit_counts[key] += 1
             else:
                 self.hit_counts[key] = 1
-            timing_checkpoint("get:hit")
             return self.cache[key]
         self.misses += 1
-        timing_checkpoint("get:miss")
         return None
     
     def set(self, value, category, hash_key, P_hash):
@@ -84,35 +79,11 @@ class CacheManager:
         value_size = self._get_array_size(value)
         total_size = key_size + value_size
         
-        # When power spectrum changes, only clear entries with the old P_hash
         if self.dump_cache and P_hash is not None and P_hash != self.current_P_hash:
-            # Don't use clear() as it's expensive
-            # Instead, identify and keep only items not related to the power spectrum
-            cache_size_before = self.cache_size
-            
-            # Keep a list of keys to remove (avoid modifying dict during iteration)
-            keys_to_remove = []
-            for cache_key in list(self.cache.keys()):
-                category, _ = cache_key
-                # Skip items that aren't based on the power spectrum
-                # Such as metadata, constants, and precomputed arrays
-                if category in ["metadata", "constants", "grid"]:
-                    continue
-                    
-                # Remove all other items which depend on the power spectrum
-                keys_to_remove.append(cache_key)
-                
-            # Remove the identified keys
-            for cache_key in keys_to_remove:
-                if cache_key in self.hit_counts:
-                    del self.hit_counts[cache_key]
-                if cache_key in self.cache:
-                    del self.cache[cache_key]
-            
-            # Update current power spectrum hash
+            self.cache.clear()
+            self.hit_counts.clear()
+            self.cache_size = 0
             self.current_P_hash = P_hash
-            
-            # Recalculate cache size after selective clearing
             self.cache_size = sum(self._get_array_size(k) + self._get_array_size(v) 
                                 for k, v in self.cache.items())
         
@@ -123,10 +94,8 @@ class CacheManager:
         self.cache_size = self.cache_size - old_size + total_size
         return value
     
-    @time_function
     def _evict(self, required_size):
         """Evict items from cache until there's room for required_size"""
-        timing_checkpoint("evict:start")
         items = list(self.cache.items())
         np.random.shuffle(items)
     
@@ -145,18 +114,12 @@ class CacheManager:
             
             self.cache_size -= total_size
             freed += total_size
-        timing_checkpoint("evict:end")
     
-    @time_function
     def clear(self):
         """Clear the entire cache"""
-        timing_checkpoint("clear:start")
         self.cache.clear()
-        timing_checkpoint("clear:after_cache_clear")
         self.hit_counts.clear()
-        timing_checkpoint("clear:after_hit_counts_clear")
         self.cache_size = 0
-        timing_checkpoint("clear:end")
     
     def stats(self):
         """Return statistics about the cache usage"""
