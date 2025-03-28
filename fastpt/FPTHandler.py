@@ -589,7 +589,7 @@ class FPTHandler:
         >>> handler.list_available_functions()
         ['OV', 'IA_ct', 'IA_ctbias', 'IA_d2', 'IA_der', ...]
         """
-        print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("__")])
+        print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("_")])
 
     def list_available_terms(self):
         """
@@ -667,7 +667,7 @@ class FPTHandler:
         >>> handler.update_default_params(P=P_linear, C_window=0.75)
         >>> # Now these parameters will be used by default
         """
-        self.default_params = self.fastpt._validate_params(**params)
+        self.default_params = {**self.default_params, **self.fastpt._validate_params(**params)}
         print("Default parameters updated.")
 
     def update_fastpt_instance(self, fastpt_instance: FASTPT):
