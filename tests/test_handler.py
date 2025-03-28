@@ -14,7 +14,8 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k)
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-
+    Ps = handler.generate_power_spectra(amount=3)
+    print(Ps)
     
 
 @pytest.fixture
@@ -1168,3 +1169,16 @@ def test_load_params_in_bulk_run(fpt, temp_output_dir):
     for func in funcs:
         for i in range(len(power_spectra)):
             assert (func, i) in results
+
+################# Power Spectra Generator Tests #################
+def test_generate_power_spectra(handler):
+    """Test the generation of power spectra"""
+    P = handler.generate_power_spectra()
+    assert isinstance(P, np.ndarray)
+    assert len(P) == 3000
+    spectra = handler.generate_power_spectra(amount=3)
+    assert isinstance(spectra, list)
+    assert len(spectra) == 3
+    assert not np.array_equal(spectra[0], spectra[1]) and not np.array_equal(spectra[1], spectra[2]) and not np.array_equal(spectra[0], spectra[2])
+    Ps = handler.generate_power_spectra(amount=3, randomize=False)
+    assert not np.array_equal(P, Ps[0]) and not np.array_equal(P, Ps[1]) and not np.array_equal(P, Ps[2])

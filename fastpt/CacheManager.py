@@ -5,7 +5,7 @@ import sys
 class CacheManager:
     """Unified cache manager for FASTPT with memory efficiency features"""
     
-    def __init__(self, max_size_mb=500):
+    def __init__(self, max_size_mb=500, dump_cache=True):
         """Initialize cache with optional maximum size in MB"""
         self.cache = {}
         self.hit_counts = {}  # Track hits per cache item
@@ -14,6 +14,8 @@ class CacheManager:
         #^^ 1000 MB = 1000*1024 KB = 1000*1024*1024 bytes (1024 instead of 1000 due to binary memory 2^10=1024)
         self.hits = 0
         self.misses = 0
+        self.dump_cache = dump_cache
+        self.current_P_hash = 0
 
     def measure_actual_size(self):
         """Measure actual memory usage of the cache"""
@@ -47,7 +49,7 @@ class CacheManager:
                 return sys.getsizeof(arr)
             except:
                 return 64  # Default estimate if sys.getsizeof fails
-    
+        
     def get(self, category, hash_key):
         """Get an item from cache using category and arguments as key"""
         key = (category, hash_key)
@@ -62,7 +64,7 @@ class CacheManager:
         self.misses += 1
         return None
     
-    def set(self, value, category, hash_key):
+    def set(self, value, category, hash_key, P_hash):
         """Store an item in cache using category and arguments as key"""
         key = (category, hash_key)
         key_size = self._get_array_size(key)
@@ -73,13 +75,21 @@ class CacheManager:
             old_size = self._get_array_size(old_val)
         else:
             self.hit_counts[key] = 0
-    
+        
         value_size = self._get_array_size(value)
         total_size = key_size + value_size
-    
-        if self.max_size_bytes > 0 and (self.cache_size - old_size + total_size) > self.max_size_bytes:
+        
+        if self.dump_cache and P_hash is not None and P_hash != self.current_P_hash:
+            self.cache.clear()
+            self.hit_counts.clear()
+            self.cache_size = 0
+            self.current_P_hash = P_hash
+            self.cache_size = sum(self._get_array_size(k) + self._get_array_size(v) 
+                                for k, v in self.cache.items())
+        
+        elif self.max_size_bytes > 0 and (self.cache_size - old_size + total_size) > self.max_size_bytes:
             self._evict(total_size - old_size)
-    
+        
         self.cache[key] = value
         self.cache_size = self.cache_size - old_size + total_size
         return value

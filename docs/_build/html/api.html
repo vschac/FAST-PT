@@ -84,6 +84,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.clear_cache"><code class="docutils literal notranslate"><span class="pre">FPTHandler.clear_cache()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.clear_default_params"><code class="docutils literal notranslate"><span class="pre">FPTHandler.clear_default_params()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.fastpt"><code class="docutils literal notranslate"><span class="pre">FPTHandler.fastpt</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.generate_power_spectra"><code class="docutils literal notranslate"><span class="pre">FPTHandler.generate_power_spectra()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.get"><code class="docutils literal notranslate"><span class="pre">FPTHandler.get()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.get_tracer"><code class="docutils literal notranslate"><span class="pre">FPTHandler.get_tracer()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FPTHandler.list_available_functions"><code class="docutils literal notranslate"><span class="pre">FPTHandler.list_available_functions()</span></code></a></li>
@@ -474,7 +475,7 @@ alignment and tidal torque.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>term</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the term to compute, used for cache identification</p></li>
-<li><p><strong>X</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><em>tuples</em>) – Fast-PT coefficient matrices for the calculation</p></li>
+<li><p><strong>X</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Fast-PT coefficient matrices for the calculation</p></li>
 <li><p><strong>operation</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function to apply to the result(s) after computation</p></li>
 <li><p><strong>P</strong> (<em>array_like</em>) – Input power spectrum</p></li>
 <li><p><strong>P_window</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – Window parameters for tapering the power spectrum at the endpoints</p></li>
@@ -710,6 +711,41 @@ in subsequent function calls.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="fastpt.FPTHandler.generate_power_spectra">
+<span class="sig-name descname"><span class="pre">generate_power_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">randomize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_cdm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.67</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.022</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.generate_power_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.generate_power_spectra" title="Link to this definition"></a></dt>
+<dd><p>Generate power spectra using Classy. Specify your own cosmo parameters or randomize them within their proper ranges.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>randomize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to randomize cosmological parameters. Default is True.</p></li>
+<li><p><strong>amount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Number of power spectra to generate. Default is 1.</p></li>
+<li><p><strong>omega_cdm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Omega_cdm value. Default is 0.12.</p></li>
+<li><p><strong>h</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Hubble parameter. Default is 0.67.</p></li>
+<li><p><strong>omega_b</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Omega_b value. Default is 0.022.</p></li>
+<li><p><strong>z</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Redshift value. Default is 0.0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of generated power spectra (numpy arrays) is amount is greater than 1 otherwise just the power spectrum.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>, or <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.13)"><strong>ImportError</strong></a> – If Classy is not installed.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">generate_power_spectra</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># P is a single numpy array of the generated power spectrum</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spectra</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">generate_power_spectra</span><span class="p">(</span><span class="n">amount</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># spectra is an array that will contain 5 generated power spectra (numpy arrays)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.get">
 <span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">terms</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.get" title="Link to this definition"></a></dt>
 <dd><p>Get specific power spectrum terms directly.</p>
@@ -746,7 +782,7 @@ term names to their values.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.get_tracer">
 <span class="sig-name descname"><span class="pre">get_tracer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracer_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.get_tracer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.get_tracer" title="Link to this definition"></a></dt>
-<dd><p>Get Fast-PT terms relevant to specific tracer.</p>
+<dd><p>Get Fast-PT terms relevant to a specific tracer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
