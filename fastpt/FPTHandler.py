@@ -59,7 +59,7 @@ class FPTHandler:
         self.default_params = {}
         if params:
             try:
-                self.default_params = self._validate_params(**params)
+                self.default_params = self.fastpt._validate_params(**params)
             except ValueError as e:
                 if "You must provide an input power spectrum array" in str(e):
                     print("No power spectrum provided. You'll need to provide 'P' in each function call.")
@@ -160,38 +160,6 @@ class FPTHandler:
         """
         return self.__fastpt
 
-    def _validate_params(self, **params):
-        """" Same function as before """
-        #Would need to add checks for every possible parameter (f, nu, X, etc)
-        valid_params = ('P', 'P_window', 'C_window', 'f', 'X', 'nu', 'mu_n', 'L', 'h', 'rsdrag')
-        for key in params.keys():
-            if key not in valid_params:
-                raise ValueError(f'Invalid parameter: {key}. Valid parameters are: {valid_params}')
-        P = params.get('P', None)
-        if (P is None or len(P) == 0):
-            raise ValueError('You must provide an input power spectrum array.')
-        if (len(P) != len(self.fastpt.k_original)):
-            raise ValueError(f'Input k and P arrays must have the same size. P:{len(P)}, K:{len(self.fastpt.k_original)}')
-            
-        if (np.all(P == 0.0)):
-            raise ValueError('Your input power spectrum array is all zeros.')
-
-        P_window = params.get('P_window', np.array([]))
-        C_window = params.get('C_window', None)
-
-        if P_window is not None and P_window.size > 0:
-            maxP = (log(self.fastpt.k_original[-1]) - log(self.fastpt.k_original[0])) / 2
-            if len(P_window) != 2:
-                raise ValueError(f'P_window must be a tuple of two values.')
-            if P_window[0] > maxP or P_window[1] > maxP:
-                raise ValueError(f'P_window value is too large. Decrease to less than {maxP} to avoid over tapering.')
-
-        if C_window is not None:
-            if C_window < 0 or C_window > 1:
-                raise ValueError('C_window must be between 0 and 1.')
-
-        return params
-
 
     def _get_function_params(self, func):
         """ Returns both required and optional parameter names for a given FASTPT function. """
@@ -239,7 +207,7 @@ class FPTHandler:
     def _prepare_function_params(self, func, override_kwargs):
         """Prepares and validates parameters for a FASTPT function."""
         if override_kwargs: 
-            self._validate_params(**override_kwargs)
+            self.fastpt._validate_params(**override_kwargs)
     
         merged_params = {**self.default_params, **override_kwargs}
 
@@ -703,7 +671,7 @@ class FPTHandler:
         >>> handler.update_default_params(P=P_linear, C_window=0.75)
         >>> # Now these parameters will be used by default
         """
-        self.default_params = self._validate_params(**params)
+        self.default_params = self.fastpt._validate_params(**params)
         print("Default parameters updated.")
 
     def update_fastpt_instance(self, fastpt_instance: FASTPT):
@@ -1426,3 +1394,76 @@ class FPTHandler:
             plt.show()
         
         return fig
+    
+    def generate_power_spectra(self, randomize=True, amount=1, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
+        """
+        Generate power spectra using Classy. Specify your own cosmo parameters or randomize them within their proper ranges.
+
+        Parameters
+        ----------
+        randomize : bool, optional
+            Whether to randomize cosmological parameters. Default is True.
+        amount : int, optional
+            Number of power spectra to generate. Default is 1.
+        omega_cdm : float, optional
+            Omega_cdm value. Default is 0.12.
+        h : float, optional
+            Hubble parameter. Default is 0.67.
+        omega_b : float, optional
+            Omega_b value. Default is 0.022.
+        z : float, optional
+            Redshift value. Default is 0.0.
+
+        Returns
+        -------
+        list, or numpy.ndarray
+            List of generated power spectra (numpy arrays) is amount is greater than 1 otherwise just the power spectrum.
+        
+        Raises
+        ------
+        ImportError
+            If Classy is not installed.
+
+        Examples
+        --------
+        >>> handler = FPTHandler(fpt)
+        >>> P = handler.generate_power_spectra()
+        >>> # P is a single numpy array of the generated power spectrum
+        >>> spectra = handler.generate_power_spectra(amount=5)
+        >>> # spectra is an array that will contain 5 generated power spectra (numpy arrays)
+        """
+        try:
+            from classy import Class
+        except ImportError as e:
+            raise ImportError("Classy is not installed. Please install it to use this function.") from e
+        k = self.fastpt.k_original
+        k_max = max(k)
+        output = []
+        if amount > 1: 
+            randomize = True #If multiple power spectra are requested, force randomization
+            print("You are generating multiple power spectra, randomizing parameters is enabled.")
+            print("Beginning generation...")
+        for _ in range(amount):
+            if randomize:
+                omega_cdm = np.random.uniform(0.1, 0.14)
+                h = np.random.uniform(0.65, 0.75)
+                omega_b = np.random.uniform(0.02, 0.025)
+                z = np.random.uniform(0.0, 1.0)
+            params = {
+                'output': 'mPk',
+                'P_k_max_1/Mpc': k_max * 1.1,
+                'z_max_pk': z,
+                'h': h,
+                'omega_b': omega_b,
+                'omega_cdm': omega_cdm
+            }
+            cosmo = Class()
+            cosmo.set(params)
+            cosmo.compute()
+            output.append(np.array([cosmo.pk(k, z) for k in k]))
+            cosmo.struct_cleanup()
+            cosmo.empty()
+        print("Done!")
+        if amount == 1:
+            return output[0]
+        return output

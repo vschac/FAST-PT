@@ -117,6 +117,7 @@ def test_validate_params(fpt):
     # Test 4: P_window validation
     max_window = (np.log(fpt.k_final[-1]) - np.log(fpt.k_final[0])) / 2
     Max_P_window = np.array([max_window, max_window])
+    print(f"Max_P_window: {Max_P_window}")
     assert fpt.one_loop_dd(P, P_window=Max_P_window / 2) is not None
     
     with pytest.raises(ValueError, match=r'P_window must be a tuple of two values.'):

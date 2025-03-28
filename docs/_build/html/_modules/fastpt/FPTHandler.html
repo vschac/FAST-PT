@@ -138,7 +138,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">params</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="s2">&quot;You must provide an input power spectrum array&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No power spectrum provided. You&#39;ll need to provide &#39;P&#39; in each function call.&quot;</span><span class="p">)</span>
@@ -189,8 +189,8 @@
             <span class="s2">&quot;P_E2tE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ct&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="s2">&quot;P_tEtE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ct&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         
-            <span class="s2">&quot;P_d2tE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ctbias&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;X_IA_gb2_F2&quot;</span><span class="p">,</span> <span class="s2">&quot;X_IA_gb2_G2&quot;</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">results</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
-            <span class="s2">&quot;P_s2tE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ctbias&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;X_IA_gb2_S2F2&quot;</span><span class="p">,</span> <span class="s2">&quot;X_IA_gb2_S2G2&quot;</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">results</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
+            <span class="s2">&quot;P_d2tE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ctbias&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="s2">&quot;P_s2tE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ctbias&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         
             <span class="s2">&quot;P_s2E&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_s2&quot;</span><span class="p">,</span> <span class="s2">&quot;X_IA_gb2_S2F2&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">),</span>
             <span class="s2">&quot;P_s20E&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_s2&quot;</span><span class="p">,</span> <span class="s2">&quot;X_IA_gb2_S2fe&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">),</span>
@@ -240,38 +240,6 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;&quot; Same function as before &quot;&quot;&quot;</span>
-        <span class="c1">#Would need to add checks for every possible parameter (f, nu, X, etc)</span>
-        <span class="n">valid_params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;P_window&#39;</span><span class="p">,</span> <span class="s1">&#39;C_window&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;nu&#39;</span><span class="p">,</span> <span class="s1">&#39;mu_n&#39;</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;rsdrag&#39;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_params</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Invalid parameter: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">. Valid parameters are: </span><span class="si">{</span><span class="n">valid_params</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="n">P</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">P</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must provide an input power spectrum array.&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Input k and P arrays must have the same size. P:</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="si">}</span><span class="s1">, K:</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-            
-        <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">P</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Your input power spectrum array is all zeros.&#39;</span><span class="p">)</span>
-
-        <span class="n">P_window</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P_window&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([]))</span>
-        <span class="n">C_window</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;C_window&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">P_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">P_window</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">maxP</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">/</span> <span class="mi">2</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">P_window</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;P_window must be a tuple of two values.&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">P_window</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">maxP</span> <span class="ow">or</span> <span class="n">P_window</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">maxP</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;P_window value is too large. Decrease to less than </span><span class="si">{</span><span class="n">maxP</span><span class="si">}</span><span class="s1"> to avoid over tapering.&#39;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">C_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">C_window</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">C_window</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;C_window must be between 0 and 1.&#39;</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">params</span>
-
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_function_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Returns both required and optional parameter names for a given FASTPT function. &quot;&quot;&quot;</span>
@@ -319,7 +287,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_function_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepares and validates parameters for a FASTPT function.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">override_kwargs</span><span class="p">:</span> 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">override_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">override_kwargs</span><span class="p">)</span>
     
         <span class="n">merged_params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">}</span>
 
@@ -443,6 +411,8 @@
         <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">flip</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">power_spectra</span><span class="p">):</span>
+                <span class="c1"># if i % 10 == 0:</span>
+                <span class="c1">#     self.fastpt.clear_workspace()</span>
                 <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
                     <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
                     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -450,12 +420,14 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">power_spectra</span><span class="p">):</span>
+                    <span class="c1"># if i % 10 == 0:</span>
+                    <span class="c1">#     self.fastpt.clear_workspace()</span>
                     <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
                     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                     <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">results</span></div>
 
-    
+       
 <div class="viewcode-block" id="FPTHandler.get">
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.get">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">terms</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
@@ -516,7 +488,9 @@
                     <span class="s2">&quot;Pb1L_2&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_Pb1L_2&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;Pb1L_b2L&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_Pb1L_b2L&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;Pb2L&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_Pb2L&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;Pb2L_2&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_Pb2L_2&quot;</span>
+                    <span class="s2">&quot;Pb2L_2&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_Pb2L_2&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;P_d2tE&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_P_d2tE&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;P_s2tE&quot;</span><span class="p">:</span> <span class="s2">&quot;_get_P_s2tE&quot;</span>
                 <span class="p">}</span>
         <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">term</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="p">:</span>
@@ -570,7 +544,7 @@
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.get_tracer">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_tracer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracer_name</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get Fast-PT terms relevant to specific tracer.</span>
+<span class="sd">        Get Fast-PT terms relevant to a specific tracer.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -806,7 +780,7 @@
 <span class="sd">        &gt;&gt;&gt; handler.update_default_params(P=P_linear, C_window=0.75)</span>
 <span class="sd">        &gt;&gt;&gt; # Now these parameters will be used by default</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default parameters updated.&quot;</span><span class="p">)</span></div>
 
 
@@ -1550,6 +1524,82 @@
             <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
         
         <span class="k">return</span> <span class="n">fig</span></div>
+
+    
+<div class="viewcode-block" id="FPTHandler.generate_power_spectra">
+<a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.generate_power_spectra">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">randomize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">amount</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">omega_cdm</span><span class="o">=</span><span class="mf">0.12</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.67</span><span class="p">,</span> <span class="n">omega_b</span><span class="o">=</span><span class="mf">0.022</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate power spectra using Classy. Specify your own cosmo parameters or randomize them within their proper ranges.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        randomize : bool, optional</span>
+<span class="sd">            Whether to randomize cosmological parameters. Default is True.</span>
+<span class="sd">        amount : int, optional</span>
+<span class="sd">            Number of power spectra to generate. Default is 1.</span>
+<span class="sd">        omega_cdm : float, optional</span>
+<span class="sd">            Omega_cdm value. Default is 0.12.</span>
+<span class="sd">        h : float, optional</span>
+<span class="sd">            Hubble parameter. Default is 0.67.</span>
+<span class="sd">        omega_b : float, optional</span>
+<span class="sd">            Omega_b value. Default is 0.022.</span>
+<span class="sd">        z : float, optional</span>
+<span class="sd">            Redshift value. Default is 0.0.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list, or numpy.ndarray</span>
+<span class="sd">            List of generated power spectra (numpy arrays) is amount is greater than 1 otherwise just the power spectrum.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ImportError</span>
+<span class="sd">            If Classy is not installed.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
+<span class="sd">        &gt;&gt;&gt; P = handler.generate_power_spectra()</span>
+<span class="sd">        &gt;&gt;&gt; # P is a single numpy array of the generated power spectrum</span>
+<span class="sd">        &gt;&gt;&gt; spectra = handler.generate_power_spectra(amount=5)</span>
+<span class="sd">        &gt;&gt;&gt; # spectra is an array that will contain 5 generated power spectra (numpy arrays)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">classy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Class</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Classy is not installed. Please install it to use this function.&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span>
+        <span class="n">k_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">amount</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span> 
+            <span class="n">randomize</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1">#If multiple power spectra are requested, force randomization</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;You are generating multiple power spectra, randomizing parameters is enabled.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Beginning generation...&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">amount</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">randomize</span><span class="p">:</span>
+                <span class="n">omega_cdm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.14</span><span class="p">)</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.65</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+                <span class="n">omega_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.025</span><span class="p">)</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;output&#39;</span><span class="p">:</span> <span class="s1">&#39;mPk&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;P_k_max_1/Mpc&#39;</span><span class="p">:</span> <span class="n">k_max</span> <span class="o">*</span> <span class="mf">1.1</span><span class="p">,</span>
+                <span class="s1">&#39;z_max_pk&#39;</span><span class="p">:</span> <span class="n">z</span><span class="p">,</span>
+                <span class="s1">&#39;h&#39;</span><span class="p">:</span> <span class="n">h</span><span class="p">,</span>
+                <span class="s1">&#39;omega_b&#39;</span><span class="p">:</span> <span class="n">omega_b</span><span class="p">,</span>
+                <span class="s1">&#39;omega_cdm&#39;</span><span class="p">:</span> <span class="n">omega_cdm</span>
+            <span class="p">}</span>
+            <span class="n">cosmo</span> <span class="o">=</span> <span class="n">Class</span><span class="p">()</span>
+            <span class="n">cosmo</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">cosmo</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosmo</span><span class="o">.</span><span class="n">pk</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">k</span><span class="p">]))</span>
+            <span class="n">cosmo</span><span class="o">.</span><span class="n">struct_cleanup</span><span class="p">()</span>
+            <span class="n">cosmo</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">amount</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">output</span></div>
 </div>
 
 </pre></div>
