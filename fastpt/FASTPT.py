@@ -57,23 +57,6 @@ from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
 from .CacheManager import CacheManager
 
-try:
-    from .cython_pt.fastpt_core import (
-        compute_term_cy,
-        apply_extrapolation_cy,
-        compute_convolution,
-        compute_fourier_coefficients,
-        J_k_scalar_cy,
-        J_k_tensor_cy,
-        clear_workspaces,
-    )
-    from .cython_pt.cython_CacheManager import CacheManager_cy
-    CYTHON_AVAILABLE = True
-except ImportError as e:
-    import warnings
-    warnings.warn(f"FASTPT: Failed to import Cython modules: {e}. Falling back to Python implementation.")
-CYTHON_AVAILABLE = False
-
 log2 = log(2.)
 
 
@@ -186,10 +169,7 @@ class FASTPT:
             return None
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
         
-        if CYTHON_AVAILABLE:
-            self.cache = CacheManager_cy()
-        else:
-            self.cache = CacheManager()
+        self.cache = CacheManager()
         self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
         self.extrap = False
@@ -654,15 +634,6 @@ class FASTPT:
     ############## ABSTRACTED BEHAVIOR METHODS ##############
     def _apply_extrapolation(self, *args):
         """ Applies extrapolation to multiple variables at once """
-        if CYTHON_AVAILABLE: #Used outside of compute_term for some funcs so requires its own check
-            return apply_extrapolation_cy(
-                args if len(args) > 1 else args[0],
-                self.extrap,
-                self.k_original,
-                self.k_extrap,
-                self.EK if self.extrap else None
-            )
-        
         if not self.extrap:
             return args if len(args) > 1 else args[0]
         return [self.EK.PK_original(var)[1] for var in args] if len(args) > 1 else self.EK.PK_original(args[0])[1]
@@ -734,26 +705,7 @@ class FASTPT:
             The computed Fast-PT term
         """
         if P is None: 
-            raise ValueError('Compute term requires an input power spectrum array.')
-        
-        # Use optimized Cython implementation if available
-        if CYTHON_AVAILABLE:
-            return compute_term_cy(
-                self.cache,
-                term, 
-                self.X_registry.get(id(X), f"unknown_{id(X)}"),
-                X,
-                self.m,
-                operation,
-                P,
-                P_window=P_window,
-                C_window=C_window,
-                k_original=self.k_original,
-                k_extrap=self.k_extrap,
-                extrap=self.extrap,
-                EK=self.EK if self.extrap else None,
-                verbose=self.verbose
-            )
+            raise ValueError('Compute term requires an input power spectrum array.')        
 
         # Original Python implementation for single X case
         hash_key, P_hash = self._create_hash_key(term, X, P, P_window, C_window)
@@ -1585,13 +1537,6 @@ class FASTPT:
 
     def _cache_fourier_coefficients(self, P_b, C_window=None):
         """Cache and return Fourier coefficients for a given biased power spectrum"""
-
-        if CYTHON_AVAILABLE:
-            c_window_func = c_window if C_window is not None else None
-            return compute_fourier_coefficients(self.cache, 
-                                                P_b, self.m, self.N, 
-                                                c_window_func, C_window,
-                                                self.verbose)
     
         hash_key, P_hash = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
 
@@ -1614,8 +1559,6 @@ class FASTPT:
 
     def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
         """Cache and return convolution results"""
-        if CYTHON_AVAILABLE:
-            return compute_convolution(self.cache, c1, c2, g_m, g_n, h_l)
 
         c1_hash = self._hash_arrays(c1)
         c2_hash = self._hash_arrays(c2)
@@ -1652,26 +1595,6 @@ class FASTPT:
 
 
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
-        
-        if CYTHON_AVAILABLE:
-            return J_k_scalar_cy(
-                self.cache,
-                self.X_registry.get(id(X), f"unknown_{id(X)}"),
-                self.k_extrap,  # k
-                P,
-                X,  # Pass the full X tuple
-                nu,
-                0.0,  # Taylor_order (default to 0.0)
-                self.m,
-                self.eta_m,
-                self.l,
-                self.tau_l,
-                P_window=P_window,
-                C_window=C_window,
-                extrap=self.extrap,
-                EK=self.EK if self.extrap else None,
-                verbose=self.verbose
-            )
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
         result = self.cache.get("J_k_scalar", hash_key)
@@ -1722,27 +1645,6 @@ class FASTPT:
 
     
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
-
-        if CYTHON_AVAILABLE:
-            return J_k_tensor_cy(
-                self.cache,
-                self.X_registry.get(id(X), f"unknown_{id(X)}"),  # X_name
-                self.k_extrap,  # k
-                P, 
-                X,  # Full X tuple
-                k_final=self.k_final,
-                m=self.m,
-                eta_m=self.eta_m,  # Added eta_m
-                l=self.l,
-                tau_l=self.tau_l,  # Added tau_l
-                n_pad=self.n_pad,
-                id_pad=self.id_pad if self.n_pad > 0 else None,
-                P_window=P_window,
-                C_window=C_window,
-                extrap=self.extrap,
-                EK=self.EK if self.extrap else None,
-                verbose=self.verbose
-            )
 
         hash_key, P_hash = self._create_hash_key("J_k_tensor", X, P, P_window, C_window)
         result = self.cache.get("J_k_tensor", hash_key)
