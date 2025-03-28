@@ -8,9 +8,32 @@ from numpy import exp, pi, log, sqrt
 from scipy.special import gamma
 from .get_nu1_nu2 import nu1_nu2
 import sys
+import functools
+
+def array_cache_key(array):
+    """Create a hashable key from a numpy array"""
+    if array is None:
+        return None
+    return hash(array.tobytes())
+
+def memoize_gamma(func):
+	"""Decorator to cache gamma function results"""
+	cache = {}
+    
+	@functools.wraps(func)
+	def wrapper(*args):
+		key = tuple(array_cache_key(arg) if isinstance(arg, np.ndarray) else arg for arg in args)
+        
+		if key not in cache:
+			cache[key] = func(*args)
+		return cache[key]
+	return wrapper
+
+
 
 log2=log(2.)
 
+@memoize_gamma
 def log_gamma(z):
 
 	z=gamma(z)
@@ -19,6 +42,7 @@ def log_gamma(z):
 	y=np.imag(w)
 	return x,y
 
+@memoize_gamma
 def g_m_vals(mu,q):
 
 	imag_q= np.imag(q)
@@ -46,6 +70,7 @@ def g_m_vals(mu,q):
 
 	return g_m
 
+@memoize_gamma
 def gamsn(z):
 	z=np.asarray(z, dtype=complex)
 	result=sqrt(pi) /2. * 2.**z *g_m_vals(0.5, z-0.5)
