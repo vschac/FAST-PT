@@ -1,4 +1,4 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: fast-pt
 Version: 3.2
 Summary: FAST-PT is a code to calculate quantities in cosmological perturbation theory at 1-loop (including, e.g., corrections to the matter power spectrum).
@@ -39,6 +39,7 @@ License-File: LICENSE
 Requires-Dist: numpy>=1.17
 Requires-Dist: scipy>=1.2
 Requires-Dist: matplotlib>=3.0
+Dynamic: license-file
 
 # FAST-PT
 

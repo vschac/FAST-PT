@@ -38,14 +38,14 @@ fastpt/fastpttest.py
 fastpt/filter_Pk.py
 fastpt/gamma_funcs.py
 fastpt/get_nu1_nu2.py
-fastpt/handler_demo.py
 fastpt/info.py
 fastpt/initialize_params.py
 fastpt/kPol.py
 fastpt/matter_power_spt.py
 fastpt/param_matrix.py
+fastpt/timing_utils.py
 tests/test_benchmarks.py
 tests/test_cache.py
+tests/test_cython.py
 tests/test_fastpt.py
 tests/test_handler.py
-tests/test_plots.py
