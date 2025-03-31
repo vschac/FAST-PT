@@ -14,7 +14,7 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k)
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-    
+    print(len(fpt.k_extrap))
 
 @pytest.fixture
 def fpt():
