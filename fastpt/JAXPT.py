@@ -8,7 +8,7 @@ from jax import config
 import jax
 config.update("jax_enable_x64", True)
 
-class FastPT: #Simple FastPT class used for testing comparisons between numpy and jax
+class JAXPT: 
     def __init__(self, k, n_pad=None):
         self.k = k
         self.k_extrap = k
@@ -404,7 +404,6 @@ def measure_differences(num1, num2):
 if __name__ == "__main__":
     from fastpt import FASTPT, FPTHandler
     k = np.logspace(1e-4, 1, 1000)
-    fpt = FastPT(k)
     FPT = FASTPT(k)
     handler = FPTHandler(FPT)
     P = handler.generate_power_spectra()

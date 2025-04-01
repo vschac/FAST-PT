@@ -19,6 +19,7 @@ fastpt/IA_ctbias.py
 fastpt/IA_gb2.py
 fastpt/IA_ta.py
 fastpt/IA_tt.py
+fastpt/JAXPT.py
 fastpt/J_k.py
 fastpt/J_table.py
 fastpt/OV.py
@@ -47,6 +48,6 @@ fastpt/param_matrix.py
 fastpt/timing_utils.py
 tests/test_benchmarks.py
 tests/test_cache.py
-tests/test_cython.py
 tests/test_fastpt.py
 tests/test_handler.py
+tests/test_jaxpt.py
