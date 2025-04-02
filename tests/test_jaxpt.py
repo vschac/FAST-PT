@@ -9,6 +9,8 @@ from jax import numpy as jnp
 from fastpt.jax_utils import jax_k_extend
 from fastpt.jax_utils import c_window as jc_window, p_window as jp_window
 from fastpt.fastpt_extr import c_window as fc_window, p_window as fp_window
+from time import time
+from fastpt.JAXPT import fourier_coefficients, convolution
 
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
 d = np.loadtxt(data_path)
@@ -17,7 +19,6 @@ P_window = jnp.array([0.2, 0.2])
 C_window = 0.75
 
 if __name__ == "__main__":
-    from time import time
     fpt = FASTPT(d[:, 0])
     jpt = JAXPT(jnp.array(d[:, 0]))
     jax = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad,
@@ -54,7 +55,7 @@ def test_fourier_coefficients(jpt, fpt):
     W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
     P_b1 = P_b1 * W
     P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
-    jax = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+    jax = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
     fast = fpt._cache_fourier_coefficients(P_b1, C_window=C_window)
     assert np.allclose(jax, fast)
 
@@ -68,17 +69,17 @@ def test_convolution(jpt, fpt):
     P_b2 = P_b2 * W
     P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
     P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
-    c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
-    c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
-    jax = jpt.convolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+    c_m = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+    c_n = fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+    jax = convolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
     fast = fpt._cache_convolution(np.asarray(c_m), np.asarray(c_n), np.asarray(g_m[1,:]), np.asarray(g_n[1,:]), np.asarray(h_l[1,:]))
     assert np.allclose(jax, fast), "Convolution results are not equal"
     #Scalar Case
     pf, p, g_m, g_n, two_part_l, h_l = jpt.X_spt
     P_b = P * jpt.k_extrap ** (2)
     P_b = np.pad(P_b, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
-    c_m = jpt.fourier_coefficients(P_b, jpt.m, jpt.N, C_window)
-    jax = jpt.convolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
+    c_m = fourier_coefficients(P_b, jpt.m, jpt.N, C_window)
+    jax = convolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
     fast = fpt._cache_convolution(np.asarray(c_m), np.asarray(c_m), np.asarray(g_m[1,:]), np.asarray(g_n[1,:]), np.asarray(h_l[1,:]), np.asarray(two_part_l[1]))
     assert np.allclose(jax, fast), "Convolution results are not equal"
 
@@ -264,8 +265,52 @@ def test_full_extrapolation_workflow(jpt, fpt):
     assert np.allclose(np.array(jP_orig), P_orig), "Retrieved original P doesn't match"
     assert np.allclose(np.array(jP_orig), P_np), "Retrieved original P doesn't match input"
 
-############ Differentiability Tests ###########
+############# JIT Compilation Tests ###########
+def test_jit_fourier(jpt):
+    """Test that the fourier_coefficients function can be JIT compiled"""
+    try:
+        pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P_b1 = P * jpt.k_extrap ** (-nu1[1])
+        W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
+        P_b1 = P_b1 * W
+        P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+        
+        # JIT compile the function
+        jit_func = jit(fourier_coefficients)
+        result = jit_func(P_b1, jpt.m, jpt.N, C_window)
+        
+        assert isinstance(result, jnp.ndarray), "JIT result is not a JAX array"
+        assert result.shape == ((P_b1.shape[0] + 1),), "JIT result shape doesn't match input shape"
+        
+    except Exception as e:
+        pytest.fail(f"JIT compilation failed with error: {str(e)}")
 
+def test_jit_convolution(jpt):
+    try: 
+        pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P_b1 = P * jpt.k_extrap ** (-nu1[1])
+        P_b2 = P * jpt.k_extrap ** (-nu2[1])
+        W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
+        P_b1 = P_b1 * W
+        P_b2 = P_b2 * W
+        P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+        P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
+        
+        c_m = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+        c_n = fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+        
+        # JIT compile the convolution function
+        jit_func = jit(convolution)
+        result = jit_func(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+        
+        assert isinstance(result, jnp.ndarray), "JIT result is not a JAX array"
+        assert result.shape == (c_m.shape[0] + c_n.shape[0] - 1,), "JIT result shape doesn't match expected shape"
+    except Exception as e:
+        pytest.fail(f"JIT compilation failed with error: {str(e)}")
+
+
+
+############ Differentiability Tests ###########
 def test_jax_extend_differentiability():
     """Test that jax_k_extend functions are differentiable with JAX"""    
     # Load test data
@@ -339,7 +384,7 @@ def test_fourier_coefficients_differentiability(jpt):
         P_b1 = P_b1 * W
         P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
         
-        gradient = jacfwd(jpt.fourier_coefficients)(P_b1, jpt.m, jpt.N, C_window)
+        gradient = jacfwd(fourier_coefficients)(P_b1, jpt.m, jpt.N, C_window)
         
         assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
         expected_shape = (P_b1.shape[0] + 1, P_b1.shape[0]) #<<<<<<<<< why is it 6001, 6000?
@@ -361,10 +406,10 @@ def test_convolution_differentiability(jpt):
         P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
         P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
         
-        c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
-        c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+        c_m = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+        c_n = fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
         
-        gradient = jacfwd(jpt.convolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+        gradient = jacfwd(convolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
         
         assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
         expected_shape = (12001, 6001) #<<<<<<<<< why is it 6001, 6000?

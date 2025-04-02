@@ -284,13 +284,13 @@ class JAXPT:
         if (n_pad > 0):
             P_b = jnp.pad(P_b, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
         
-        c_m = self.fourier_coefficients(P_b, m, N, C_window)
+        c_m = fourier_coefficients(P_b, m, N, C_window)
         
         A_out = jnp.zeros((pf.shape[0], k_size))
         
         def process_single_row(i):
             # Convolution
-            C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
+            C_l = convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
             
             # Instead of boolean indexing, we'll use a different approach:
             # 1. Create arrays for positive and negative indices
@@ -380,10 +380,10 @@ class JAXPT:
                 P_b1 = jnp.pad(P_b1, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
                 P_b2 = jnp.pad(P_b2, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
                 
-            c_m = self.fourier_coefficients(P_b1, m, N, C_window)
-            c_n = self.fourier_coefficients(P_b2, m, N, C_window)
+            c_m = fourier_coefficients(P_b1, m, N, C_window)
+            c_n = fourier_coefficients(P_b2, m, N, C_window)
             
-            C_l = self.convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
+            C_l = convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
             
             c_plus = C_l[l_midpoint:]
             c_minus = C_l[:l_midpoint]
@@ -408,30 +408,30 @@ class JAXPT:
 
 
 
+@jit
+def fourier_coefficients(P_b, m, N, C_window=None):
+    from jax.numpy.fft import rfft
 
-    def fourier_coefficients(self, P_b, m, N, C_window=None):
-        from jax.numpy.fft import rfft
-
-        c_m_positive = rfft(P_b)
-        c_m_positive = c_m_positive.at[-1].set(c_m_positive[-1] / 2.0)
-        c_m_negative = jnp.conjugate(c_m_positive[1:])
-        c_m = jnp.hstack((c_m_negative[::-1], c_m_positive)) / jnp.float64(N)
+    c_m_positive = rfft(P_b)
+    c_m_positive = c_m_positive.at[-1].set(c_m_positive[-1] / 2.0)
+    c_m_negative = jnp.conjugate(c_m_positive[1:])
+    c_m = jnp.hstack((c_m_negative[::-1], c_m_positive)) / jnp.float64(N)
+    
+    if C_window is not None:
+        window_size = jnp.array(C_window * N / 2.0, dtype=int)
+        c_m = c_m * c_window(m, window_size)
         
-        if C_window is not None:
-            window_size = jnp.array(C_window * N / 2.0, dtype=int)
-            c_m = c_m * c_window(m, window_size)
-            
-        return c_m
+    return c_m
 
+@jit
+def convolution(c1, c2, g_m, g_n, h_l, two_part_l=None):
+    from jax.scipy.signal import fftconvolve
 
-    def convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
-        from jax.scipy.signal import fftconvolve
+    C_l = fftconvolve(c1 * g_m, c2 * g_n)
 
-        C_l = fftconvolve(c1 * g_m, c2 * g_n)
+    if two_part_l is not None:
+        C_l = C_l * h_l * two_part_l
+    else:
+        C_l = C_l * h_l
 
-        if two_part_l is not None:
-            C_l = C_l * h_l * two_part_l
-        else:
-            C_l = C_l * h_l
-
-        return C_l
+    return C_l
