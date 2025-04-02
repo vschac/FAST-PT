@@ -21,15 +21,26 @@ C_window = 0.75
 if __name__ == "__main__":
     fpt = FASTPT(d[:, 0])
     jpt = JAXPT(jnp.array(d[:, 0]))
-    jax = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad,
-                         jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=C_window)
-    fast = fpt.J_k_scalar(P, fpt.X_spt, -2, C_window=C_window)
+    # For differentiating with respect to P
+    def compute_term_wrt_P(P, jaxpt_instance, X, operation=None, P_window=None, C_window=None):
+        return jaxpt_instance.compute_term(X, operation, P, P_window, C_window)
+
+    # Create the gradient function
+    grad_P = jax.jacfwd(compute_term_wrt_P, argnums=0)
+
+    # Call the gradient function
+    t0 = time()
+    result = grad_P(P, jpt, jpt.X_IA_E, lambda x: x**2)
+    t1 = time()
+    print(f"Time taken: {t1 - t0} seconds")
+    print(result)
+    
     
 
 @pytest.fixture
 def jpt(): 
     k = jnp.array(d[:, 0])
-    return JAXPT(k)
+    return JAXPT(k, low_extrap=-5, high_extrap=3)
 
 @pytest.fixture
 def fpt():

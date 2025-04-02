@@ -252,6 +252,23 @@ class JAXPT:
     def k_final(self):
         return self.__k_final
 
+    def _apply_extrapolation(self, *args):
+        """ Applies extrapolation to multiple variables at once """
+        if not self.extrap:
+            return args if len(args) > 1 else args[0]
+        return [self.EK.PK_original(var)[1] for var in args] if len(args) > 1 else self.EK.PK_original(args[0])[1]
+
+    def compute_term(self, X, operation=None, P=None, P_window=None, C_window=None):        
+        result, _ = self.J_k_tensor(P, X, self.k_extrap, self.k_final, self.k_size,
+                                    self.n_pad, self.id_pad, self.l, self.m, self.N, P_window=P_window, C_window=C_window)
+        result = self._apply_extrapolation(result)
+
+        if operation:
+            final_result = operation(result)
+            return final_result
+        return result
+
+
 
     def J_k_scalar(self, P, X, nu, m, N, n_pad, id_pad, k_extrap, k_final, k_size, l, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
         from jax.numpy.fft import ifft, irfft
@@ -272,12 +289,11 @@ class JAXPT:
             two_part_l = jnp.asarray(two_part_l)
         h_l = jnp.asarray(h_l)
 
-        # Extrapolation handling would need JAX versions of these functions
-        # if (low_extrap is not None):
-        #     P = jextrap_P_low(P)  # This would need to be implemented in JAX
+        if (low_extrap is not None):
+            P = EK.extrap_P_low(P)
         
-        # if (high_extrap is not None):
-        #     P = jextrap_P_high(P) # This would need to be implemented in JAX
+        if (high_extrap is not None):
+            P = EK.extrap_P_high(P)
         
         P_b = P * k_extrap ** (-nu)
         
@@ -331,7 +347,7 @@ class JAXPT:
 
 
 
-    def J_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None):
+    def J_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
         P = jnp.asarray(P)
         id_pad = jnp.asarray(id_pad)
         k_extrap = jnp.asarray(k_extrap)
@@ -347,12 +363,11 @@ class JAXPT:
         g_n = jnp.asarray(g_n)
         h_l = jnp.asarray(h_l)
 
-        # Extrapolation handling would need JAX versions of these functions
-        # if (low_extrap is not None):
-        #     P = jextrap_P_low(P)  # This would need to be implemented in JAX
+        if (low_extrap is not None):
+            P = EK.extrap_P_low(P)
         
-        # if (high_extrap is not None):
-        #     P = jextrap_P_high(P) # This would need to be implemented in JAX
+        if (high_extrap is not None):
+            P = EK.extrap_P_high(P)
         
         window = None
         if P_window is not None:
