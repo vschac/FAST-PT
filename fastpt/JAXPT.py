@@ -253,7 +253,7 @@ class JAXPT:
         return self.__k_final
 
 
-    def jJ_k_scalar(self, P, X, nu, m, N, n_pad, id_pad, k_extrap, k_final, k_size, l, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
+    def J_k_scalar(self, P, X, nu, m, N, n_pad, id_pad, k_extrap, k_final, k_size, l, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
         from jax.numpy.fft import ifft, irfft
         
         P = jnp.asarray(P)
@@ -284,13 +284,13 @@ class JAXPT:
         if (n_pad > 0):
             P_b = jnp.pad(P_b, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
         
-        c_m = self.jfourier_coefficients(P_b, m, N, C_window)
+        c_m = self.fourier_coefficients(P_b, m, N, C_window)
         
         A_out = jnp.zeros((pf.shape[0], k_size))
         
         def process_single_row(i):
             # Convolution
-            C_l = self.jconvolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
+            C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
             
             # Instead of boolean indexing, we'll use a different approach:
             # 1. Create arrays for positive and negative indices
@@ -331,7 +331,7 @@ class JAXPT:
 
 
 
-    def jJ_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None):
+    def J_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None):
         P = jnp.asarray(P)
         id_pad = jnp.asarray(id_pad)
         k_extrap = jnp.asarray(k_extrap)
@@ -380,10 +380,10 @@ class JAXPT:
                 P_b1 = jnp.pad(P_b1, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
                 P_b2 = jnp.pad(P_b2, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
                 
-            c_m = self.jfourier_coefficients(P_b1, m, N, C_window)
-            c_n = self.jfourier_coefficients(P_b2, m, N, C_window)
+            c_m = self.fourier_coefficients(P_b1, m, N, C_window)
+            c_n = self.fourier_coefficients(P_b2, m, N, C_window)
             
-            C_l = self.jconvolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
+            C_l = self.convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
             
             c_plus = C_l[l_midpoint:]
             c_minus = C_l[:l_midpoint]
@@ -409,7 +409,7 @@ class JAXPT:
 
 
 
-    def jfourier_coefficients(self, P_b, m, N, C_window=None):
+    def fourier_coefficients(self, P_b, m, N, C_window=None):
         from jax.numpy.fft import rfft
 
         c_m_positive = rfft(P_b)
@@ -424,7 +424,7 @@ class JAXPT:
         return c_m
 
 
-    def jconvolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
+    def convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
         from jax.scipy.signal import fftconvolve
 
         C_l = fftconvolve(c1 * g_m, c2 * g_n)
@@ -435,161 +435,3 @@ class JAXPT:
             C_l = C_l * h_l
 
         return C_l
-
-
-
-
-if __name__ == "__main__":
-    from fastpt import FASTPT, FPTHandler
-    k = np.logspace(1e-4, 1, 1000)
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt)
-    jpt = JAXPT(k)
-    P = handler.generate_power_spectra()
-    C_window = 0.75
-    P_window = np.array([0.2, 0.2])
-
-    print([type(jpt.X_spt[i][0]) for i in range(len(jpt.X_spt))])
-    # JK Scalar
-    # print("JK Scalar")
-    # old = FPT.J_k_scalar(P, X_spt, 2, C_window=C_window)
-    # new = jJ_k_scalar(P, X_spt, 2, FPT.m, FPT.N, FPT.n_pad, FPT.id_pad, FPT.k_extrap, FPT.k_final, FPT.k_size, FPT.l, C_window=C_window)
-    # print(np.allclose(old[0], new[0]) and np.allclose(old[1], new[1]))
-    # try:
-    #     jacfwd(jJ_k_scalar)(P, X_spt, 2, FPT.m, FPT.N, FPT.n_pad, FPT.id_pad, FPT.k_extrap, FPT.k_final, FPT.k_size, FPT.l, C_window=C_window)
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-
-    # print("\n", "="*100, "\n")
-
-    # # JK Tensor
-    # print("JK Tensor")
-    # print([type(FPT.X_IA_A[i]) for i in range(len(FPT.X_IA_A))])
-    # old = FPT.J_k_tensor(P, X_IA_A, P_window=P_window, C_window=C_window)
-    # new = jJ_k_tensor(P, X_IA_A, 
-    #                   FPT.k_extrap, FPT.k_final, FPT.k_size, 
-    #                   FPT.n_pad, FPT.id_pad, FPT.l, FPT.m, FPT.N,
-    #                   P_window=P_window, C_window=C_window)
-    # print(np.allclose(old[0], new[0]) and np.allclose(old[1], new[1]))
-    # try:
-    #     jacfwd(jJ_k_tensor)(P, X_IA_A, 
-    #                         FPT.k_extrap, FPT.k_final, FPT.k_size, 
-    #                         FPT.n_pad, FPT.id_pad, FPT.l, FPT.m, FPT.N,
-    #                         P_window=P_window, C_window=C_window)
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-
-    # print("\n", "="*100, "\n")
-
-    # # RFFT and FFT Convolve
-    # print("RFFT and FFT Convolve")
-    # from numpy.fft import rfft
-    # old = rfft(P)
-    # from jax.numpy.fft import rfft as jax_rfft
-    # new = jax_rfft(P)
-    # print(np.allclose(old, new))
-    # try:
-    #     jacfwd(jax_rfft)(P)
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-
-    # print("=====================================================")
-
-    # from scipy.signal import fftconvolve
-    # old2 = fftconvolve(np.logspace(0, 1, 10), np.logspace(1, 2, 10), )
-    # from jax.scipy.signal import fftconvolve as jax_fftconvolve
-    # new2 = jax_fftconvolve(jnp.logspace(0, 1, 10), jnp.logspace(1, 2, 10))
-    # print(np.allclose(old2, new2))
-    # try:
-    #     jacfwd(jax_fftconvolve)(jnp.logspace(0, 1, 10), jnp.logspace(1, 2, 10))
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-
-
-    # print("\n", "="*100, "\n")
-
-
-    # # P_window and C_window
-    # print("P_window and C_window")
-    # p1 = p_window(k, P_window[0], P_window[1])
-    # p2 = jp_window(k, P_window[0], P_window[1])
-    # print(np.allclose(p1, p2))
-    # try:
-    #     jacfwd(jp_window)(k, P_window[0], P_window[1])
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-
-    # print("=====================================================")
-    # m_float = jnp.asarray(FPT.m, dtype=jnp.float64)
-    # c1 = c_window(FPT.m, C_window)
-    # c2 = jc_window(m_float, jnp.float64(C_window))
-    # print(np.allclose(c1, c2))
-    # try:
-    #     jacfwd(jc_window)(m_float, jnp.float64(C_window))
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-        
-
-
-    # print("\n", "="*100, "\n")
-
-
-    # # Fourier Coefficients
-    # print("Fourier Coefficients")
-    # pf, p, nu1, nu2, g_m, g_n, h_l = X_IA_A
-    # P_b1 = P * FPT.k_extrap ** (-nu1[1])
-    # W = p_window(FPT.k_extrap, P_window[0], P_window[1])
-    # P_b1 = P_b1 * W
-    # P_b1 = np.pad(P_b1, pad_width=(FPT.n_pad, FPT.n_pad), mode='constant', constant_values=0)
-    # c_m = fpt.fourier_coefficients(P_b1, C_window)
-    # jc_m = jfourier_coefficients(P_b1, FPT.m, FPT.N, C_window)
-    # print(np.allclose(c_m, jc_m))
-    # try:
-    #     jacfwd(jfourier_coefficients)(P_b1, FPT.m, FPT.N, C_window)
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")    
-
-
-    # # Convolution
-    # print("Convolution")
-    # # #Tensor case
-    # print("Tensor case")
-    # pf, p, nu1, nu2, g_m, g_n, h_l = X_IA_A
-    # P_b1 = P * FPT.k_extrap ** (-nu1[1])
-    # P_b2 = P * FPT.k_extrap ** (-nu2[1])
-    # W = p_window(FPT.k_extrap, P_window[0], P_window[1])
-    # P_b1 = P_b1 * W
-    # P_b2 = P_b2 * W
-    # P_b1 = np.pad(P_b1, pad_width=(FPT.n_pad, FPT.n_pad), mode='constant', constant_values=0)
-    # P_b2 = np.pad(P_b2, pad_width=(FPT.n_pad, FPT.n_pad), mode='constant', constant_values=0)    
-    # c_m = fpt.fourier_coefficients(P_b1, C_window)
-    # c_n = fpt.fourier_coefficients(P_b2, C_window)
-    # C_l = fpt.convolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
-    # new_C_l = jconvolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
-    # print(np.allclose(C_l, new_C_l))
-    # try:
-    #     jacfwd(jconvolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")
-
-    # # #Scalar case
-    # pf, p, g_m, g_n, two_part_l, h_l = X_spt
-    # P_b = P * FPT.k_extrap ** (2)
-    # P_b = np.pad(P_b, pad_width=(FPT.n_pad, FPT.n_pad), mode='constant', constant_values=0)
-    # c_m = fpt.fourier_coefficients(P_b, C_window)
-    # C_l = fpt.convolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
-    # new_C_l = jconvolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
-    # print(np.allclose(C_l, new_C_l))
-    # try:
-    #     jacfwd(jconvolution, holomorphic=True)(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
-    #     print("jacfwd passed")
-    # except:
-    #     print("jacfwd failed")

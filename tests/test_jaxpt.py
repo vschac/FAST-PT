@@ -4,8 +4,11 @@ from fastpt import FASTPT
 from fastpt.JAXPT import JAXPT
 import os
 import jax
+from jax import grad, jit, jacfwd
 from jax import numpy as jnp
 from fastpt.jax_utils import jax_k_extend
+from fastpt.jax_utils import c_window as jc_window, p_window as jp_window
+from fastpt.fastpt_extr import c_window as fc_window, p_window as fp_window
 
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
 d = np.loadtxt(data_path)
@@ -15,17 +18,12 @@ C_window = 0.75
 
 if __name__ == "__main__":
     from time import time
-    fapt = FASTPT(d[:, 0])
+    fpt = FASTPT(d[:, 0])
     jpt = JAXPT(jnp.array(d[:, 0]))
-    t0 = time()
-    fapt.J_k_tensor(P, fapt.X_IA_A, P_window=np.array([0.2, 0.2]), C_window=C_window)
-    t1 = time()
-    jpt.jJ_k_tensor(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.n_pad, jpt.id_pad, 
-                    jpt.l, jpt.m, jpt.N, P_window=P_window, C_window=C_window)
-    t2 = time()
-    print(f"FASTPT time: {t1 - t0:.4f} seconds")
-    print(f"JAXPT time: {t2 - t1:.4f} seconds")
-
+    jax = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad,
+                         jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=C_window)
+    fast = fpt.J_k_scalar(P, fpt.X_spt, -2, C_window=C_window)
+    
 
 @pytest.fixture
 def jpt(): 
@@ -41,12 +39,74 @@ def fpt():
 ############## Equality Tests ##############
 def test_P_window(jpt, fpt):
     # Test that the P_window method returns the same result for JAXPT and FASTPT
-    from fastpt.jax_utils import p_window as jp_window
-    from fastpt.fastpt_extr import p_window as fp_window
     jax = jp_window(jpt.k_original, P_window[0], P_window[1])
     fast = fp_window(fpt.k_original, P_window[0], P_window[1])
     assert np.allclose(jax, fast), "P_window results are not equal"
 
+def test_C_window(jpt, fpt):
+    jax = jc_window(jpt.m, int(C_window * jpt.N / 2.))
+    fast = fc_window(fpt.m, int(C_window * fpt.N / 2.))
+    assert np.allclose(jax, fast), "C_window results are not equal"
+
+def test_fourier_coefficients(jpt, fpt):
+    pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+    P_b1 = P * jpt.k_extrap ** (-nu1[1])
+    W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
+    P_b1 = P_b1 * W
+    P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+    jax = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+    fast = fpt._cache_fourier_coefficients(P_b1, C_window=C_window)
+    assert np.allclose(jax, fast)
+
+def test_convolution(jpt, fpt):
+    #Tensor Case
+    pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+    P_b1 = P * jpt.k_extrap ** (-nu1[1])
+    P_b2 = P * jpt.k_extrap ** (-nu2[1])
+    W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
+    P_b1 = P_b1 * W
+    P_b2 = P_b2 * W
+    P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+    P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
+    c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+    c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+    jax = jpt.convolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+    fast = fpt._cache_convolution(np.asarray(c_m), np.asarray(c_n), np.asarray(g_m[1,:]), np.asarray(g_n[1,:]), np.asarray(h_l[1,:]))
+    assert np.allclose(jax, fast), "Convolution results are not equal"
+    #Scalar Case
+    pf, p, g_m, g_n, two_part_l, h_l = jpt.X_spt
+    P_b = P * jpt.k_extrap ** (2)
+    P_b = np.pad(P_b, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+    c_m = jpt.fourier_coefficients(P_b, jpt.m, jpt.N, C_window)
+    jax = jpt.convolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
+    fast = fpt._cache_convolution(np.asarray(c_m), np.asarray(c_m), np.asarray(g_m[1,:]), np.asarray(g_n[1,:]), np.asarray(h_l[1,:]), np.asarray(two_part_l[1]))
+    assert np.allclose(jax, fast), "Convolution results are not equal"
+
+def test_j_k_scalar(jpt, fpt):
+    jax = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad,
+                         jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=C_window)
+    fast = fpt.J_k_scalar(P, fpt.X_spt, -2, C_window=C_window)
+    
+    # Have to compare this way due to inhomogeneous shapes
+    jax_0 = np.array(jax[0])
+    fast_0 = fast[0]
+    assert np.allclose(jax_0, fast_0), "First element of J_k_scalar differs"
+    
+    jax_1 = np.array(jax[1])
+    fast_1 = fast[1]
+    assert np.allclose(jax_1, fast_1), "Second element of J_k_scalar differs"
+
+def test_j_k_tensor(jpt, fpt):
+    jax = jpt.J_k_tensor(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final, jpt.k_size, 
+                         jpt.n_pad, jpt.id_pad, jpt.l, jpt.m, jpt.N, P_window=P_window, C_window=C_window)
+    fast = fpt.J_k_tensor(P, fpt.X_IA_A, P_window=np.array([0.2, 0.2]), C_window=C_window)
+    
+    jax_0 = np.array(jax[0])
+    fast_0 = fast[0]
+    assert np.allclose(jax_0, fast_0), "First element of J_k_tensor differs"
+    jax_1 = np.array(jax[1])
+    fast_1 = fast[1]
+    assert np.allclose(jax_1, fast_1), "Second element of J_k_tensor differs"
 
 
 ############## k_extend Tests ##############
@@ -204,7 +264,9 @@ def test_full_extrapolation_workflow(jpt, fpt):
     assert np.allclose(np.array(jP_orig), P_orig), "Retrieved original P doesn't match"
     assert np.allclose(np.array(jP_orig), P_np), "Retrieved original P doesn't match input"
 
-def test_jax_differentiability():
+############ Differentiability Tests ###########
+
+def test_jax_extend_differentiability():
     """Test that jax_k_extend functions are differentiable with JAX"""    
     # Load test data
     d = np.loadtxt(data_path)
@@ -239,5 +301,114 @@ def test_jax_differentiability():
         
         # For the test to pass, we just need to confirm we can compute the gradient
         assert True, "JAX differentiation test passed"
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+
+def test_P_window_differentiability(jpt):
+    """Test that P_window is differentiable with JAX"""
+    try:
+        gradient = jacfwd(jp_window)(jpt.k_original, P_window[0], P_window[1])
+        
+        assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
+        expected_shape = (jpt.k_original.shape[0], jpt.k_original.shape[0])
+        assert gradient.shape == expected_shape, "Gradient shape doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
+
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+
+def test_C_window_differentiability(jpt):
+    """Test that C_window is differentiable with JAX"""
+    try:
+        gradient = jacfwd(jc_window)(jnp.float64(jpt.m), jnp.float64(C_window * jpt.N / 2.))
+        
+        assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
+        expected_shape = (jpt.m.shape[0], jpt.m.shape[0])
+        assert gradient.shape == expected_shape, "Gradient shape doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
+
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+
+def test_fourier_coefficients_differentiability(jpt):
+    """Test that fourier_coefficients is differentiable with JAX"""
+    try:
+        pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P_b1 = P * jpt.k_extrap ** (-nu1[1])
+        W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
+        P_b1 = P_b1 * W
+        P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+        
+        gradient = jacfwd(jpt.fourier_coefficients)(P_b1, jpt.m, jpt.N, C_window)
+        
+        assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
+        expected_shape = (P_b1.shape[0] + 1, P_b1.shape[0]) #<<<<<<<<< why is it 6001, 6000?
+        assert gradient.shape == expected_shape, "Gradient shape doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
+
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+
+def test_convolution_differentiability(jpt):
+    """Test that convolution is differentiable with JAX"""
+    try:
+        pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P_b1 = P * jpt.k_extrap ** (-nu1[1])
+        P_b2 = P * jpt.k_extrap ** (-nu2[1])
+        W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
+        P_b1 = P_b1 * W
+        P_b2 = P_b2 * W
+        P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
+        P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
+        
+        c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+        c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+        
+        gradient = jacfwd(jpt.convolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+        
+        assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
+        expected_shape = (12001, 6001) #<<<<<<<<< why is it 6001, 6000?
+        assert gradient.shape == expected_shape, "Gradient shape doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
+
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+
+def test_j_k_scalar_differentiability(jpt):
+    """Test that J_k_scalar is differentiable with JAX"""
+    try:
+        gradient = jacfwd(jpt.J_k_scalar)(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad,
+                                         jpt.id_pad, jpt.k_extrap, jpt.k_final,
+                                         jpt.k_size, jpt.l, C_window=C_window)
+        
+        assert isinstance(gradient, tuple), "Gradient should be a tuple"
+        for i, grad_element in enumerate(gradient):
+            assert isinstance(grad_element, jnp.ndarray), f"Gradient element {i} is not a JAX array"
+            if i == 0:
+                expected_shape = (P.shape[0], P.shape[0])
+                assert grad_element.shape == expected_shape, f"Gradient element {i} shape mismatch"
+            
+            assert not jnp.any(jnp.isnan(grad_element)), f"Gradient element {i} contains NaN values"
+        
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+
+def test_j_k_tensor_differentiability(jpt):
+    """Test that J_k_tensor is differentiable with JAX"""
+    try:
+        gradient = jacfwd(jpt.J_k_tensor)(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
+                                          jpt.k_size, jpt.n_pad, jpt.id_pad,
+                                          jpt.l, jpt.m, jpt.N, P_window=P_window,
+                                          C_window=C_window)
+        
+        assert isinstance(gradient, tuple), "Gradient should be a tuple"
+        for i, grad_element in enumerate(gradient):
+            assert isinstance(grad_element, jnp.ndarray), f"Gradient element {i} is not a JAX array"
+            if i == 0:
+                expected_shape = (P.shape[0], P.shape[0])
+                assert grad_element.shape == expected_shape, f"Gradient element {i} shape mismatch"
+            
+            assert not jnp.any(jnp.isnan(grad_element)), f"Gradient element {i} contains NaN values"
+        
     except Exception as e:
         pytest.fail(f"JAX differentiation failed with error: {str(e)}")
