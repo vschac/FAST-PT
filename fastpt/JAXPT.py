@@ -141,6 +141,25 @@ class JAXPT:
         self.l = np.arange(-self.n_l // 2 + 1, self.n_l // 2 + 1)
         self.tau_l = omega * self.l
 
+        #JIT Compile functions
+        try:
+            self.J_k_scalar = jit(self.J_k_scalar, static_argnames=["n_pad", "k_size", "EK"])
+        except:
+            print("J_k_scalar JIT compilation failed. Using default python implementation.")
+        try:
+            self._J_k_tensor_core = jit(self._J_k_tensor_core, static_argnames=["n_pad", "k_size", "EK"])
+        except:
+            print("J_k_tensor JIT compilation failed. Using default python implementation.")
+        try:
+            self.fourier_coefficients = jit(self.fourier_coefficients)
+        except:
+            print("fourier_coefficients JIT compilation failed. Using default python implementation.")
+        try:
+            self.convolution = jit(self.convolution)
+        except:
+            print("convolution JIT compilation failed. Using default python implementation.")
+    
+
     @jax_cached_property
     def X_spt(self):
         return self.temp_fpt.X_spt
@@ -273,21 +292,7 @@ class JAXPT:
     def J_k_scalar(self, P, X, nu, m, N, n_pad, id_pad, k_extrap, k_final, k_size, l, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
         from jax.numpy.fft import ifft, irfft
         
-        P = jnp.asarray(P)
-        m = jnp.asarray(m)
-        id_pad = jnp.asarray(id_pad)
-        k_extrap = jnp.asarray(k_extrap)
-        k_final = jnp.asarray(k_final)
-        l = jnp.asarray(l)
-        
         pf, p, g_m, g_n, two_part_l, h_l = X
-        pf = jnp.asarray(pf)
-        p = jnp.asarray(p)
-        g_m = jnp.asarray(g_m)
-        g_n = jnp.asarray(g_n)
-        if two_part_l is not None:
-            two_part_l = jnp.asarray(two_part_l)
-        h_l = jnp.asarray(h_l)
 
         if (low_extrap is not None):
             P = EK.extrap_P_low(P)
@@ -300,13 +305,13 @@ class JAXPT:
         if (n_pad > 0):
             P_b = jnp.pad(P_b, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
         
-        c_m = fourier_coefficients(P_b, m, N, C_window)
+        c_m = self.fourier_coefficients(P_b, m, N, C_window)
         
         A_out = jnp.zeros((pf.shape[0], k_size))
         
         def process_single_row(i):
             # Convolution
-            C_l = convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
+            C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
             
             # Instead of boolean indexing, we'll use a different approach:
             # 1. Create arrays for positive and negative indices
@@ -337,7 +342,7 @@ class JAXPT:
         m_midpoint = (m.shape[0] + 1) // 2  # Position of 0 in m
         c_m_positive = c_m[m_midpoint-1:]  # Select m >= 0
         
-        P_out = irfft(c_m_positive) * k_final ** nu * float(N)
+        P_out = irfft(c_m_positive) * k_final ** nu * N
         
         if (n_pad > 0):
             P_out = P_out[id_pad]
@@ -348,20 +353,21 @@ class JAXPT:
 
 
     def J_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
-        P = jnp.asarray(P)
-        id_pad = jnp.asarray(id_pad)
-        k_extrap = jnp.asarray(k_extrap)
-        k_final = jnp.asarray(k_final)
-        l = jnp.asarray(l)
+        # Create window outside of JIT if needed
+        window = None
+        if P_window is not None:
+            # Pre-compute the window outside of JIT compilation
+            window = p_window(jnp.array(k_extrap), P_window[0], P_window[1])
+            
+        # Now call the JIT-compiled core function
+        return self._J_k_tensor_core(P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, 
+                                    C_window, window, low_extrap, high_extrap, EK)
+
+    # Create a separate JIT-compiled core function that takes the precomputed window
+    def _J_k_tensor_core(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, 
+                        C_window=None, window=None, low_extrap=None, high_extrap=None, EK=None):
         
         pf, p, nu1, nu2, g_m, g_n, h_l = X
-        pf = jnp.asarray(pf)
-        p = jnp.asarray(p.astype(np.float64))
-        nu1 = jnp.asarray(nu1.astype(np.float64))
-        nu2 = jnp.asarray(nu2.astype(np.float64))
-        g_m = jnp.asarray(g_m)
-        g_n = jnp.asarray(g_n)
-        h_l = jnp.asarray(h_l)
 
         if (low_extrap is not None):
             P = EK.extrap_P_low(P)
@@ -369,10 +375,6 @@ class JAXPT:
         if (high_extrap is not None):
             P = EK.extrap_P_high(P)
         
-        window = None
-        if P_window is not None:
-            window = p_window(k_extrap, P_window[0], P_window[1])
-
         A_out = jnp.zeros((pf.size, k_size))
         P_fin = jnp.zeros(k_size)
 
@@ -387,7 +389,7 @@ class JAXPT:
             P_b1 = P * k_extrap ** (-nu1_i)
             P_b2 = P * k_extrap ** (-nu2_i)
             
-            if P_window is not None:
+            if window is not None:
                 P_b1 = P_b1 * window
                 P_b2 = P_b2 * window
                 
@@ -395,14 +397,13 @@ class JAXPT:
                 P_b1 = jnp.pad(P_b1, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
                 P_b2 = jnp.pad(P_b2, pad_width=(n_pad, n_pad), mode='constant', constant_values=0)
                 
-            c_m = fourier_coefficients(P_b1, m, N, C_window)
-            c_n = fourier_coefficients(P_b2, m, N, C_window)
+            c_m = self.fourier_coefficients(P_b1, m, N, C_window)
+            c_n = self.fourier_coefficients(P_b2, m, N, C_window)
             
-            C_l = convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
+            C_l = self.convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
             
             c_plus = C_l[l_midpoint:]
             c_minus = C_l[:l_midpoint]
-            #C_l = jnp.hstack((c_plus[:-1], c_minus))
             C_l_combined = jnp.concatenate([c_plus[:-1], c_minus])
 
             A_k = jnp.fft.ifft(C_l_combined) * C_l_combined.size
@@ -423,30 +424,41 @@ class JAXPT:
 
 
 
-@jit
-def fourier_coefficients(P_b, m, N, C_window=None):
-    from jax.numpy.fft import rfft
+    def fourier_coefficients(self, P_b, m, N, C_window=None):
+        from jax.numpy.fft import rfft
 
-    c_m_positive = rfft(P_b)
-    c_m_positive = c_m_positive.at[-1].set(c_m_positive[-1] / 2.0)
-    c_m_negative = jnp.conjugate(c_m_positive[1:])
-    c_m = jnp.hstack((c_m_negative[::-1], c_m_positive)) / jnp.float64(N)
-    
-    if C_window is not None:
-        window_size = jnp.array(C_window * N / 2.0, dtype=int)
-        c_m = c_m * c_window(m, window_size)
+        c_m_positive = rfft(P_b)
+        c_m_positive = c_m_positive.at[-1].set(c_m_positive[-1] / 2.0)
+        c_m_negative = jnp.conjugate(c_m_positive[1:])
+        c_m = jnp.hstack((c_m_negative[::-1], c_m_positive)) / jnp.float64(N)
         
-    return c_m
+        if C_window is not None:
+            window_size = jnp.array(C_window * N / 2.0, dtype=int)
+            c_m = c_m * c_window(m, window_size)
+            
+        return c_m
 
-@jit
-def convolution(c1, c2, g_m, g_n, h_l, two_part_l=None):
-    from jax.scipy.signal import fftconvolve
 
-    C_l = fftconvolve(c1 * g_m, c2 * g_n)
+    def convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
+        from jax.scipy.signal import fftconvolve
 
-    if two_part_l is not None:
-        C_l = C_l * h_l * two_part_l
-    else:
-        C_l = C_l * h_l
+        C_l = fftconvolve(c1 * g_m, c2 * g_n)
 
-    return C_l
+        if two_part_l is not None:
+            C_l = C_l * h_l * two_part_l
+        else:
+            C_l = C_l * h_l
+
+        return C_l
+
+
+if __name__ == "__main__":
+    k = np.logspace(1e-4, 1, 1000)
+    P = np.logspace(1, 2, 1000)
+    jpt = JAXPT(k, low_extrap=-5, high_extrap=3)
+    t0 = time()
+    jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad, jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=0.75, low_extrap=-5, high_extrap=5, EK=jpt.EK)
+    #jpt.J_k_tensor(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.n_pad, jpt.id_pad, jpt.l, jpt.m, jpt.N, C_window=0.75, P_window=jnp.array([0.2, 0.2]), low_extrap=-5, high_extrap=5, EK=jpt.EK)
+    t1 = time()
+    print("passed")
+    print("Time taken: ", t1 - t0)

@@ -1,6 +1,5 @@
 from jax import numpy as jnp
 from jax.numpy import pi, sin, log10, log, exp
-from jax import lax
 
 def c_window(n, n_cut):
     n_right = n[-1] - n_cut
@@ -20,7 +19,6 @@ def c_window(n, n_cut):
     W = jnp.where(left_mask, left_window, W)
     
     return W
-
 
 def p_window(k, log_k_left, log_k_right):
     log_k = jnp.log10(k)

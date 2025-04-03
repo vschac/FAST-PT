@@ -9,8 +9,7 @@ from jax import numpy as jnp
 from fastpt.jax_utils import jax_k_extend
 from fastpt.jax_utils import c_window as jc_window, p_window as jp_window
 from fastpt.fastpt_extr import c_window as fc_window, p_window as fp_window
-from time import time
-from fastpt.JAXPT import fourier_coefficients, convolution
+import time as pytime
 
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
 d = np.loadtxt(data_path)
@@ -21,26 +20,37 @@ C_window = 0.75
 if __name__ == "__main__":
     fpt = FASTPT(d[:, 0])
     jpt = JAXPT(jnp.array(d[:, 0]))
-    # For differentiating with respect to P
-    def compute_term_wrt_P(P, jaxpt_instance, X, operation=None, P_window=None, C_window=None):
-        return jaxpt_instance.compute_term(X, operation, P, P_window, C_window)
 
-    # Create the gradient function
-    grad_P = jax.jacfwd(compute_term_wrt_P, argnums=0)
+    t0 = pytime.time()
+    #Xs = (jpt.X_IA_A, jpt.X_IA_E, jpt.X_IA_B, jpt.X_IA_DEE, jpt.X_IA_DBB, jpt.X_IA_0E0E, jpt.X_IA_A, jpt.X_IA_E, jpt.X_IA_B, jpt.X_IA_DEE)
+    jpt.compute_term(jpt.X_IA_E, operation=lambda x: x**2, P=P, P_window=P_window, C_window=C_window)
+    t1 = pytime.time()
+    print(f"Total time (including compilation): {t1 - t0} seconds")
+    # # For differentiating with respect to P
+    # def compute_term_wrt_P(P, jaxpt_instance, X, operation=None, P_window=None, C_window=None):
+    #     return jaxpt_instance.compute_term(X, operation, P, P_window, C_window)
 
-    # Call the gradient function
-    t0 = time()
-    result = grad_P(P, jpt, jpt.X_IA_E, lambda x: x**2)
-    t1 = time()
-    print(f"Time taken: {t1 - t0} seconds")
-    print(result)
+    # # Create the gradient function
+    # grad_P = jax.jacfwd(compute_term_wrt_P, argnums=0)
+
+    # # Ensure we're using a fresh compilation
+    # jax.clear_caches()
+
+    # print("Starting computation...")
+    # t0 = pytime.time()
+    # # Run the computation
+    # result = grad_P(P, jpt, jpt.X_IA_E, lambda x: x**2)
+    # # Force synchronization
+    # result.block_until_ready()  # This ensures the computation is complete
+    # t1 = pytime.time()
+    # print(f"Total time (including compilation): {t1 - t0} seconds")
     
     
 
 @pytest.fixture
 def jpt(): 
     k = jnp.array(d[:, 0])
-    return JAXPT(k, low_extrap=-5, high_extrap=3)
+    return JAXPT(k)
 
 @pytest.fixture
 def fpt():
@@ -66,7 +76,7 @@ def test_fourier_coefficients(jpt, fpt):
     W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
     P_b1 = P_b1 * W
     P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
-    jax = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+    jax = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
     fast = fpt._cache_fourier_coefficients(P_b1, C_window=C_window)
     assert np.allclose(jax, fast)
 
@@ -80,17 +90,17 @@ def test_convolution(jpt, fpt):
     P_b2 = P_b2 * W
     P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
     P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
-    c_m = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
-    c_n = fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
-    jax = convolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+    c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+    c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+    jax = jpt.convolution(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
     fast = fpt._cache_convolution(np.asarray(c_m), np.asarray(c_n), np.asarray(g_m[1,:]), np.asarray(g_n[1,:]), np.asarray(h_l[1,:]))
     assert np.allclose(jax, fast), "Convolution results are not equal"
     #Scalar Case
     pf, p, g_m, g_n, two_part_l, h_l = jpt.X_spt
     P_b = P * jpt.k_extrap ** (2)
     P_b = np.pad(P_b, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
-    c_m = fourier_coefficients(P_b, jpt.m, jpt.N, C_window)
-    jax = convolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
+    c_m = jpt.fourier_coefficients(P_b, jpt.m, jpt.N, C_window)
+    jax = jpt.convolution(c_m, c_m, g_m[1,:], g_n[1,:], h_l[1,:], two_part_l[1])
     fast = fpt._cache_convolution(np.asarray(c_m), np.asarray(c_m), np.asarray(g_m[1,:]), np.asarray(g_n[1,:]), np.asarray(h_l[1,:]), np.asarray(two_part_l[1]))
     assert np.allclose(jax, fast), "Convolution results are not equal"
 
@@ -287,7 +297,7 @@ def test_jit_fourier(jpt):
         P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
         
         # JIT compile the function
-        jit_func = jit(fourier_coefficients)
+        jit_func = jit(jpt.fourier_coefficients)
         result = jit_func(P_b1, jpt.m, jpt.N, C_window)
         
         assert isinstance(result, jnp.ndarray), "JIT result is not a JAX array"
@@ -307,11 +317,11 @@ def test_jit_convolution(jpt):
         P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
         P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
         
-        c_m = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
-        c_n = fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+        c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+        c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
         
         # JIT compile the convolution function
-        jit_func = jit(convolution)
+        jit_func = jit(jpt.convolution)
         result = jit_func(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
         
         assert isinstance(result, jnp.ndarray), "JIT result is not a JAX array"
@@ -395,7 +405,7 @@ def test_fourier_coefficients_differentiability(jpt):
         P_b1 = P_b1 * W
         P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
         
-        gradient = jacfwd(fourier_coefficients)(P_b1, jpt.m, jpt.N, C_window)
+        gradient = jacfwd(jpt.fourier_coefficients)(P_b1, jpt.m, jpt.N, C_window)
         
         assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
         expected_shape = (P_b1.shape[0] + 1, P_b1.shape[0]) #<<<<<<<<< why is it 6001, 6000?
@@ -417,10 +427,10 @@ def test_convolution_differentiability(jpt):
         P_b1 = np.pad(P_b1, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)
         P_b2 = np.pad(P_b2, pad_width=(jpt.n_pad, jpt.n_pad), mode='constant', constant_values=0)    
         
-        c_m = fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
-        c_n = fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
+        c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
+        c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
         
-        gradient = jacfwd(convolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+        gradient = jacfwd(jpt.convolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
         
         assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
         expected_shape = (12001, 6001) #<<<<<<<<< why is it 6001, 6000?
