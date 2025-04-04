@@ -4,7 +4,7 @@ from fastpt import FASTPT
 from fastpt.JAXPT import JAXPT
 import os
 import jax
-from jax import grad, jit, jacfwd
+from jax import grad, jit, jacfwd, vmap
 from jax import numpy as jnp
 from fastpt.jax_utils import jax_k_extend
 from fastpt.jax_utils import c_window as jc_window, p_window as jp_window

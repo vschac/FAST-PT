@@ -5,7 +5,7 @@ from jax import grad
 from jax import jit
 from time import time
 import numpy as np
-from jax import jacfwd, jacrev
+from jax import jacfwd, jacrev, vjp
 from jax import config
 import jax
 from fastpt import FASTPT as FPT
@@ -310,7 +310,6 @@ class JAXPT:
         A_out = jnp.zeros((pf.shape[0], k_size))
         
         def process_single_row(i):
-            # Convolution
             C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
             
             # Instead of boolean indexing, we'll use a different approach:
@@ -356,14 +355,11 @@ class JAXPT:
         # Create window outside of JIT if needed
         window = None
         if P_window is not None:
-            # Pre-compute the window outside of JIT compilation
             window = p_window(jnp.array(k_extrap), P_window[0], P_window[1])
             
-        # Now call the JIT-compiled core function
         return self._J_k_tensor_core(P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, 
                                     C_window, window, low_extrap, high_extrap, EK)
 
-    # Create a separate JIT-compiled core function that takes the precomputed window
     def _J_k_tensor_core(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, 
                         C_window=None, window=None, low_extrap=None, high_extrap=None, EK=None):
         
@@ -375,17 +371,17 @@ class JAXPT:
         if (high_extrap is not None):
             P = EK.extrap_P_high(P)
         
-        A_out = jnp.zeros((pf.size, k_size))
-        P_fin = jnp.zeros(k_size)
-
         l_midpoint = l.shape[0] // 2
 
-        def process_element(i, carry):
-            A_out, P_fin = carry
-            
+        def process_single_index(i):
             nu1_i = nu1[i]
             nu2_i = nu2[i]
-
+            pf_i = pf[i]
+            p_i = p[i]
+            g_m_i = g_m[i]
+            g_n_i = g_n[i]
+            h_l_i = h_l[i]
+            
             P_b1 = P * k_extrap ** (-nu1_i)
             P_b2 = P * k_extrap ** (-nu2_i)
             
@@ -400,22 +396,20 @@ class JAXPT:
             c_m = self.fourier_coefficients(P_b1, m, N, C_window)
             c_n = self.fourier_coefficients(P_b2, m, N, C_window)
             
-            C_l = self.convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
+            C_l = self.convolution(c_m, c_n, g_m_i, g_n_i, h_l_i)
             
             c_plus = C_l[l_midpoint:]
             c_minus = C_l[:l_midpoint]
             C_l_combined = jnp.concatenate([c_plus[:-1], c_minus])
 
             A_k = jnp.fft.ifft(C_l_combined) * C_l_combined.size
-            A_out_i = jnp.real(A_k[::2]) * pf[i] * k_final ** p[i]
-            
-            A_out = A_out.at[i].set(A_out_i)
-            P_fin = P_fin + A_out_i
-            
-            return (A_out, P_fin)
+            return jnp.real(A_k[::2]) * pf_i * k_final ** p_i
         
-        A_out, P_fin = jax.lax.fori_loop(0, pf.size, process_element, (A_out, P_fin))
-
+        indices = jnp.arange(pf.size)
+        A_out = jax.vmap(process_single_index)(indices)
+        
+        P_fin = jnp.sum(A_out, axis=0)
+        
         if n_pad > 0:
             P_fin = P_fin[id_pad]
             A_out = A_out[:, id_pad]
@@ -456,9 +450,82 @@ if __name__ == "__main__":
     k = np.logspace(1e-4, 1, 1000)
     P = np.logspace(1, 2, 1000)
     jpt = JAXPT(k, low_extrap=-5, high_extrap=3)
-    t0 = time()
-    jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad, jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=0.75, low_extrap=-5, high_extrap=5, EK=jpt.EK)
+    #jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad, jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=0.75, low_extrap=-5, high_extrap=5, EK=jpt.EK)
     #jpt.J_k_tensor(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.n_pad, jpt.id_pad, jpt.l, jpt.m, jpt.N, C_window=0.75, P_window=jnp.array([0.2, 0.2]), low_extrap=-5, high_extrap=5, EK=jpt.EK)
-    t1 = time()
-    print("passed")
-    print("Time taken: ", t1 - t0)
+    def j_k_tensor_wrapper(P_input):
+        result = jpt.J_k_tensor(P_input, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
+                            jpt.k_size, jpt.n_pad, jpt.id_pad,
+                            jpt.l, jpt.m, jpt.N, P_window=jnp.array([0.2, 0.2]),
+                            C_window=0.75, low_extrap=-5, high_extrap=3, 
+                            EK=jpt.EK)[0]
+        
+        # Use the existing method to get back original k range
+        return jpt._apply_extrapolation(result)
+    
+    def simple_model(P_input, degree=1):
+        # Start with a simple polynomial transformation
+        P_mod = P_input**degree
+        result = jpt.J_k_tensor(P_mod, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
+                        jpt.k_size, jpt.n_pad, jpt.id_pad,
+                        jpt.l, jpt.m, jpt.N, P_window=jnp.array([0.2, 0.2]),
+                        C_window=0.75, low_extrap=-5, high_extrap=3, 
+                        EK=jpt.EK)[0]
+        return jpt._apply_extrapolation(result)
+
+    output, vjp_fn = vjp(simple_model, P)
+    v = jnp.ones_like(output)
+    gradient, = vjp_fn(v)
+    import matplotlib.pyplot as plt
+
+
+    # Also compute a finite difference approximation
+    delta = 1e-5
+    fd_gradient = np.zeros_like(P)
+    for i in range(len(P)):
+        P_plus = P.copy()
+        P_plus = np.array(P_plus, dtype=np.float64)  # Copy to avoid JAX tracer issues
+        P_plus[i] += delta
+        output_plus = j_k_tensor_wrapper(P_plus)
+        
+        # Approximate derivative
+        fd_gradient[i] = (output_plus[i] - output[i]) / delta
+    
+
+    # Print diagnostics about the data
+    print(f"Output range: [{np.min(output)}, {np.max(output)}], shape: {output.shape}")
+    print(f"Any zeros in output: {np.any(output == 0)}")
+    print(f"Any negative values in output: {np.any(output < 0)}")
+    print(f"Any NaNs in output: {np.any(np.isnan(output))}")
+
+    print(f"Gradient range: [{np.min(gradient)}, {np.max(gradient)}], shape: {gradient.shape}")
+    print(f"FD gradient range: [{np.min(fd_gradient)}, {np.max(fd_gradient)}], shape: {fd_gradient.shape}")
+
+    import matplotlib.pyplot as plt
+    
+    # Plot on log scale to better see patterns
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+    
+    # Original function
+    ax1.plot(k, output, label='Output')
+    ax1.set_ylabel('Output Value')
+    ax1.set_yscale('log')
+    ax1.legend()
+    ax1.grid(True)
+    
+    # Automatic gradient
+    ax2.plot(k, np.abs(gradient), label='|Gradient|', color='orange')
+    ax2.set_ylabel('Gradient Magnitude')
+    ax2.set_yscale('log')
+    ax2.legend()
+    ax2.grid(True)
+    
+    # Finite difference gradient for comparison
+    ax3.plot(k, np.abs(fd_gradient), label='|Finite Diff|', color='green')
+    ax3.set_xlabel('k')
+    ax3.set_ylabel('FD Gradient Magnitude')
+    ax3.set_yscale('log')
+    ax3.legend()
+    ax3.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
