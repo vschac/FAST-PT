@@ -41,6 +41,7 @@ fastpt/gamma_funcs.py
 fastpt/get_nu1_nu2.py
 fastpt/info.py
 fastpt/initialize_params.py
+fastpt/jax_utils.py
 fastpt/jaxpt.py
 fastpt/kPol.py
 fastpt/matter_power_spt.py
