@@ -28,17 +28,24 @@ if __name__ == "__main__":
     print(f"Total time (including compilation): {t1 - t0} seconds")
     
     
-
 @pytest.fixture
-def jpt(): 
-    k = jnp.array(d[:, 0])
-    return JAXPT(k, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
-
-@pytest.fixture
-def fpt():
+def k_arrays():
+    """Return consistent k arrays to ensure shapes match between tests."""
     d = np.loadtxt(data_path)
-    k = np.array(d[:, 0])
-    return FASTPT(k, low_extrap=-5, high_extrap=3)
+    k_np = np.array(d[:, 0])
+    k_jax = jnp.array(d[:, 0])
+    return k_np, k_jax
+
+@pytest.fixture
+def jpt(k_arrays): 
+    _, k_jax = k_arrays
+    return JAXPT(k_jax, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
+
+@pytest.fixture
+def fpt(k_arrays):
+    k_np, _ = k_arrays
+    return FASTPT(k_np, low_extrap=-5, high_extrap=3)
+
 
 ############## Equality Tests ##############
 def test_P_window(jpt, fpt):
@@ -54,6 +61,9 @@ def test_C_window(jpt, fpt):
 
 def test_fourier_coefficients(jpt, fpt):
     pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+    P = d[:, 1]
+    P = jpt.EK.extrap_P_low(P)
+    P = jpt.EK.extrap_P_high(P)
     P_b1 = P * jpt.k_extrap ** (-nu1[1])
     W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
     P_b1 = P_b1 * W
@@ -65,6 +75,9 @@ def test_fourier_coefficients(jpt, fpt):
 def test_convolution(jpt, fpt):
     #Tensor Case
     pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+    P = d[:, 1]
+    P = jpt.EK.extrap_P_low(P)
+    P = jpt.EK.extrap_P_high(P)
     P_b1 = P * jpt.k_extrap ** (-nu1[1])
     P_b2 = P * jpt.k_extrap ** (-nu2[1])
     W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
@@ -88,7 +101,8 @@ def test_convolution(jpt, fpt):
 
 def test_j_k_scalar(jpt, fpt):
     jax = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad,
-                         jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=C_window)
+                         jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l, C_window=C_window,
+                         low_extrap=-5, high_extrap=3, EK=jpt.EK)
     fast = fpt.J_k_scalar(P, fpt.X_spt, -2, C_window=C_window)
     
     # Have to compare this way due to inhomogeneous shapes
@@ -102,7 +116,8 @@ def test_j_k_scalar(jpt, fpt):
 
 def test_j_k_tensor(jpt, fpt):
     jax = jpt.J_k_tensor(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final, jpt.k_size, 
-                         jpt.n_pad, jpt.id_pad, jpt.l, jpt.m, jpt.N, P_window=P_window, C_window=C_window)
+                         jpt.n_pad, jpt.id_pad, jpt.l, jpt.m, jpt.N, P_window=jpt.p_win, C_window=C_window,
+                         low_extrap=-5, high_extrap=3, EK=jpt.EK)
     fast = fpt.J_k_tensor(P, fpt.X_IA_A, P_window=np.array([0.2, 0.2]), C_window=C_window)
     
     jax_0 = np.array(jax[0])
@@ -285,6 +300,9 @@ def test_jit_fourier(jpt):
     """Test that the fourier_coefficients function can be JIT compiled"""
     try:
         pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P = d[:, 1]
+        P = jpt.EK.extrap_P_low(P)
+        P = jpt.EK.extrap_P_high(P)
         P_b1 = P * jpt.k_extrap ** (-nu1[1])
         W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
         P_b1 = P_b1 * W
@@ -303,6 +321,9 @@ def test_jit_fourier(jpt):
 def test_jit_convolution(jpt):
     try: 
         pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P = d[:, 1]
+        P = jpt.EK.extrap_P_low(P)
+        P = jpt.EK.extrap_P_high(P)
         P_b1 = P * jpt.k_extrap ** (-nu1[1])
         P_b2 = P * jpt.k_extrap ** (-nu2[1])
         W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
@@ -394,6 +415,9 @@ def test_fourier_coefficients_differentiability(jpt):
     """Test that fourier_coefficients is differentiable with JAX"""
     try:
         pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P = d[:, 1]
+        P = jpt.EK.extrap_P_low(P)
+        P = jpt.EK.extrap_P_high(P)
         P_b1 = P * jpt.k_extrap ** (-nu1[1])
         W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
         P_b1 = P_b1 * W
@@ -413,6 +437,9 @@ def test_convolution_differentiability(jpt):
     """Test that convolution is differentiable with JAX"""
     try:
         pf, p, nu1, nu2, g_m, g_n, h_l = jpt.X_IA_A
+        P = d[:, 1]
+        P = jpt.EK.extrap_P_low(P)
+        P = jpt.EK.extrap_P_high(P)
         P_b1 = P * jpt.k_extrap ** (-nu1[1])
         P_b2 = P * jpt.k_extrap ** (-nu2[1])
         W = jp_window(jpt.k_extrap, P_window[0], P_window[1])
@@ -424,10 +451,18 @@ def test_convolution_differentiability(jpt):
         c_m = jpt.fourier_coefficients(P_b1, jpt.m, jpt.N, C_window)
         c_n = jpt.fourier_coefficients(P_b2, jpt.m, jpt.N, C_window)
         
-        gradient = jacfwd(jpt.convolution, holomorphic=True)(c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+        def convolution_func(c_m, c_n, g_m, g_n, h_l):
+            return jpt.convolution(c_m, c_n, g_m, g_n, h_l)
         
+        output, grad_func = vjp(convolution_func, c_m, c_n, g_m[1,:], g_n[1,:], h_l[1,:])
+        key = jax.random.PRNGKey(42)
+        real_part = jax.random.normal(key, output.shape)
+        imag_part = jax.random.normal(key, output.shape)
+        tangent = real_part + 1j * imag_part  # Create complex tangent
+        gradient = grad_func(tangent)[0]  # Extract the vector-Jacobian product
+        # Check that the gradient is valid
         assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
-        expected_shape = (12001, 6001) #<<<<<<<<< why is it 6001, 6000?
+        expected_shape = (c_m.shape[0],)
         assert gradient.shape == expected_shape, "Gradient shape doesn't match input shape"
         assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
 
@@ -476,41 +511,74 @@ def test_terms_differentiability(jpt, term):
 
 
 
-# def test_j_k_scalar_differentiability(jpt):
-#     """Test that J_k_scalar is differentiable with JAX"""
-#     try:
-#         gradient = jacfwd(jpt.J_k_scalar)(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad,
-#                                          jpt.id_pad, jpt.k_extrap, jpt.k_final,
-#                                          jpt.k_size, jpt.l, C_window=C_window)
+def test_j_k_scalar_differentiability(jpt):
+    """Test that J_k_scalar is differentiable with JAX"""
+    try:
+        # Create a wrapper function
+        def scalar_func(P_input):
+            return jpt.J_k_scalar(P_input, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad,
+                                 jpt.id_pad, jpt.k_extrap, jpt.k_final,
+                                 jpt.k_size, jpt.l, C_window=C_window,
+                                 low_extrap=-5, high_extrap=3, EK=jpt.EK)
         
-#         assert isinstance(gradient, tuple), "Gradient should be a tuple"
-#         for i, grad_element in enumerate(gradient):
-#             assert isinstance(grad_element, jnp.ndarray), f"Gradient element {i} is not a JAX array"
-#             if i == 0:
-#                 expected_shape = (P.shape[0], P.shape[0])
-#                 assert grad_element.shape == expected_shape, f"Gradient element {i} shape mismatch"
-            
-#             assert not jnp.any(jnp.isnan(grad_element)), f"Gradient element {i} contains NaN values"
+        # Compute output for original input
+        P_jax = jnp.array(P)
+        output = scalar_func(P_jax)
         
-#     except Exception as e:
-#         pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+        # Create a random tangent vector with the same shape as the output
+        key = jax.random.PRNGKey(42)
+        tangent_0 = jax.random.normal(key, output[0].shape)
+        tangent_1 = jax.random.normal(key, output[1].shape)
+        tangent = (tangent_0, tangent_1)
+        
+        # Compute VJP (Vector-Jacobian Product)
+        _, vjp_fun = jax.vjp(scalar_func, P_jax)
+        gradient = vjp_fun(tangent)[0]  # Extract the vector-Jacobian product
+        
+        # Check that the gradient is valid
+        assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
+        assert gradient.shape == P_jax.shape, "Gradient shape doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
+        
+        # Check that we have non-zero gradients
+        grad_abs_mean = jnp.mean(jnp.abs(gradient))
+        assert grad_abs_mean > 0, "Gradient has zero mean absolute value"
+        
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
 
-# def test_j_k_tensor_differentiability(jpt):
-#     """Test that J_k_tensor is differentiable with JAX"""
-#     try:
-#         gradient = jacfwd(jpt.J_k_tensor)(P, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
-#                                           jpt.k_size, jpt.n_pad, jpt.id_pad,
-#                                           jpt.l, jpt.m, jpt.N, P_window=P_window,
-#                                           C_window=C_window)
+def test_j_k_tensor_differentiability(jpt):
+    """Test that J_k_tensor is differentiable with JAX"""
+    try:
+        # Create a wrapper function
+        def tensor_func(P_input):
+            return jpt.J_k_tensor(P_input, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
+                                  jpt.k_size, jpt.n_pad, jpt.id_pad,
+                                  jpt.l, jpt.m, jpt.N, P_window=jpt.p_win,
+                                  C_window=C_window, low_extrap=-5, high_extrap=3, EK=jpt.EK)
         
-#         assert isinstance(gradient, tuple), "Gradient should be a tuple"
-#         for i, grad_element in enumerate(gradient):
-#             assert isinstance(grad_element, jnp.ndarray), f"Gradient element {i} is not a JAX array"
-#             if i == 0:
-#                 expected_shape = (P.shape[0], P.shape[0])
-#                 assert grad_element.shape == expected_shape, f"Gradient element {i} shape mismatch"
-            
-#             assert not jnp.any(jnp.isnan(grad_element)), f"Gradient element {i} contains NaN values"
+        # Compute output for original input
+        P_jax = jnp.array(P)
+        output = tensor_func(P_jax)
         
-#     except Exception as e:
-#         pytest.fail(f"JAX differentiation failed with error: {str(e)}")
+        # Create a random tangent vector with the same shape as the output
+        key = jax.random.PRNGKey(42)
+        tangent_0 = jax.random.normal(key, output[0].shape)
+        tangent_1 = jax.random.normal(key, output[1].shape)
+        tangent = (tangent_0, tangent_1)
+        
+        # Compute VJP (Vector-Jacobian Product)
+        _, vjp_fun = jax.vjp(tensor_func, P_jax)
+        gradient = vjp_fun(tangent)[0]  # Extract the vector-Jacobian product
+        
+        # Check that the gradient is valid
+        assert isinstance(gradient, jnp.ndarray), "Gradient is not a JAX array"
+        assert gradient.shape == P_jax.shape, "Gradient shape doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), "Gradient contains NaN values"
+        
+        # Check that we have non-zero gradients
+        grad_abs_mean = jnp.mean(jnp.abs(gradient))
+        assert grad_abs_mean > 0, "Gradient has zero mean absolute value"
+        
+    except Exception as e:
+        pytest.fail(f"JAX differentiation failed with error: {str(e)}")
