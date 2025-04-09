@@ -514,7 +514,46 @@ def test_terms_differentiability(jpt, term):
     except Exception as e:
         pytest.fail(f"JAX differentiation for term {term} failed with error: {str(e)}")
 
-
+@pytest.mark.parametrize("func_name", ["one_loop_dd_bias_b3nl", "one_loop_dd_bias_lpt_NL",
+                                       "IA_tt", "IA_mix", "IA_ta", "IA_ct", "IA_ctbias",
+                                       "IA_gb2", "IA_d2", "IA_s2", "OV", "kPol", "IA_der"])
+def test_funcs_differentiability(jpt, func_name):
+    """Test that each function is differentiable with respect to the input power spectrum."""
+    try:
+        # Create a wrapper function that returns only the term
+        func = getattr(jpt, func_name)
+        
+        # Compute output for original input
+        P_jax = jnp.array(P)
+        output = func(P_jax)
+        
+        # Create appropriate tangent vector(s) based on output structure
+        key = jax.random.PRNGKey(42)
+        
+        if isinstance(output, tuple):
+            # For tuple outputs, create a tuple of tangent vectors
+            tangent = tuple(jax.random.normal(key, x.shape) for x in output)
+        else:
+            # For single array outputs
+            tangent = jax.random.normal(key, output.shape)
+        
+        # Compute VJP (Vector-Jacobian Product)
+        _, vjp_fun = jax.vjp(func, P_jax)
+        gradient = vjp_fun(tangent)[0]  # Extract the vector-Jacobian product
+        
+        # Check that the gradient is valid
+        assert isinstance(gradient, jnp.ndarray), f"Gradient for {func_name} is not a JAX array"
+        assert gradient.shape == P_jax.shape, f"Gradient shape for {func_name} doesn't match input shape"
+        assert not jnp.any(jnp.isnan(gradient)), f"Gradient for {func_name} contains NaN values"
+        
+        # Calculate some statistics on the gradient for debugging
+        grad_abs_mean = jnp.mean(jnp.abs(gradient))
+        
+        # We don't want completely zero gradients, which could indicate a problem
+        assert grad_abs_mean > 0, f"Gradient for {func_name} has zero mean absolute value"
+                
+    except Exception as e:
+        pytest.fail(f"JAX differentiation for function {func_name} failed with error: {str(e)}")
 
 def test_j_k_scalar_differentiability(jpt):
     """Test that J_k_scalar is differentiable with JAX"""
