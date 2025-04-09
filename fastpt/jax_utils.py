@@ -24,11 +24,9 @@ def P_13_reg(k, P):
     Z_low = lambda r: (352./5. + 96./5./r**2 - 160./21./r**4 - 1376./1155./r**6 - 1952./5005./r**8) * r
     Z_high = lambda r: (928./5.*r**2 - 4512./35.*r**4 + 416./21.*r**6 + 2656./1155.*r**8) * r
 
-    # Create the full array with zeros, then use jnp.where to fill in values
     f = jnp.zeros_like(s)
     
-    # Safe versions of functions that avoid division by zero
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)  # Large value for s near 0
+    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)  # Avoid division by zero
     
     # Fill each region using masks
     f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
@@ -63,10 +61,8 @@ def Y1_reg_NL(k, P):
     Z_low = lambda r: (1./126.)*(256./5. - 768./35./r**2 + 256./105./r**4 + 256./1155./r**6 + 256./5005./r**8) * r
     Z_high = lambda r: (1./126.)*(256./5.*r**2 - 768./35.*r**4 + 256./105.*r**6 + 256./1155.*r**8) * r
 
-    # Safe version of exp(-s) to avoid division by zero
     safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
-    # Calculate function values for each region
     f = jnp.zeros_like(s)
     f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
     f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
@@ -100,10 +96,8 @@ def Y2_reg_NL(k, P):
     Z_low = lambda r: (1./126.)*(256./5. - 768./35./r**2 + 256./105./r**4 + 256./1155./r**6 + 256./5005./r**8) * r
     Z_high = lambda r: (1./126.)*(256./5.*r**2 - 768./35.*r**4 + 256./105.*r**6 + 256./1155.*r**8) * r
 
-    # Safe version of exp(-s) to avoid division by zero
     safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
-    # Calculate function values for each region
     f = jnp.zeros_like(s)
     f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
     f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
@@ -132,16 +126,13 @@ def P_IA_B(k, P):
     mid_low_mask = (s >= -cut) & (s < 0)
     zero_mask = (s == 0)
     
-    # Define the lambda functions
     Z1 = lambda r: ((2.* r * (225.- 600.* r**2 + 1198.* r**4 - 600.* r**6 + 225.* r**8) + \
                     225.* (r**2 - 1.)**4 * (r**2 + 1.) * log(jnp.absolute(r-1)/(r+1)) )/(20160.* r**3) - 29./315*r**2 )/2.
     Z1_high = lambda r: ((-16*r**4)/147. + (32*r**6)/441. - (16*r**8)/1617. - (64*r**10)/63063. - 16*r**12/63063. - (32*r**14)/357357. - (16*r**16)/415701. )/2.
     Z1_low = lambda r: (-16./147 - 16/(415701.*r**12) - 32/(357357.*r**10) - 16/(63063.*r**8) - 64/(63063.*r**6) - 16/(1617.*r**4) + 32/(441.*r**2) )/2.
     
-    # Safe version of exp(-s) to avoid division by zero
     safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
-    # Calculate function values with the exp(−s) factor included
     f = jnp.zeros_like(s)
     f = jnp.where(low_mask, Z1_low(safe_exp_neg_s) * safe_exp_neg_s, f)
     f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
@@ -170,15 +161,12 @@ def P_IA_deltaE2(k, P):
     mid_low_mask = (s >= -cut) & (s < 0)
     zero_mask = (s == 0)
     
-    # Define the lambda functions
     Z1 = lambda r: 30. + 146*r**2 - 110*r**4 + 30*r**6 + log(jnp.absolute(r-1.)/(r+1.))*(15./r - 60.*r + 90*r**3 - 60*r**5 + 15*r**7)
     Z1_high = lambda r: 256*r**2 - 256*r**4 + (768*r**6)/7. - (256*r**8)/21. - (256*r**10)/231. - (256*r**12)/1001. - (256*r**14)/3003.
     Z1_low = lambda r: 768./7 - 256/(7293.*r**10) - 256/(3003.*r**8) - 256/(1001.*r**6) - 256/(231.*r**4) - 256/(21.*r**2)
     
-    # Safe version of exp(-s) to avoid division by zero
     safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
-    # Calculate function values with the exp(−s) factor included
     f = jnp.zeros_like(s)
     f = jnp.where(low_mask, Z1_low(safe_exp_neg_s) * safe_exp_neg_s, f)
     f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
@@ -207,15 +195,12 @@ def P_IA_13G(k, P):
     mid_low_mask = (s >= -cut) & (s < 0)
     zero_mask = (s == 0)
     
-    # For Zbar
     Z1 = lambda r: (12/r**2 - 26 + 4*r**2 - 6*r**4 + (3/r**3)*(r**2-1)**3*(r**2+2)*log((r+1.)/jnp.absolute(r-1))) * r
     Z1_low = lambda r: (-224/5 + 1248/(35*r**2) - 608/(105*r**4) - 26/(21*r**6) - 4/(35*r**8) + 34/(21*r**10) - 4/(3*r**12)) * r
     Z1_high = lambda r: ((-32*r**2)/5 - (96*r**4)/7 + (352*r**6)/105 + (164*r**8)/105 - (58*r**10)/35 + (4*r**12)/21 + (2*r**14)/3) * r
     
-    # Safe version of exp(-s) to avoid division by zero
     safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
-    # Calculate function values for each region
     f = jnp.zeros_like(s)
     f = jnp.where(low_mask, Z1_low(safe_exp_neg_s), f)
     f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s), f)
@@ -244,16 +229,13 @@ def P_IA_13F(k, P):
     mid_low_mask = (s >= -cut) & (s < 0)
     zero_mask = (s == 0)
     
-    # Define the lambda functions
     Z = lambda r: (12./r**2 + 10. + 100.*r**2 - 42.*r**4 \
         + 3./r**3 * (r**2-1.)**3 * (7*r**2+2.) * log((r+1.)/jnp.absolute(r-1.))) * r
     Z_low = lambda r: (352./5. + 96./0.5/r**2 - 160./21./r**4 - 526./105./r**6 + 236./35./r**8 - 50./21./r**10 - 4./3./r**12) * r
     Z_high = lambda r: (928./5.*r**2 - 4512./35.*r**4 + 416./21.*r**6 + 356./105.*r**8 + 74./35.*r**10 - 20./3.*r**12 + 14./3.*r**14) * r
     
-    # Safe version of exp(-s) to avoid division by zero
     safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
-    # Calculate function values for each region
     f = jnp.zeros_like(s)
     f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
     f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
