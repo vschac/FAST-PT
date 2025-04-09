@@ -14,43 +14,49 @@ from fastpt.jax_utils import P_13_reg, Y1_reg_NL, Y2_reg_NL, P_IA_B, P_IA_deltaE
 
 
 def process_x_term(X):
-    """Process X term for JAX compatibility, preserving complex values"""
+    """Process X term for JAX compatibility, preserving complex values and handling nested arrays."""
     processed_X = []
+    
     for term in X:
         if isinstance(term, np.ndarray):
-            # If it's an object dtype, convert to appropriate numeric type
-            if term.dtype == np.dtype('O'):
-                # Check if the array contains complex values
-                try:
-                    # Sample the first element to see if it's complex
-                    sample = term.flat[0]
-                    if isinstance(sample, complex) or (hasattr(sample, 'imag') and sample.imag != 0):
-                        # Convert to complex
-                        term = term.astype(np.complex128)
-                        term = jnp.asarray(term)
+            if term.dtype == np.dtype('O') or (term.size > 0 and isinstance(term.flat[0], np.ndarray)):
+                nested_arrays = []
+                for item in term:
+                    if isinstance(item, np.ndarray):
+                        if np.iscomplexobj(item):
+                            nested_arrays.append(jnp.asarray(item, dtype=jnp.complex128))
+                        else:
+                            nested_arrays.append(jnp.asarray(item, dtype=jnp.float64))
                     else:
-                        # Convert to float
-                        term = term.astype(np.float64)
-                        term = jnp.asarray(term)
-                except (IndexError, TypeError):
-                    # If sampling fails, try float64 as a fallback
-                    try:
-                        term = term.astype(np.float64)
-                        term = jnp.asarray(term)
-                    except:
-                        # If that fails too, try complex
-                        try:
-                            term = term.astype(np.complex128)
-                            term = jnp.asarray(term)
-                        except:
-                            print(f"Warning: Could not convert array of dtype {term.dtype}")
+                        # Handle direct values (unlikely but possible)
+                        nested_arrays.append(jnp.asarray(item, dtype=jnp.float64))
+                
+                term = jnp.asarray(nested_arrays)
+            
+            elif term.dtype == np.float64:
+                term = jnp.asarray(term, dtype=jnp.float64)
+            elif term.dtype == np.complex128:
+                term = jnp.asarray(term, dtype=jnp.complex128)
+            # Fallback for other array types
             else:
-                # Regular numeric array, convert to JAX
-                term = jnp.asarray(term)
-        # Non-array types just pass through
+                print("fallback")
+                try:
+                    # Sample the first element to determine the type
+                    if term.size > 0:
+                        sample = term.flat[0]
+                        if isinstance(sample, complex) or (hasattr(sample, 'imag') and sample.imag != 0):
+                            term = jnp.asarray(term, dtype=jnp.complex128)
+                        else:
+                            term = jnp.asarray(term, dtype=jnp.float64)
+                    else:
+                        # Empty array, default to float64
+                        term = jnp.asarray(term, dtype=jnp.float64)
+                except:
+                    print(f"Warning: Could not determine type for array of dtype {term.dtype}")
+                    term = jnp.asarray(term)
+        
         processed_X.append(term)
     
-    # Return tuple to match original format
     return tuple(processed_X)
 
 def jax_cached_property(method):
@@ -58,7 +64,7 @@ def jax_cached_property(method):
 
     @functools.wraps(method)
     def wrapper(self):
-        # The important change: Only access cached properties when not being traced by JAX
+        # Important: Only access cached properties when not being traced by JAX (on jit, vmap, vjp, etc.)
         if not hasattr(self, prop_name) and not isinstance(self, jax.core.Tracer):
             result = method(self)
             # Process X terms for JAX compatibility
@@ -260,38 +266,6 @@ class JAXPT:
         except:
             print("get JIT compilation failed. Using default python implementation.")
         
-        # self.X_spt = self.temp_fpt.X_spt
-        # self.X_lpt = self.temp_fpt.X_lpt
-        # self.X_sptG = self.temp_fpt.X_sptG
-        # self.X_cleft = self.temp_fpt.X_cleft
-        # self.X_IA_A = self.temp_fpt.X_IA_A
-        # self.X_IA_B = self.temp_fpt.X_IA_B
-        # self.X_IA_E = self.temp_fpt.X_IA_E
-        # self.X_IA_DEE = self.temp_fpt.X_IA_DEE
-        # self.X_IA_DBB = self.temp_fpt.X_IA_DBB
-        # self.X_IA_deltaE1 = self.temp_fpt.X_IA_deltaE1
-        # self.X_IA_0E0E = self.temp_fpt.X_IA_0E0E
-        # self.X_IA_0B0B = self.temp_fpt.X_IA_0B0B
-        # self.X_IA_gb2_fe = self.temp_fpt.X_IA_gb2_fe
-        # self.X_IA_gb2_he = self.temp_fpt.X_IA_gb2_he
-        # self.X_IA_tij_feG2 = self.temp_fpt.X_IA_tij_feG2
-        # self.X_IA_tij_heG2 = self.temp_fpt.X_IA_tij_heG2
-        # self.X_IA_tij_F2F2 = self.temp_fpt.X_IA_tij_F2F2
-        # self.X_IA_tij_G2G2 = self.temp_fpt.X_IA_tij_G2G2
-        # self.X_IA_tij_F2G2 = self.temp_fpt.X_IA_tij_F2G2
-        # self.X_IA_tij_F2G2reg = self.temp_fpt.X_IA_tij_F2G2reg
-        # self.X_IA_gb2_F2 = self.temp_fpt.X_IA_gb2_F2
-        # self.X_IA_gb2_G2 = self.temp_fpt.X_IA_gb2_G2
-        # self.X_IA_gb2_S2F2 = self.temp_fpt.X_IA_gb2_S2F2
-        # self.X_IA_gb2_S2fe = self.temp_fpt.X_IA_gb2_S2fe
-        # self.X_IA_gb2_S2he = self.temp_fpt.X_IA_gb2_S2he
-        # self.X_IA_gb2_S2G2 = self.temp_fpt.X_IA_gb2_S2G2
-        # self.X_OV = self.temp_fpt.X_OV
-        # self.X_kP1 = self.temp_fpt.X_kP1
-        # self.X_kP2 = self.temp_fpt.X_kP2
-        # self.X_kP3 = self.temp_fpt.X_kP3
-        # self.X_RSDA = self.temp_fpt.X_RSDA
-        # self.X_RSDB = self.temp_fpt.X_RSDB
 
     @jax_cached_property
     def X_spt(self):
@@ -460,18 +434,18 @@ class JAXPT:
             return final_result
         return result
 
-    def _get_1loop(self, P, P_window=None, C_window=None):
+    def _get_1loop(self, P, C_window=None):
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, self.m, self.N, self.n_pad, self.id_pad, 
                                  self.k_extrap, self.k_final, self.k_size, self.l,
                                  C_window=C_window, low_extrap=self.low_extrap, high_extrap=self.high_extrap, EK=self.EK)
         Ps = self._apply_extrapolation(Ps)
-        P22 = self._get_P22(P, P_window=P_window, C_window=C_window)
-        P13 = self._get_P13(P, P_window=P_window, C_window=C_window)
+        P22 = self._get_P22(P, C_window=C_window)
+        P13 = self._get_P13(P, C_window=C_window)
         P_1loop = P22 + P13
         P_1loop = self._apply_extrapolation(P_1loop)
         return P_1loop
     
-    def _get_P22(self, P, P_window=None, C_window=None):
+    def _get_P22(self, P, C_window=None):
         P22_coef = jnp.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
         _, mat = self.J_k_scalar(P, self.X_spt, -2, self.m, self.N, self.n_pad, self.id_pad, 
                                  self.k_extrap, self.k_final, self.k_size, self.l,
@@ -625,7 +599,7 @@ class JAXPT:
 
     #Get functions that use jax_utils functions, produce non exact outputs though 
     #differences are due to jpt versions of input parameters (parameters pass allclose, output does not)
-    def _get_P13(self, P, P_window=None, C_window=None): #Affects P_1loop
+    def _get_P13(self, P, C_window=None): #Affects P_1loop
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, self.m, self.N, self.n_pad, self.id_pad, 
                                  self.k_extrap, self.k_final, self.k_size, self.l,
                                  C_window=C_window, low_extrap=self.low_extrap, high_extrap=self.high_extrap, EK=self.EK)
@@ -933,20 +907,27 @@ if __name__ == "__main__":
     P = d[:, 1]
     k = d[:, 0]
     jpt = JAXPT(k, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
-    t0 = time()
-    primals, vjp_fn = vjp(lambda P_input: jpt.get("Pb1L_2", P_input), P)
-    tangent_vectors = jnp.ones_like(primals)
-    gradient = vjp_fn(tangent_vectors)
-    t1 = time()
-    print(f"Time: {t1 - t0:.4f} seconds")
-    Ps, _ = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad, 
-                                 jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l,
-                                 C_window=0.75, low_extrap=-5, high_extrap=3, EK=jpt.EK)
     fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
-    Psf, _ = fpt.J_k_scalar(P, fpt.X_spt, -2, P_window=np.array([0.2, 0.2]), C_window=0.75)
-    old = oldG(fpt.k_extrap, Psf)
-    new = P_IA_13G(jpt.k_extrap, Ps)
-    print(f"K's equal: ", np.allclose(jpt.k_extrap, fpt.k_extrap))
-    print(f"P's equal: ", np.allclose(Psf, Ps))
-    print(f"Result equal: ", np.allclose(old, new))
-    print(f"Max difference: ", np.max(np.abs(old - new)))
+    # t0 = time()
+    # primals, vjp_fn = vjp(lambda p_input: jpt.J_k_tensor(p_input, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
+    #                                                jpt.k_size, jpt.n_pad, jpt.id_pad, jpt.l, jpt.m,
+    #                                                jpt.N, C_window=0.75, P_window=jpt.p_win,
+    #                                                low_extrap=-5, high_extrap=3, EK=jpt.EK), P)
+
+    # # Create tangent vectors for both outputs (P_fin and A_out)
+    # tangent_P_fin = jnp.ones_like(primals[0])
+    # tangent_A_out = jnp.zeros_like(primals[1])  # If you don't care about gradients for A_out
+    # gradient = vjp_fn((tangent_P_fin, tangent_A_out))
+    # t1 = time()
+    # print(f"Time: {t1 - t0:.4f} seconds")
+
+    # Ps, _ = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad, 
+    #                              jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l,
+    #                              C_window=0.75, low_extrap=-5, high_extrap=3, EK=jpt.EK)
+    # Psf, _ = fpt.J_k_scalar(P, fpt.X_spt, -2, P_window=np.array([0.2, 0.2]), C_window=0.75)
+    # old = oldG(fpt.k_extrap, Psf)
+    # new = P_IA_13G(jpt.k_extrap, Ps)
+    # print(f"K's equal: ", np.allclose(jpt.k_extrap, fpt.k_extrap))
+    # print(f"P's equal: ", np.allclose(Psf, Ps))
+    # print(f"Result equal: ", np.allclose(old, new))
+    # print(f"Max difference: ", np.max(np.abs(old - new)))
