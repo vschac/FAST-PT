@@ -44,8 +44,6 @@ fastpt/kPol.py
 fastpt/matter_power_spt.py
 fastpt/param_matrix.py
 fastpt/timing_utils.py
-fastpt/cython_pt/__init__.py
-fastpt/cython_pt/setup_cython.py
 tests/test_benchmarks.py
 tests/test_cache.py
 tests/test_cython.py
