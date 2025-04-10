@@ -14,11 +14,8 @@ P_window = np.array([0.2, 0.2])
 if __name__ == "__main__":
     fpt = FASTPT(k)
     handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-    from time import time
-    t0 = time()
-    handler.get("P_E")
-    t1 = time()
-    print(f"Time: {t1 - t0:.4f}")
+    pk = handler.generate_power_spectra()
+    handler.plot(pk, k)
 
 @pytest.fixture
 def fpt():

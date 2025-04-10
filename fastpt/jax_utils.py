@@ -5,7 +5,6 @@ from jax import config
 config.update("jax_enable_x64", True)
 
 def P_13_reg(k, P):
-    #Not an exact implementation, differs by about 0.003 from original (at most)
 
     N = k.size
     n = jnp.arange(-N+1, N)
@@ -31,7 +30,7 @@ def P_13_reg(k, P):
     # Fill each region using masks
     f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
     f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
-    f = jnp.where(zero_mask, 80.0, f)  # For s=0, use 80.0
+    f = jnp.where(zero_mask, 80.0, f)
     f = jnp.where(mid_high_mask, Z(safe_exp_neg_s), f)
     f = jnp.where(high_mask, Z_high(safe_exp_neg_s), f)
 
@@ -96,15 +95,15 @@ def Y2_reg_NL(k, P):
     Z_low = lambda r: (1./126.)*(256./5. - 768./35./r**2 + 256./105./r**4 + 256./1155./r**6 + 256./5005./r**8) * r
     Z_high = lambda r: (1./126.)*(256./5.*r**2 - 768./35.*r**4 + 256./105.*r**6 + 256./1155.*r**8) * r
 
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
+    #safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
     f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
-    f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
+    f = jnp.where(low_mask, Z_low(exp(-s)), f)
+    f = jnp.where(mid_low_mask, Z(exp(-s)), f)
     f = jnp.where(zero_mask, 32./126., f)  # Value at s=0
-    f = jnp.where(mid_high_mask, Z(safe_exp_neg_s), f)
-    f = jnp.where(high_mask, Z_high(safe_exp_neg_s), f)
-
+    f = jnp.where(mid_high_mask, Z(exp(-s)), f)
+    f = jnp.where(high_mask, Z_high(exp(-s)), f)
+    
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
     P_bar = k**3/(2*pi)**2 * P * g_k

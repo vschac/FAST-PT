@@ -703,31 +703,6 @@ class JAXPT:
         sig3nl = Y1_reg_NL(self.k_extrap, Ps)
         sig3nl = self._apply_extrapolation(sig3nl)
         return sig3nl
-    
-    def _get_Pb1L(self, P, P_window=None, C_window=None):
-        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, self.m, self.N, self.n_pad, self.id_pad, 
-                                 self.k_extrap, self.k_final, self.k_size, self.l,
-                                 C_window=C_window, low_extrap=self.low_extrap, high_extrap=self.high_extrap, EK=self.EK)
-        [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
-                                                          mat[5, :], mat[6, :]]
-        X1 = ((144. / 245.) * j000 - (176. / 343.) * j002 - (128. / 1715.) * j004 + (16. / 35.) * j1n11 - (
-                16. / 35.) * j1n13)
-        Y1 = Y1_reg_NL(self.k_extrap, Ps)
-        Pb1L = X1 + Y1
-        Pb1L = self._apply_extrapolation(Pb1L)
-        return Pb1L
-    
-    def _get_Pb1L_2(self, P, P_window=None, C_window=None):
-        Ps, mat = self.J_k_scalar(P, self.X_lpt, -2, self.m, self.N, self.n_pad, self.id_pad, 
-                                 self.k_extrap, self.k_final, self.k_size, self.l,
-                                 C_window=C_window, low_extrap=self.low_extrap, high_extrap=self.high_extrap, EK=self.EK)
-        [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
-                                                          mat[5, :], mat[6, :]]
-        X2 = ((16. / 21.) * j000 - (16. / 21.) * j002 + (16. / 35.) * j1n11 - (16. / 35.) * j1n13)
-        Y2 = Y2_reg_NL(self.k_extrap, Ps)
-        Pb1L_2 = X2 + Y2
-        Pb1L_2 = self._apply_extrapolation(Pb1L_2)
-        return Pb1L_2
         
 
 
@@ -930,6 +905,7 @@ if __name__ == "__main__":
     k = d[:, 0]
     jpt = JAXPT(k, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
     fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
+    P_13_reg(k, P)
     # t0 = time()
     # primals, vjp_fn = vjp(lambda p_input: jpt.J_k_tensor(p_input, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
     #                                                jpt.k_size, jpt.n_pad, jpt.id_pad, jpt.l, jpt.m,

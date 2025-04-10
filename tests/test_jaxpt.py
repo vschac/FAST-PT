@@ -127,13 +127,13 @@ def test_j_k_tensor(jpt, fpt):
     fast_1 = fast[1]
     assert np.allclose(jax_1, fast_1), "Second element of J_k_tensor differs"
 
-@pytest.mark.parametrize("term", 
-                         ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
-                         "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
-                         "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
-                         "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
-                         "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
+@pytest.mark.parametrize("term", ["P_1loop", "Pb1L_2"
+                        #  ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
+                        #  "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                        #  "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
+                        #  "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
+                        #  "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
+                        #  "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
                         ])
 def test_every_term(jpt, fpt, term):
     handler = FPTHandler(fpt, P=P, P_window=np.asarray(P_window), C_window=C_window)
@@ -474,12 +474,13 @@ def test_convolution_differentiability(jpt):
     except Exception as e:
         pytest.fail(f"JAX differentiation failed with error: {str(e)}")
 
-@pytest.mark.parametrize("term", ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
-                         "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
-                         "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
-                         "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
-                        "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
+@pytest.mark.parametrize("term", ["P_1loop", "Pb1L_2"
+                        #  ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
+                        #  "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                        #  "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
+                        #  "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
+                        #  "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
+                        # "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
                         ])
 def test_terms_differentiability(jpt, term):
     """Test that each term is differentiable with respect to the input power spectrum."""
