@@ -51,15 +51,19 @@ def P_13_reg(k,P):
 	n= np.arange(-N+1,N )
 	dL=log(k[1])-log(k[0])
 	s=n*dL
-
+	
 	cut=7
 	high_s=s[s > cut]
 	low_s=s[s < -cut]
 	mid_high_s=s[ (s <= cut) &  (s > 0)]
 	mid_low_s=s[ (s >= -cut) &  (s < 0)]
-
-	Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
-	+ 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/np.absolute(r-1.)) ) *r
+	# print(f"Mask counts: high={len(high_s)}, low={len(low_s)}, "
+	# 	f"mid_high={len(mid_high_s)}, mid_low={len(mid_low_s)}, ")
+	
+	# Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
+	# 			+ 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/np.absolute(r-1.)) ) *r
+	Z=lambda r : (12./r**2 + 10. + 100.*r**2-42.*r**4 \
+			   + 3./r**3 * (r**2-1.)**3 * (7*r**2+2.))
 	Z_low=lambda r : (352./5.+96./5./r**2 -160./21./r**4 - 1376./1155./r**6 -1952./5005./r**8) *r
 	Z_high=lambda r: (928./5.*r**2 - 4512./35.*r**4 +416./21.*r**6 +2656./1155.*r**8) *r
 

@@ -5,7 +5,7 @@ from jax import config
 config.update("jax_enable_x64", True)
 
 def P_13_reg(k, P):
-
+    from numpy import log, absolute
     N = k.size
     n = jnp.arange(-N+1, N)
     dL = log(k[1]) - log(k[0])
@@ -17,22 +17,30 @@ def P_13_reg(k, P):
     mid_high_mask = (s <= cut) & (s > 0)
     mid_low_mask = (s >= -cut) & (s < 0)
     zero_mask = (s == 0)
+    # print(f"Mask counts: high={jnp.sum(high_mask)}, low={jnp.sum(low_mask)}, "
+    #         f"mid_high={jnp.sum(mid_high_mask)}, mid_low={jnp.sum(mid_low_mask)}, "
+    #         f"zero={jnp.sum(zero_mask)}")
 
-    Z = lambda r: (12./r**2 + 10. + 100.*r**2 - 42.*r**4 \
-        + 3./r**3 * (r**2-1.)**3 * (7*r**2+2.) * log((r+1.)/jnp.absolute(r-1.))) * r
-    Z_low = lambda r: (352./5. + 96./5./r**2 - 160./21./r**4 - 1376./1155./r**6 - 1952./5005./r**8) * r
-    Z_high = lambda r: (928./5.*r**2 - 4512./35.*r**4 + 416./21.*r**6 + 2656./1155.*r**8) * r
+    # Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
+    # + 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/jnp.absolute(r-1.)) ) *r
+    Z=lambda r : (12./r**2 + 10. + 100.*r**2-42.*r**4 \
+                  +3./r**3 * (r**2-1.)**3 * (7*r**2+2.))
+    Z_low=lambda r : (352./5.+96./5./r**2 -160./21./r**4 - 1376./1155./r**6 -1952./5005./r**8) *r
+    Z_high=lambda r: (928./5.*r**2 - 4512./35.*r**4 +416./21.*r**6 +2656./1155.*r**8) *r
 
     f = jnp.zeros_like(s)
-    
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)  # Avoid division by zero
-    
+    f_low_vals = Z_low(exp(-s[low_mask]))
+    f_mid_low_vals = Z(exp(-s[mid_low_mask]))
+    f_mid_high_vals = Z(exp(-s[mid_high_mask]))
+    f_high_vals = Z_high(exp(-s[high_mask]))
+    #safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)  # Avoid division by zero
+
     # Fill each region using masks
-    f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
-    f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
+    f = jnp.where(low_mask, Z_low(exp(-s)), f)
+    f = jnp.where(mid_low_mask, Z(exp(-s)), f)
     f = jnp.where(zero_mask, 80.0, f)
-    f = jnp.where(mid_high_mask, Z(safe_exp_neg_s), f)
-    f = jnp.where(high_mask, Z_high(safe_exp_neg_s), f)
+    f = jnp.where(mid_high_mask, Z(exp(-s)), f)
+    f = jnp.where(high_mask, Z_high(exp(-s)), f)
 
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]

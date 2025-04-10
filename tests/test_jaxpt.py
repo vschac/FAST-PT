@@ -14,20 +14,25 @@ import time as pytime
 data_path = os.path.join(os.path.dirname(__file__), 'benchmarking', 'Pk_test.dat')
 d = np.loadtxt(data_path)
 P = d[:, 1]
+k = d[:, 0]
 P_window = jnp.array([0.2, 0.2])
 C_window = 0.75
 
 if __name__ == "__main__":
-    fpt = FASTPT(d[:, 0])
-    jpt = JAXPT(jnp.array(d[:, 0]))
+    fpt = FASTPT(k)
+    jpt = JAXPT(jnp.array(k))
+    from fastpt.matter_power_spt import P_13_reg as oldP13
+    from fastpt.jax_utils import P_13_reg as newP13
+    j = newP13(k, P)
+    f = oldP13(k, P)
+    from numpy import argmax
+    index = argmax((j-f) / j)
+    print("Percent: ", max((j-f)/j))
+    print("OG J: ", j[index])
+    print("OG f: ", f[index])
+    print(np.allclose(oldP13(k, P), newP13(k, P)))
 
-    t0 = pytime.time()
-    #Xs = (jpt.X_IA_A, jpt.X_IA_E, jpt.X_IA_B, jpt.X_IA_DEE, jpt.X_IA_DBB, jpt.X_IA_0E0E, jpt.X_IA_A, jpt.X_IA_E, jpt.X_IA_B, jpt.X_IA_DEE)
-    jpt.compute_term(jpt.X_IA_E, operation=lambda x: x**2, P=P, P_window=P_window, C_window=C_window)
-    t1 = pytime.time()
-    print(f"Total time (including compilation): {t1 - t0} seconds")
-    
-    
+
 @pytest.fixture
 def k_arrays():
     """Return consistent k arrays to ensure shapes match between tests."""
@@ -127,22 +132,33 @@ def test_j_k_tensor(jpt, fpt):
     fast_1 = fast[1]
     assert np.allclose(jax_1, fast_1), "Second element of J_k_tensor differs"
 
-@pytest.mark.parametrize("term", ["P_1loop", "Pb1L_2"
-                        #  ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                        #  "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
-                        #  "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
-                        #  "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
-                        #  "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
-                        #  "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
+@pytest.mark.parametrize("term", #["P_1loop", "Pb1L_2"
+                         ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
+                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                         "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
+                         "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
+                         "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
+                         "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
                         ])
 def test_every_term(jpt, fpt, term):
     handler = FPTHandler(fpt, P=P, P_window=np.asarray(P_window), C_window=C_window)
     fast = handler.get(term)
     jaax = jpt.get(term, P)
     if not np.allclose(fast, jaax):
-        print(f"Max diff: ", np.max(np.abs(fast - jaax)))
-        print(f"F: ", fast)
-        print(f"J: ", jaax)
+        abs_diff = np.abs(fast - jaax)
+        # Avoid division by zero for computing fractional difference
+        valid_indices = np.where(np.abs(fast) > 1e-10)
+        if len(valid_indices[0]) > 0:
+            frac_diff = abs_diff[valid_indices] / np.abs(fast[valid_indices])
+            max_frac_diff = np.max(frac_diff)
+            max_frac_idx = valid_indices[0][np.argmax(frac_diff)]
+            print(f"Max absolute diff: {np.max(abs_diff)}")
+            print(f"Max fractional diff: {max_frac_diff:.2e} at index {max_frac_idx}")
+            print(f"F[{max_frac_idx}]: {fast[max_frac_idx]}")
+            print(f"J[{max_frac_idx}]: {jaax[max_frac_idx]}")
+        else:
+            print(f"Max absolute diff: {np.max(abs_diff)}")
+            print("Cannot compute fractional difference (denominator too small)")
     assert np.allclose(fast, jaax)
 
 ############## k_extend Tests ##############
