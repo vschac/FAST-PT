@@ -1391,43 +1391,42 @@ class FPTHandler:
         
         return fig
     
-    def generate_power_spectra(self, randomize=True, amount=1, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
+    def generate_power_spectra(self, method='classy', randomize=False, amount=1, **kwargs):
         """
-        Generate power spectra using Classy. Specify your own cosmo parameters or randomize them within their proper ranges.
-
+        Generate power spectra using the specified method.
+        
         Parameters
         ----------
+        method : str, optional
+            Method to use for generating power spectra. Options are 'classy' or 'camb'.
+            Default is 'classy'.
         randomize : bool, optional
-            Whether to randomize cosmological parameters. Default is True.
+            Whether to randomize parameters for each spectrum. Default is False.
         amount : int, optional
             Number of power spectra to generate. Default is 1.
-        omega_cdm : float, optional
-            Omega_cdm value. Default is 0.12.
-        h : float, optional
-            Hubble parameter. Default is 0.67.
-        omega_b : float, optional
-            Omega_b value. Default is 0.022.
-        z : float, optional
-            Redshift value. Default is 0.0.
-
+        **kwargs : dict
+            Additional parameters for power spectra generation.
+            
         Returns
         -------
-        list, or numpy.ndarray
-            List of generated power spectra (numpy arrays) is amount is greater than 1 otherwise just the power spectrum.
-        
-        Raises
-        ------
-        ImportError
-            If Classy is not installed.
-
+        list of numpy arrays
+            Generated power spectra
+            
         Examples
         --------
         >>> handler = FPTHandler(fpt)
-        >>> P = handler.generate_power_spectra()
-        >>> # P is a single numpy array of the generated power spectrum
-        >>> spectra = handler.generate_power_spectra(amount=5)
-        >>> # spectra is an array that will contain 5 generated power spectra (numpy arrays)
+        >>> spectra = handler.generate_power_spectra(method='classy', randomize=True, amount=5)
         """
+        if randomize and len(kwargs) != 0:
+            raise ValueError("You have requested to randomize parameters but have also provided your own. Please choose one.")
+        if method.lower() == 'classy':
+            return self._class_power_spectra(randomize=randomize, amount=amount, **kwargs)
+        elif method.lower() == 'camb':
+            return self._camb_power_spectra(randomize=randomize, amount=amount, **kwargs)
+        else:
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+    
+    def _class_power_spectra(self, randomize=False, amount=1, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
         try:
             from classy import Class
         except ImportError as e:
@@ -1463,3 +1462,72 @@ class FPTHandler:
         if amount == 1:
             return output[0]
         return output
+    
+    def _camb_power_spectra(self, randomize=False, amount=1, h=0.67, omega_cdm=0.12, omega_b=0.022, n_s=0.96, 
+                        As=2.1e-9, z=0.0, k_hunit=True, nonlinear=False):
+        try:
+            from camb import model, get_results
+        except ImportError as e:
+            raise ImportError("CAMB is not installed. Please install it to use this function.") from e
+        
+        k = self.fastpt.k_original
+        output = []
+        
+        if amount > 1 and randomize:
+            print("Generating multiple power spectra with randomized parameters...")
+        
+        for i in range(amount):
+            if randomize:
+                h = np.random.uniform(0.65, 0.75)
+                omega_cdm = np.random.uniform(0.1, 0.14)
+                omega_b = np.random.uniform(0.02, 0.025)
+                n_s = np.random.uniform(0.94, 0.98)
+                As = np.random.uniform(1.8e-9, 2.4e-9)
+                z = np.random.uniform(0.0, 1.0)
+            
+            # Set up CAMB parameters
+            pars = model.CAMBparams()
+            pars.set_cosmology(H0=h*100, ombh2=omega_b*h**2, omch2=omega_cdm*h**2)
+            pars.InitPower.set_params(ns=n_s, As=As)
+            
+            # Set redshift and k ranges
+            if k_hunit:
+                # Convert k from h/Mpc to 1/Mpc for CAMB
+                k_camb = k * h
+            else:
+                k_camb = k
+                
+            pars.set_matter_power(redshifts=[z], kmax=np.max(k_camb))
+            
+            # Set nonlinear correction if requested
+            if nonlinear:
+                pars.NonLinear = model.NonLinear_pk
+            
+            # Calculate results
+            results = get_results(pars)
+            
+            # Get matter power spectrum
+            k_camb_out, z_out, pk_camb = results.get_matter_power_spectrum(minkh=np.min(k_camb)/h if k_hunit else np.min(k_camb), 
+                                                                    maxkh=np.max(k_camb)/h if k_hunit else np.max(k_camb), 
+                                                                    npoints=len(k))
+            
+            # Interpolate to match exactly our k array
+            from scipy.interpolate import interp1d
+            if k_hunit:
+                # CAMB returns k in h/Mpc
+                pk_interp = interp1d(k_camb_out, pk_camb[0], bounds_error=False, fill_value='extrapolate')
+                power_spectrum = pk_interp(k)
+            else:
+                # Need to convert CAMB output k to 1/Mpc
+                pk_interp = interp1d(k_camb_out*h, pk_camb[0], bounds_error=False, fill_value='extrapolate')
+                power_spectrum = pk_interp(k)
+            
+            output.append(power_spectrum)
+            
+            if i > 0 and i % 10 == 0 and amount > 10:
+                print(f"Generated {i}/{amount} power spectra...")
+        
+        if amount > 1:
+            print("Done generating power spectra!")
+            return output
+        return output[0]
