@@ -1391,143 +1391,147 @@ class FPTHandler:
         
         return fig
     
-    def generate_power_spectra(self, method='classy', randomize=False, amount=1, **kwargs):
+    def generate_power_spectra(self, method='classy', **kwargs):
         """
         Generate power spectra using the specified method.
-        
-        Parameters
-        ----------
-        method : str, optional
-            Method to use for generating power spectra. Options are 'classy' or 'camb'.
-            Default is 'classy'.
-        randomize : bool, optional
-            Whether to randomize parameters for each spectrum. Default is False.
-        amount : int, optional
-            Number of power spectra to generate. Default is 1.
-        **kwargs : dict
-            Additional parameters for power spectra generation.
-            
-        Returns
-        -------
-        list of numpy arrays
-            Generated power spectra
-            
-        Examples
-        --------
-        >>> handler = FPTHandler(fpt)
-        >>> spectra = handler.generate_power_spectra(method='classy', randomize=True, amount=5)
         """
-        if randomize and len(kwargs) != 0:
-            raise ValueError("You have requested to randomize parameters but have also provided your own. Please choose one.")
+        params = {
+            'omega_cdm': kwargs.get('omega_cdm', 0.12),
+            'h': kwargs.get('h', 0.67),
+            'omega_b': kwargs.get('omega_b', 0.022),
+            'z': kwargs.get('z', 0.0),
+            'n_s': kwargs.get('n_s', 0.96),
+            'As': kwargs.get('As', 2.1e-9),
+            'k_hunit': kwargs.get('k_hunit', True),
+            'nonlinear': kwargs.get('nonlinear', False)
+        }
+        
+        max_len = 1
+        for param_name, value in params.items():
+            if isinstance(value, (list, np.ndarray)):
+                max_len = max(max_len, len(value))
+        
+        param_arrays = {}
+        for param_name, value in params.items():
+            if isinstance(value, (list, np.ndarray)):
+                if len(value) < max_len:
+                    param_arrays[param_name] = np.pad(value, (0, max_len - len(value)), mode='edge')
+                else:
+                    param_arrays[param_name] = np.array(value)
+            else:
+                param_arrays[param_name] = np.full(max_len, value)
+            
         if method.lower() == 'classy':
-            return self._class_power_spectra(randomize=randomize, amount=amount, **kwargs)
+            # print(f"Omega_b: {param_arrays['omega_b']}, \n"
+            #     f"Omega_cdm: {param_arrays['omega_cdm']}, \n"
+            #     f"h: {param_arrays['h']}, \n"
+            #     f"z: {param_arrays['z']}")
+            output = []
+            for i in range(max_len):
+                output.append(self._class_power_spectra(
+                    omega_b=param_arrays['omega_b'][i],
+                    omega_cdm=param_arrays['omega_cdm'][i],
+                    h=param_arrays['h'][i],
+                    z=param_arrays['z'][i]
+                ))
+            
+            return output[0] if len(output) == 1 else output
+            
         elif method.lower() == 'camb':
-            return self._camb_power_spectra(randomize=randomize, amount=amount, **kwargs)
+            output = []
+            for i in range(max_len):
+                output.append(self._camb_power_spectra(
+                    omega_b=param_arrays['omega_b'][i],
+                    omega_cdm=param_arrays['omega_cdm'][i],
+                    h=param_arrays['h'][i],
+                    z=param_arrays['z'][i]
+                ))
+            
+            return output[0] if len(output) == 1 else output
         else:
             raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
-    
-    def _class_power_spectra(self, randomize=False, amount=1, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
+        
+
+    def _class_power_spectra(self, randomize=False, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
         try:
             from classy import Class
         except ImportError as e:
             raise ImportError("Classy is not installed. Please install it to use this function.") from e
         k = self.fastpt.k_original
         k_max = max(k)
-        output = []
-        if amount > 1: 
-            randomize = True #If multiple power spectra are requested, force randomization
-            print("You are generating multiple power spectra, randomizing parameters is enabled.")
-            print("Beginning generation...")
-        for _ in range(amount):
-            if randomize:
-                omega_cdm = np.random.uniform(0.1, 0.14)
-                h = np.random.uniform(0.65, 0.75)
-                omega_b = np.random.uniform(0.02, 0.025)
-                z = np.random.uniform(0.0, 1.0)
-            params = {
-                'output': 'mPk',
-                'P_k_max_1/Mpc': k_max * 1.1,
-                'z_max_pk': z,
-                'h': h,
-                'omega_b': omega_b,
-                'omega_cdm': omega_cdm
-            }
-            cosmo = Class()
-            cosmo.set(params)
-            cosmo.compute()
-            output.append(np.array([cosmo.pk(k, z) for k in k]))
-            cosmo.struct_cleanup()
-            cosmo.empty()
-        print("Done!")
-        if amount == 1:
-            return output[0]
+        if randomize:
+            omega_cdm = np.random.uniform(0.1, 0.14)
+            h = np.random.uniform(0.65, 0.75)
+            omega_b = np.random.uniform(0.02, 0.025)
+            z = np.random.uniform(0.0, 1.0)
+        params = {
+            'output': 'mPk',
+            'P_k_max_1/Mpc': k_max * 1.1,
+            'z_max_pk': z,
+            'h': h,
+            'omega_b': omega_b,
+            'omega_cdm': omega_cdm
+        }
+        cosmo = Class()
+        cosmo.set(params)
+        cosmo.compute()
+        output = np.array([cosmo.pk(k, z) for k in k])
+        cosmo.struct_cleanup()
+        cosmo.empty()
         return output
     
-    def _camb_power_spectra(self, randomize=False, amount=1, h=0.67, omega_cdm=0.12, omega_b=0.022, n_s=0.96, 
-                        As=2.1e-9, z=0.0, k_hunit=True, nonlinear=False):
+    def _camb_power_spectra(self, randomize=False, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0, n_s=0.96, 
+                        As=2.1e-9, k_hunit=True, nonlinear=False):
         try:
             from camb import model, get_results
         except ImportError as e:
             raise ImportError("CAMB is not installed. Please install it to use this function.") from e
         
         k = self.fastpt.k_original
-        output = []
+
+        if randomize:
+            h = np.random.uniform(0.65, 0.75)
+            omega_cdm = np.random.uniform(0.1, 0.14)
+            omega_b = np.random.uniform(0.02, 0.025)
+            n_s = np.random.uniform(0.94, 0.98)
+            As = np.random.uniform(1.8e-9, 2.4e-9)
+            z = np.random.uniform(0.0, 1.0)
         
-        if amount > 1 and randomize:
-            print("Generating multiple power spectra with randomized parameters...")
+        # Set up CAMB parameters
+        pars = model.CAMBparams()
+        pars.set_cosmology(H0=h*100, ombh2=omega_b*h**2, omch2=omega_cdm*h**2)
+        pars.InitPower.set_params(ns=n_s, As=As)
         
-        for i in range(amount):
-            if randomize:
-                h = np.random.uniform(0.65, 0.75)
-                omega_cdm = np.random.uniform(0.1, 0.14)
-                omega_b = np.random.uniform(0.02, 0.025)
-                n_s = np.random.uniform(0.94, 0.98)
-                As = np.random.uniform(1.8e-9, 2.4e-9)
-                z = np.random.uniform(0.0, 1.0)
+        # Set redshift and k ranges
+        if k_hunit:
+            # Convert k from h/Mpc to 1/Mpc for CAMB
+            k_camb = k * h
+        else:
+            k_camb = k
             
-            # Set up CAMB parameters
-            pars = model.CAMBparams()
-            pars.set_cosmology(H0=h*100, ombh2=omega_b*h**2, omch2=omega_cdm*h**2)
-            pars.InitPower.set_params(ns=n_s, As=As)
-            
-            # Set redshift and k ranges
-            if k_hunit:
-                # Convert k from h/Mpc to 1/Mpc for CAMB
-                k_camb = k * h
-            else:
-                k_camb = k
-                
-            pars.set_matter_power(redshifts=[z], kmax=np.max(k_camb))
-            
-            # Set nonlinear correction if requested
-            if nonlinear:
-                pars.NonLinear = model.NonLinear_pk
-            
-            # Calculate results
-            results = get_results(pars)
-            
-            # Get matter power spectrum
-            k_camb_out, z_out, pk_camb = results.get_matter_power_spectrum(minkh=np.min(k_camb)/h if k_hunit else np.min(k_camb), 
-                                                                    maxkh=np.max(k_camb)/h if k_hunit else np.max(k_camb), 
-                                                                    npoints=len(k))
-            
-            # Interpolate to match exactly our k array
-            from scipy.interpolate import interp1d
-            if k_hunit:
-                # CAMB returns k in h/Mpc
-                pk_interp = interp1d(k_camb_out, pk_camb[0], bounds_error=False, fill_value='extrapolate')
-                power_spectrum = pk_interp(k)
-            else:
-                # Need to convert CAMB output k to 1/Mpc
-                pk_interp = interp1d(k_camb_out*h, pk_camb[0], bounds_error=False, fill_value='extrapolate')
-                power_spectrum = pk_interp(k)
-            
-            output.append(power_spectrum)
-            
-            if i > 0 and i % 10 == 0 and amount > 10:
-                print(f"Generated {i}/{amount} power spectra...")
+        pars.set_matter_power(redshifts=[z], kmax=np.max(k_camb))
         
-        if amount > 1:
-            print("Done generating power spectra!")
-            return output
-        return output[0]
+        # Set nonlinear correction if requested
+        if nonlinear:
+            pars.NonLinear = model.NonLinear_pk
+        
+        # Calculate results
+        results = get_results(pars)
+        
+        # Get matter power spectrum
+        k_camb_out, z_out, pk_camb = results.get_matter_power_spectrum(minkh=np.min(k_camb)/h if k_hunit else np.min(k_camb), 
+                                                                maxkh=np.max(k_camb)/h if k_hunit else np.max(k_camb), 
+                                                                npoints=len(k))
+        
+        # Interpolate to match exactly our k array
+        from scipy.interpolate import interp1d
+        if k_hunit:
+            # CAMB returns k in h/Mpc
+            pk_interp = interp1d(k_camb_out, pk_camb[0], bounds_error=False, fill_value='extrapolate')
+            power_spectrum = pk_interp(k)
+        else:
+            # Need to convert CAMB output k to 1/Mpc
+            pk_interp = interp1d(k_camb_out*h, pk_camb[0], bounds_error=False, fill_value='extrapolate')
+            power_spectrum = pk_interp(k)
+        
+        return power_spectrum
