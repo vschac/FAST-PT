@@ -18,8 +18,14 @@ if __name__ == "__main__":
                                         omega_cdm=[0.10, 0.15, 0.20],
                                         h=0.6,
                                         omega_b=0.02,
-                                        z=0.9
+                                        z=0.9,
                                         )
+    pk2 = handler.generate_power_spectra(method='camb',
+                                         omega_cdm=[0.10, 0.15, 0.20],
+                                        h=0.6,
+                                        omega_b=0.02,
+                                        z=0.9)
+    
     
 
 @pytest.fixture
@@ -1174,15 +1180,122 @@ def test_load_params_in_bulk_run(fpt, temp_output_dir):
         for i in range(len(power_spectra)):
             assert (func, i) in results
 
-################# Power Spectra Generator Tests #################
-def test_generate_power_spectra(handler):
-    """Test the generation of power spectra"""
-    P = handler.generate_power_spectra()
-    assert isinstance(P, np.ndarray)
-    assert len(P) == 3000
-    spectra = handler.generate_power_spectra(amount=3)
-    assert isinstance(spectra, list)
-    assert len(spectra) == 3
-    assert not np.array_equal(spectra[0], spectra[1]) and not np.array_equal(spectra[1], spectra[2]) and not np.array_equal(spectra[0], spectra[2])
-    Ps = handler.generate_power_spectra(amount=3, randomize=False)
-    assert not np.array_equal(P, Ps[0]) and not np.array_equal(P, Ps[1]) and not np.array_equal(P, Ps[2])
+################# POWER SPECTRA GENERATOR TESTS #################
+def test_generate_power_spectra_basic(handler):
+    """Test basic functionality of generate_power_spectra"""
+    # Test default parameters return a single power spectrum
+    power_spectrum = handler.generate_power_spectra()
+    assert isinstance(power_spectrum, np.ndarray)
+    assert power_spectrum.shape == handler.fastpt.k_original.shape
+    assert np.all(power_spectrum > 0)  # Power spectrum should be positive
+
+def test_generate_power_spectra_methods(handler):
+    """Test both available cosmology methods"""
+    # Test classy method
+    classy_ps = handler.generate_power_spectra(method='classy')
+    assert isinstance(classy_ps, np.ndarray)
+    
+    # Test camb method (skip if not installed)
+    try:
+        from camb import model
+        camb_ps = handler.generate_power_spectra(method='camb')
+        assert isinstance(camb_ps, np.ndarray)
+        # Results should be similar but not identical
+        assert not np.array_equal(classy_ps, camb_ps)
+        assert np.allclose(classy_ps, camb_ps, rtol=0.1), f"Max fractional difference: {max((classy_ps-camb_ps)/classy_ps)}"  # Should be within 10%
+    except ImportError:
+        pytest.skip("CAMB not installed, skipping CAMB test")
+
+def test_generate_power_spectra_parameter_arrays(handler):
+    """Test passing arrays of parameters to generate multiple spectra"""
+    # Test with array parameters
+    omega_cdm_values = np.array([0.10, 0.12, 0.14])
+    power_spectra = handler.generate_power_spectra(omega_cdm=omega_cdm_values)
+    
+    # Should return list of spectra with same length as parameter array
+    assert isinstance(power_spectra, list)
+    assert len(power_spectra) == len(omega_cdm_values)
+    
+    # Spectra should be different from each other
+    assert not np.array_equal(power_spectra[0], power_spectra[1])
+    assert not np.array_equal(power_spectra[1], power_spectra[2])
+    
+    # Test with multiple parameter arrays of same length
+    h_values = np.array([0.65, 0.67, 0.70])
+    multi_param_spectra = handler.generate_power_spectra(
+        omega_cdm=omega_cdm_values,
+        h=h_values
+    )
+    assert len(multi_param_spectra) == len(omega_cdm_values)
+
+def test_generate_power_spectra_uneven_arrays(handler):
+    """Test parameter arrays of different lengths"""
+    # Test with parameter arrays of different lengths
+    omega_cdm_values = np.array([0.10, 0.12, 0.14])
+    h_values = np.array([0.65, 0.70])  # Shorter array
+    
+    # Should pad shorter array to match longest
+    spectra = handler.generate_power_spectra(
+        omega_cdm=omega_cdm_values,
+        h=h_values
+    )
+    
+    assert len(spectra) == len(omega_cdm_values)
+    
+    # First two spectra should use the provided h values
+    # Third spectrum should use the last h value (edge padding)
+    direct_spec1 = handler._class_power_spectra(
+        omega_cdm=omega_cdm_values[0], h=h_values[0])
+    direct_spec3 = handler._class_power_spectra(
+        omega_cdm=omega_cdm_values[2], h=h_values[1])
+    
+    assert np.allclose(spectra[0], direct_spec1)
+    assert np.allclose(spectra[2], direct_spec3)
+
+def test_generate_power_spectra_invalid_method(handler):
+    """Test error handling for invalid method"""
+    with pytest.raises(ValueError, match="Invalid method. Choose either 'classy' or 'camb'"):
+        handler.generate_power_spectra(method='invalid_method')
+
+def test_generate_power_spectra_nonlinear_camb(handler):
+    """Test nonlinear power spectrum generation with CAMB"""
+    try:
+        from camb import model
+        # Generate linear and nonlinear spectra
+        linear_ps = handler.generate_power_spectra(method='camb', nonlinear=False)
+        nonlinear_ps = handler.generate_power_spectra(method='camb', nonlinear=True)
+        
+        # Nonlinear should be different from linear
+        assert not np.array_equal(linear_ps, nonlinear_ps)
+        
+        # Nonlinear power should be higher at small scales (high k)
+        k = handler.fastpt.k_original
+        high_k_mask = k > 0.1
+        assert np.mean(nonlinear_ps[high_k_mask]/linear_ps[high_k_mask]) > 1.0
+    except ImportError:
+        pytest.skip("CAMB not installed, skipping nonlinear test")
+
+def test_generate_power_spectra_k_units(handler):
+    """Test handling of k units in power spectrum generation"""
+    try:
+        from camb import model
+        # Generate spectra with different unit conventions
+        h_units = handler.generate_power_spectra(method='camb', k_hunit=True)
+        mpc_units = handler.generate_power_spectra(method='camb', k_hunit=False)
+        
+        # Results should be similar but not identical due to unit handling
+        assert not np.array_equal(h_units, mpc_units)
+    except ImportError:
+        pytest.skip("CAMB not installed, skipping k units test")
+
+def test_generate_power_spectra_with_redshift(handler):
+    """Test generating power spectra at different redshifts"""
+    # Generate spectra at different redshifts
+    z_values = np.array([0.0, 0.5, 1.0, 2.0])
+    spectra = handler.generate_power_spectra(z=z_values)
+    
+    assert len(spectra) == len(z_values)
+    
+    # Power should decrease with increasing redshift
+    for i in range(1, len(spectra)):
+        assert np.mean(spectra[i]) < np.mean(spectra[i-1])
