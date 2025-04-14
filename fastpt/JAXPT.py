@@ -1,4 +1,5 @@
 from fastpt.jax_utils import p_window, c_window, jax_k_extend
+
 import jax.numpy as jnp
 from jax import grad
 from jax import jit
@@ -10,7 +11,8 @@ import jax
 from fastpt import FASTPT as FPT
 config.update("jax_enable_x64", True)
 import functools
-from fastpt.jax_utils import P_13_reg, Y1_reg_NL, Y2_reg_NL, P_IA_B, P_IA_deltaE2, P_IA_13F, P_IA_13G
+from fastpt.jax_utils import P_13_reg, Y1_reg_NL, Y2_reg_NL, P_IA_B, P_IA_deltaE2, P_IA_13F, P_IA_13G, \
+    P_13_prep, prep_P_IA_deltaE2
 
 
 def process_x_term(X):
@@ -297,6 +299,14 @@ class JAXPT:
         self.X_kP3 = process_x_term(self.temp_fpt.X_kP3)
         self.X_RSDA = process_x_term(self.temp_fpt.X_RSDA)
         self.X_RSDB = process_x_term(self.temp_fpt.X_RSDB)
+
+        #Precompute the f array needed in fftconvolve for the terms that do not require gamma functions
+        #This is a workaround to avoid the floating point precision discrepencies in JAX versions of 
+        #numpy and scipy, while maintaining differentiability
+
+        #Optimize storage methodology for this
+        self.f, self.dL, self.Nk = prep_P_IA_deltaE2(self.k_extrap)
+
 
     # @jax_cached_property
     # def X_spt(self):
@@ -634,7 +644,7 @@ class JAXPT:
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, self.m, self.N, self.n_pad, self.id_pad, 
                                  self.k_extrap, self.k_final, self.k_size, self.l,
                                  C_window=C_window, low_extrap=self.low_extrap, high_extrap=self.high_extrap, EK=self.EK)
-        P13 = P_13_reg(self.k_extrap, Ps)
+        P13 = P_13_reg(self.k_extrap, Ps, self.f, self.dL, self.N)
         return P13
     
     def _get_Pb1L(self, P, C_window=None):
@@ -668,7 +678,7 @@ class JAXPT:
         return P_Btype2
     
     def _get_P_deltaE2(self, P, C_window=None):
-        P_deltaE2 = P_IA_deltaE2(self.k_original, P)
+        P_deltaE2 = P_IA_deltaE2(self.k_original, P, self.f, self.dL, self.Nk)
         #Add extrap?
         P_deltaE2 = 2 * P_deltaE2
         return P_deltaE2

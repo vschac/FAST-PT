@@ -1,55 +1,34 @@
 from jax import numpy as jnp
 from jax.numpy import pi, sin, log10, log, exp
-from jax.scipy.signal import fftconvolve
+#from jax.scipy.signal import fftconvolve
+from scipy.signal import fftconvolve
+import numpy as np
 from jax import config
 config.update("jax_enable_x64", True)
 
-def P_13_reg(k, P):
-    from numpy import log, absolute
-    N = k.size
-    n = jnp.arange(-N+1, N)
-    dL = log(k[1]) - log(k[0])
-    s = n * dL
 
-    cut = 7
-    high_mask = s > cut
-    low_mask = s < -cut
-    mid_high_mask = (s <= cut) & (s > 0)
-    mid_low_mask = (s >= -cut) & (s < 0)
-    zero_mask = (s == 0)
-    # print(f"Mask counts: high={jnp.sum(high_mask)}, low={jnp.sum(low_mask)}, "
-    #         f"mid_high={jnp.sum(mid_high_mask)}, mid_low={jnp.sum(mid_low_mask)}, "
-    #         f"zero={jnp.sum(zero_mask)}")
-
-    # Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
-    # + 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/jnp.absolute(r-1.)) ) *r
-    Z=lambda r : (12./r**2 + 10. + 100.*r**2-42.*r**4 \
-                  +3./r**3 * (r**2-1.)**3 * (7*r**2+2.))
+def P_13_prep(k):
+    parts = make_s_arrays(k)
+    Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
+                + 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/np.absolute(r-1.)) ) *r
     Z_low=lambda r : (352./5.+96./5./r**2 -160./21./r**4 - 1376./1155./r**6 -1952./5005./r**8) *r
     Z_high=lambda r: (928./5.*r**2 - 4512./35.*r**4 +416./21.*r**6 +2656./1155.*r**8) *r
 
-    f = jnp.zeros_like(s)
-    f_low_vals = Z_low(exp(-s[low_mask]))
-    f_mid_low_vals = Z(exp(-s[mid_low_mask]))
-    f_mid_high_vals = Z(exp(-s[mid_high_mask]))
-    f_high_vals = Z_high(exp(-s[high_mask]))
-    #safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)  # Avoid division by zero
+    f_mid_low=Z(np.exp(-parts['mid_low_s']))
+    f_mid_high=Z(np.exp(-parts['mid_high_s']))
+    f_high = Z_high(np.exp(-parts['high_s']))
+    f_low = Z_low(np.exp(-parts['low_s']))
 
-    # Fill each region using masks
-    f = jnp.where(low_mask, Z_low(exp(-s)), f)
-    f = jnp.where(mid_low_mask, Z(exp(-s)), f)
-    f = jnp.where(zero_mask, 80.0, f)
-    f = jnp.where(mid_high_mask, Z(exp(-s)), f)
-    f = jnp.where(high_mask, Z_high(exp(-s)), f)
+    f=np.hstack((f_low,f_mid_low,80,f_mid_high,f_high))
+    return f, parts['dL'], parts['N']
 
+def P_13_reg(k, P, f, dL, N):
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
     P_bar = 1./252. * k**3/(2*pi)**2 * P * g_k
-
     return P_bar
 
 def Y1_reg_NL(k, P):
-    #Not an exact implementation, differs by about 0.004 from original (at most)
 
     N = k.size
     n = jnp.arange(-N+1, N)
@@ -67,15 +46,14 @@ def Y1_reg_NL(k, P):
         + 3./r**3 * (r**2-1.)**4 * log((r+1.)/jnp.absolute(r-1.))) * r
     Z_low = lambda r: (1./126.)*(256./5. - 768./35./r**2 + 256./105./r**4 + 256./1155./r**6 + 256./5005./r**8) * r
     Z_high = lambda r: (1./126.)*(256./5.*r**2 - 768./35.*r**4 + 256./105.*r**6 + 256./1155.*r**8) * r
-
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
     f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
-    f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
+    neg_exp = jnp.exp(-s)
+    f = jnp.where(low_mask, Z_low(neg_exp), f)
+    f = jnp.where(mid_low_mask, Z(neg_exp), f)
     f = jnp.where(zero_mask, 32./126., f)  # Value at s=0
-    f = jnp.where(mid_high_mask, Z(safe_exp_neg_s), f)
-    f = jnp.where(high_mask, Z_high(safe_exp_neg_s), f)
+    f = jnp.where(mid_high_mask, Z(neg_exp), f)
+    f = jnp.where(high_mask, Z_high(neg_exp), f)
 
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
@@ -84,7 +62,6 @@ def Y1_reg_NL(k, P):
     return P_bar
 
 def Y2_reg_NL(k, P):
-    #Not an exact implementation, differs by about 0.004 from original (at most)
 
     N = k.size
     n = jnp.arange(-N+1, N)
@@ -102,15 +79,14 @@ def Y2_reg_NL(k, P):
         + 3./r**3 * (r**2-1.)**4 * log((r+1.)/jnp.absolute(r-1.))) * r
     Z_low = lambda r: (1./126.)*(256./5. - 768./35./r**2 + 256./105./r**4 + 256./1155./r**6 + 256./5005./r**8) * r
     Z_high = lambda r: (1./126.)*(256./5.*r**2 - 768./35.*r**4 + 256./105.*r**6 + 256./1155.*r**8) * r
-
-    #safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
     
     f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z_low(exp(-s)), f)
-    f = jnp.where(mid_low_mask, Z(exp(-s)), f)
+    neg_exp = jnp.exp(-s)
+    f = jnp.where(low_mask, Z_low(neg_exp), f)
+    f = jnp.where(mid_low_mask, Z(neg_exp), f)
     f = jnp.where(zero_mask, 32./126., f)  # Value at s=0
-    f = jnp.where(mid_high_mask, Z(exp(-s)), f)
-    f = jnp.where(high_mask, Z_high(exp(-s)), f)
+    f = jnp.where(mid_high_mask, Z(neg_exp), f)
+    f = jnp.where(high_mask, Z_high(neg_exp), f)
     
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
@@ -119,7 +95,6 @@ def Y2_reg_NL(k, P):
     return P_bar
 
 def P_IA_B(k, P):
-    #Max difference 0.001
     
     N = k.size
     n = jnp.arange(-N+1, N)
@@ -137,15 +112,14 @@ def P_IA_B(k, P):
                     225.* (r**2 - 1.)**4 * (r**2 + 1.) * log(jnp.absolute(r-1)/(r+1)) )/(20160.* r**3) - 29./315*r**2 )/2.
     Z1_high = lambda r: ((-16*r**4)/147. + (32*r**6)/441. - (16*r**8)/1617. - (64*r**10)/63063. - 16*r**12/63063. - (32*r**14)/357357. - (16*r**16)/415701. )/2.
     Z1_low = lambda r: (-16./147 - 16/(415701.*r**12) - 32/(357357.*r**10) - 16/(63063.*r**8) - 64/(63063.*r**6) - 16/(1617.*r**4) + 32/(441.*r**2) )/2.
-    
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
-    
+        
     f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z1_low(safe_exp_neg_s) * safe_exp_neg_s, f)
-    f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
+    neg_exp = jnp.exp(-s)
+    f = jnp.where(low_mask, Z1_low(neg_exp) * neg_exp, f)
+    f = jnp.where(mid_low_mask, Z1(neg_exp) * neg_exp, f)
     f = jnp.where(zero_mask, -1./42., f)  # Value at s=0
-    f = jnp.where(mid_high_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
-    f = jnp.where(high_mask, Z1_high(safe_exp_neg_s) * safe_exp_neg_s, f)
+    f = jnp.where(mid_high_mask, Z1(neg_exp) * neg_exp, f)
+    f = jnp.where(high_mask, Z1_high(neg_exp) * neg_exp, f)
     
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
@@ -153,42 +127,50 @@ def P_IA_B(k, P):
     
     return IA_B
 
-def P_IA_deltaE2(k, P):
-    #max diff 0.005
-    
-    N = k.size
-    n = jnp.arange(-N+1, N)
-    dL = log(k[1]) - log(k[0])
-    s = n * dL
-    
-    cut = 3
-    high_mask = s > cut
-    low_mask = s < -cut
-    mid_high_mask = (s <= cut) & (s > 0)
-    mid_low_mask = (s >= -cut) & (s < 0)
-    zero_mask = (s == 0)
-    
-    Z1 = lambda r: 30. + 146*r**2 - 110*r**4 + 30*r**6 + log(jnp.absolute(r-1.)/(r+1.))*(15./r - 60.*r + 90*r**3 - 60*r**5 + 15*r**7)
-    Z1_high = lambda r: 256*r**2 - 256*r**4 + (768*r**6)/7. - (256*r**8)/21. - (256*r**10)/231. - (256*r**12)/1001. - (256*r**14)/3003.
-    Z1_low = lambda r: 768./7 - 256/(7293.*r**10) - 256/(3003.*r**8) - 256/(1001.*r**6) - 256/(231.*r**4) - 256/(21.*r**2)
-    
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
-    
-    f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z1_low(safe_exp_neg_s) * safe_exp_neg_s, f)
-    f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
-    f = jnp.where(zero_mask, 96., f)  # Value at s=0 is 96
-    f = jnp.where(mid_high_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
-    f = jnp.where(high_mask, Z1_high(safe_exp_neg_s) * safe_exp_neg_s, f)
-    
+def prep_P_IA_deltaE2(k):
+    # parts = make_s_arrays(k)
+    # Z1=lambda r : 30. + 146*r**2 - 110*r**4 + 30*r**6 + log(np.absolute(r-1.)/(r+1.))*(15./r - 60.*r + 90*r**3 - 60*r**5 + 15*r**7)
+    # Z1_high=lambda r : 256*r**2 - 256*r**4 + (768*r**6)/7. - (256*r**8)/21. - (256*r**10)/231. - (256*r**12)/1001. - (256*r**14)/3003.
+    # Z1_low=lambda r: 768./7 - 256/(7293.*r**10) - 256/(3003.*r**8) - 256/(1001.*r**6) - 256/(231.*r**4) - 256/(21.*r**2)
+
+    # f_mid_low=Z1(exp(-parts['mid_low_s']))*exp(-parts['mid_low_s'])
+    # f_mid_high=Z1(exp(-parts['mid_high_s']))*exp(-parts['mid_high_s'])
+    # f_high = Z1_high(exp(-parts['high_s']))*exp(-parts['high_s'])
+    # f_low = Z1_low(exp(-parts['low_s']))*exp(-parts['low_s'])
+
+    # f=np.hstack((f_low,f_mid_low,96.,f_mid_high,f_high))
+
+    N=k.size
+    n= np.arange(-N+1,N )
+    dL=log(k[1])-log(k[0])
+    s=n*dL
+    cut=3
+    high_s=s[s > cut]
+    low_s=s[s < -cut]
+    mid_high_s=s[ (s <= cut) &  (s > 0)]
+    mid_low_s=s[ (s >= -cut) &  (s < 0)]
+
+    # For Zbar
+    Z1=lambda r : 30. + 146*r**2 - 110*r**4 + 30*r**6 + log(np.absolute(r-1.)/(r+1.))*(15./r - 60.*r + 90*r**3 - 60*r**5 + 15*r**7)
+    Z1_high=lambda r : 256*r**2 - 256*r**4 + (768*r**6)/7. - (256*r**8)/21. - (256*r**10)/231. - (256*r**12)/1001. - (256*r**14)/3003.
+    Z1_low=lambda r: 768./7 - 256/(7293.*r**10) - 256/(3003.*r**8) - 256/(1001.*r**6) - 256/(231.*r**4) - 256/(21.*r**2)
+
+    f_mid_low=Z1(exp(-mid_low_s))*exp(-mid_low_s)
+    f_mid_high=Z1(exp(-mid_high_s))*exp(-mid_high_s)
+    f_high = Z1_high(exp(-high_s))*exp(-high_s)
+    f_low = Z1_low(exp(-low_s))*exp(-low_s)
+
+    f=np.hstack((f_low,f_mid_low,96.,f_mid_high,f_high))
+
+    return f, dL, N
+
+def P_IA_deltaE2(k, P, f, dL, N):
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
     deltaE2 = k**3/(896.*pi**2) * P * g_k
-    
     return deltaE2
 
 def P_IA_13G(k, P):
-    # calculates the IA 13G term with JAX differentiable operations
     
     N = k.size
     n = jnp.arange(-N+1, N)
@@ -205,15 +187,14 @@ def P_IA_13G(k, P):
     Z1 = lambda r: (12/r**2 - 26 + 4*r**2 - 6*r**4 + (3/r**3)*(r**2-1)**3*(r**2+2)*log((r+1.)/jnp.absolute(r-1))) * r
     Z1_low = lambda r: (-224/5 + 1248/(35*r**2) - 608/(105*r**4) - 26/(21*r**6) - 4/(35*r**8) + 34/(21*r**10) - 4/(3*r**12)) * r
     Z1_high = lambda r: ((-32*r**2)/5 - (96*r**4)/7 + (352*r**6)/105 + (164*r**8)/105 - (58*r**10)/35 + (4*r**12)/21 + (2*r**14)/3) * r
-    
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
-    
+        
     f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z1_low(safe_exp_neg_s), f)
-    f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s), f)
+    neg_exp = jnp.exp(-s)
+    f = jnp.where(low_mask, Z1_low(neg_exp), f)
+    f = jnp.where(mid_low_mask, Z1(neg_exp), f)
     f = jnp.where(zero_mask, -16.0, f)  # Value at s=0
-    f = jnp.where(mid_high_mask, Z1(safe_exp_neg_s), f)
-    f = jnp.where(high_mask, Z1_high(safe_exp_neg_s), f)
+    f = jnp.where(mid_high_mask, Z1(neg_exp), f)
+    f = jnp.where(high_mask, Z1_high(neg_exp), f)
     
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
@@ -222,7 +203,6 @@ def P_IA_13G(k, P):
     return deltaE2
 
 def P_IA_13F(k, P):
-    # calculates the IA 13F term with JAX differentiable operations
     
     N = k.size
     n = jnp.arange(-N+1, N)
@@ -240,15 +220,14 @@ def P_IA_13F(k, P):
         + 3./r**3 * (r**2-1.)**3 * (7*r**2+2.) * log((r+1.)/jnp.absolute(r-1.))) * r
     Z_low = lambda r: (352./5. + 96./0.5/r**2 - 160./21./r**4 - 526./105./r**6 + 236./35./r**8 - 50./21./r**10 - 4./3./r**12) * r
     Z_high = lambda r: (928./5.*r**2 - 4512./35.*r**4 + 416./21.*r**6 + 356./105.*r**8 + 74./35.*r**10 - 20./3.*r**12 + 14./3.*r**14) * r
-    
-    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
-    
+        
     f = jnp.zeros_like(s)
-    f = jnp.where(low_mask, Z_low(safe_exp_neg_s), f)
-    f = jnp.where(mid_low_mask, Z(safe_exp_neg_s), f)
+    neg_exp = jnp.exp(-s)
+    f = jnp.where(low_mask, Z_low(neg_exp), f)
+    f = jnp.where(mid_low_mask, Z(neg_exp), f)
     f = jnp.where(zero_mask, 80.0, f)  # Value at s=0
-    f = jnp.where(mid_high_mask, Z(safe_exp_neg_s), f)
-    f = jnp.where(high_mask, Z_high(safe_exp_neg_s), f)
+    f = jnp.where(mid_high_mask, Z(neg_exp), f)
+    f = jnp.where(high_mask, Z_high(neg_exp), f)
     
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]

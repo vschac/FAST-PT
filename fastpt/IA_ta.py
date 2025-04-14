@@ -31,7 +31,7 @@ def P_IA_deltaE2(k,P):
 
 	f=np.hstack((f_low,f_mid_low,96.,f_mid_high,f_high))
 	# print(f)
-
+	return f
 	g= convolve(P, f) * dL
 	g_k=g[N-1:2*N-1]
 	deltaE2= k**3/(896.*pi**2) * P*g_k

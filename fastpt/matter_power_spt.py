@@ -57,13 +57,9 @@ def P_13_reg(k,P):
 	low_s=s[s < -cut]
 	mid_high_s=s[ (s <= cut) &  (s > 0)]
 	mid_low_s=s[ (s >= -cut) &  (s < 0)]
-	# print(f"Mask counts: high={len(high_s)}, low={len(low_s)}, "
-	# 	f"mid_high={len(mid_high_s)}, mid_low={len(mid_low_s)}, ")
 	
-	# Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
-	# 			+ 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/np.absolute(r-1.)) ) *r
-	Z=lambda r : (12./r**2 + 10. + 100.*r**2-42.*r**4 \
-			   + 3./r**3 * (r**2-1.)**3 * (7*r**2+2.))
+	Z=lambda r : (12./r**2 +10. + 100.*r**2-42.*r**4 \
+				+ 3./r**3*(r**2-1.)**3*(7*r**2+2.)*log((r+1.)/np.absolute(r-1.)) ) *r
 	Z_low=lambda r : (352./5.+96./5./r**2 -160./21./r**4 - 1376./1155./r**6 -1952./5005./r**8) *r
 	Z_high=lambda r: (928./5.*r**2 - 4512./35.*r**4 +416./21.*r**6 +2656./1155.*r**8) *r
 
@@ -73,8 +69,9 @@ def P_13_reg(k,P):
 	f_low = Z_low(exp(-low_s))
 
 	f=np.hstack((f_low,f_mid_low,80,f_mid_high,f_high))
-
+	return f
 	g= fftconvolve(P, f) * dL
+	return g
 	g_k=g[N-1:2*N-1]
 	P_bar= 1./252.* k**3/(2*pi)**2*P*g_k
 

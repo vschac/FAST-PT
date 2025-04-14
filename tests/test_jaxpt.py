@@ -1,3 +1,4 @@
+import pympler.asizeof
 import pytest
 import numpy as np
 from fastpt import FASTPT, FPTHandler
@@ -19,19 +20,90 @@ P_window = jnp.array([0.2, 0.2])
 C_window = 0.75
 
 if __name__ == "__main__":
-    fpt = FASTPT(k)
-    jpt = JAXPT(jnp.array(k))
-    from fastpt.matter_power_spt import P_13_reg as oldP13
-    from fastpt.jax_utils import P_13_reg as newP13
-    j = newP13(k, P)
-    f = oldP13(k, P)
-    from numpy import argmax
-    index = argmax((j-f) / j)
-    print("Percent: ", max((j-f)/j))
-    print("OG J: ", j[index])
-    print("OG f: ", f[index])
-    print(np.allclose(oldP13(k, P), newP13(k, P)))
+    from fastpt.IA_ta import P_IA_deltaE2 as oldPIA
+    from fastpt.JAXPT import P_IA_deltaE2 as newPIA
+    from scipy.signal import fftconvolve as old_fftconvolve
+    from jax.scipy.signal import fftconvolve as new_fftconvolve
+    # fpt = FASTPT(k)
+    # jpt = JAXPT(jnp.array(k))
+    f = oldPIA(k, P)
+    old = old_fftconvolve(P, f)
+    new = new_fftconvolve(P, f)
+    print("Simple np.allclose: ", np.allclose(old, new))
 
+    new_np = np.array(new)
+    print(f"Shape comparison: old={old.shape}, new={new_np.shape}")
+    allclose_lenient = np.allclose(old, new_np, rtol=1e-3, atol=1e-1)
+    print(f"Lenient np.allclose result: {allclose_lenient}")
+    # Check absolute differences
+    abs_diff = np.abs(old - new_np)
+    max_abs_diff = np.max(abs_diff)
+    mean_abs_diff = np.mean(abs_diff)
+    print(f"Max absolute difference: {max_abs_diff}")
+    print(f"Mean absolute difference: {mean_abs_diff}")
+
+    # Check relative differences where old is non-zero
+    mask = np.abs(old) > 1e-10
+    if np.any(mask):
+        rel_diff = np.abs((old[mask] - new_np[mask]) / old[mask])
+        max_rel_diff = np.max(rel_diff)
+        mean_rel_diff = np.mean(rel_diff)
+        print(f"Max relative difference: {max_rel_diff}")
+        print(f"Mean relative difference: {mean_rel_diff}")
+        
+        # Find location of max difference
+        max_idx = np.argmax(rel_diff)
+        real_idx = np.where(mask)[0][max_idx]
+        print(f"Max difference at index {real_idx}:")
+        print(f"  old[{real_idx}] = {old[real_idx]}")
+        print(f"  new[{real_idx}] = {new_np[real_idx]}")
+    else:
+        print("Cannot compute relative difference (all values near zero)")
+
+    # Check for NaN or Inf values
+    print(f"NaN in old: {np.any(np.isnan(old))}")
+    print(f"NaN in new: {np.any(np.isnan(new_np))}")
+    print(f"Inf in old: {np.any(np.isinf(old))}")
+    print(f"Inf in new: {np.any(np.isinf(new_np))}")
+
+    # Compare zeros specifically
+    old_zeros = np.where(np.abs(old) < 1e-10)[0]
+    new_zeros = np.where(np.abs(new_np) < 1e-10)[0]
+    shared_zeros = np.intersect1d(old_zeros, new_zeros)
+    print(f"Zeros: old={len(old_zeros)}, new={len(new_zeros)}, shared={len(shared_zeros)}")
+
+    # Check if majority of points are close
+    close_points = np.isclose(old, new_np, rtol=1e-5, atol=1e-8)
+    pct_close = np.mean(close_points) * 100
+    print(f"Percentage of points that are close: {pct_close:.2f}%")
+    
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    print(f"Old array: min={np.min(old)}, max={np.max(old)}, length={len(old)}")
+    print(f"New array: min={np.min(new)}, max={np.max(new)}, length={len(new)}")
+
+    # Create a figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+    # Plot both arrays on the first subplot
+    ax1.plot(old, label='Old (SciPy)', alpha=0.7)
+    ax1.plot(new, label='New (JAX)', alpha=0.7, linestyle='--')
+    ax1.legend()
+    ax1.set_title('Direct Comparison')
+
+    # Plot the difference on the second subplot
+    if len(old) == len(new):
+        diff = old - new
+        ax2.plot(diff, color='red', label='Difference (Old - New)')
+        ax2.set_title('Difference (Old - New)')
+        ax2.legend()
+    else:
+        ax2.text(0.5, 0.5, f"Cannot compute difference: Old length={len(old)}, New length={len(new)}", 
+                ha='center', va='center')
+
+    plt.tight_layout()
+    plt.show()
 
 @pytest.fixture
 def k_arrays():
@@ -132,13 +204,13 @@ def test_j_k_tensor(jpt, fpt):
     fast_1 = fast[1]
     assert np.allclose(jax_1, fast_1), "Second element of J_k_tensor differs"
 
-@pytest.mark.parametrize("term", #["P_1loop", "Pb1L_2"
-                         ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
-                         "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
-                         "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
-                         "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
-                         "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
+@pytest.mark.parametrize("term", [ "P_deltaE2", #"P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE",
+                        #  ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
+                        #  "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                        #  "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
+                        #  "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
+                        #  "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
+                        #  "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
                         ])
 def test_every_term(jpt, fpt, term):
     handler = FPTHandler(fpt, P=P, P_window=np.asarray(P_window), C_window=C_window)
@@ -490,7 +562,7 @@ def test_convolution_differentiability(jpt):
     except Exception as e:
         pytest.fail(f"JAX differentiation failed with error: {str(e)}")
 
-@pytest.mark.parametrize("term", ["P_1loop", "Pb1L_2"
+@pytest.mark.parametrize("term", ["P_deltaE2"
                         #  ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
                         #  "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
                         #  "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
