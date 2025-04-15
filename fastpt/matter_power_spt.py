@@ -69,9 +69,7 @@ def P_13_reg(k,P):
 	f_low = Z_low(exp(-low_s))
 
 	f=np.hstack((f_low,f_mid_low,80,f_mid_high,f_high))
-	return f
 	g= fftconvolve(P, f) * dL
-	return g
 	g_k=g[N-1:2*N-1]
 	P_bar= 1./252.* k**3/(2*pi)**2*P*g_k
 

@@ -744,18 +744,23 @@ class FASTPT:
         Ps : Smoothed input power spectrum
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
+        Ps = self._get_Ps(P, P_window=P_window, C_window=C_window)
+        P_1loop = self._get_P_1loop(P, P_window=P_window, C_window=C_window)
+        return P_1loop, Ps #This return is going to be different than the original bc the original return is 
+                        # different depending on the todo list which is going to be deprecated.
+    
+    def _get_Ps(self, P, P_window=None, C_window=None):
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Ps = self._apply_extrapolation(Ps)
-        hash_key, P_hash = self._create_hash_key("one_loop_dd", self.X_spt, P, P_window, C_window)
-        result = self.cache.get("one_loop_dd", hash_key)
-        if result is not None: return result, Ps
+        return Ps
+    
+    def _get_P_1loop(self, P, P_window=None, C_window=None):
+        #Not cached because both of these below are 
         P22 = self._get_P22(P, P_window=P_window, C_window=C_window)
         P13 = self._get_P13(P, P_window=P_window, C_window=C_window)
         P_1loop = P22 + P13
         P_1loop = self._apply_extrapolation(P_1loop)
-        self.cache.set(P_1loop, "one_loop_dd", hash_key, P_hash)
-        return P_1loop, Ps #This return is going to be different than the original bc the original return is 
-                        # different depending on the todo list which is going to be deprecated.
+        return P_1loop
     
     def _get_P22(self, P, P_window=None, C_window=None):
         hash_key, P_hash = self._create_hash_key("P22", self.X_spt, P, P_window, C_window)
@@ -1598,9 +1603,7 @@ class FASTPT:
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
         result = self.cache.get("J_k_scalar", hash_key)
-        if result is not None: 
-            print(f"Using cached result for J_k_scalar with X {self.X_registry[id(X)]}")
-            return result
+        if result is not None: return result
         from numpy.fft import ifft, irfft
 
         pf, p, g_m, g_n, two_part_l, h_l = X
