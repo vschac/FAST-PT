@@ -678,7 +678,9 @@ class JAXPT:
         return P_Btype2
     
     def _get_P_deltaE2(self, P, C_window=None):
-        P_deltaE2 = P_IA_deltaE2(self.k_original, P, self.f, self.dL, self.Nk)
+        from fastpt.jax_utils import diffP_IA_deltaE2
+        P_deltaE2 = diffP_IA_deltaE2(self.k_original, P)
+        #P_deltaE2 = P_IA_deltaE2(self.k_original, P, self.f, self.dL, self.Nk)
         #Add extrap?
         P_deltaE2 = 2 * P_deltaE2
         return P_deltaE2

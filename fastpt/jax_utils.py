@@ -1,7 +1,7 @@
 from jax import numpy as jnp
 from jax.numpy import pi, sin, log10, log, exp
-#from jax.scipy.signal import fftconvolve
-from scipy.signal import fftconvolve
+from jax.scipy.signal import fftconvolve
+#from scipy.signal import fftconvolve
 import numpy as np
 from jax import config
 config.update("jax_enable_x64", True)
@@ -128,17 +128,6 @@ def P_IA_B(k, P):
     return IA_B
 
 def prep_P_IA_deltaE2(k):
-    # parts = make_s_arrays(k)
-    # Z1=lambda r : 30. + 146*r**2 - 110*r**4 + 30*r**6 + log(np.absolute(r-1.)/(r+1.))*(15./r - 60.*r + 90*r**3 - 60*r**5 + 15*r**7)
-    # Z1_high=lambda r : 256*r**2 - 256*r**4 + (768*r**6)/7. - (256*r**8)/21. - (256*r**10)/231. - (256*r**12)/1001. - (256*r**14)/3003.
-    # Z1_low=lambda r: 768./7 - 256/(7293.*r**10) - 256/(3003.*r**8) - 256/(1001.*r**6) - 256/(231.*r**4) - 256/(21.*r**2)
-
-    # f_mid_low=Z1(exp(-parts['mid_low_s']))*exp(-parts['mid_low_s'])
-    # f_mid_high=Z1(exp(-parts['mid_high_s']))*exp(-parts['mid_high_s'])
-    # f_high = Z1_high(exp(-parts['high_s']))*exp(-parts['high_s'])
-    # f_low = Z1_low(exp(-parts['low_s']))*exp(-parts['low_s'])
-
-    # f=np.hstack((f_low,f_mid_low,96.,f_mid_high,f_high))
 
     N=k.size
     n= np.arange(-N+1,N )
@@ -168,6 +157,40 @@ def P_IA_deltaE2(k, P, f, dL, N):
     g = fftconvolve(P, f) * dL
     g_k = g[N-1:2*N-1]
     deltaE2 = k**3/(896.*pi**2) * P * g_k
+    return deltaE2
+
+def diffP_IA_deltaE2(k, P):
+    #max diff 0.005
+    
+    N = k.size
+    n = jnp.arange(-N+1, N)
+    dL = log(k[1]) - log(k[0])
+    s = n * dL
+    
+    cut = 3
+    high_mask = s > cut
+    low_mask = s < -cut
+    mid_high_mask = (s <= cut) & (s > 0)
+    mid_low_mask = (s >= -cut) & (s < 0)
+    zero_mask = (s == 0)
+    
+    Z1 = lambda r: 30. + 146*r**2 - 110*r**4 + 30*r**6 + log(jnp.absolute(r-1.)/(r+1.))*(15./r - 60.*r + 90*r**3 - 60*r**5 + 15*r**7)
+    Z1_high = lambda r: 256*r**2 - 256*r**4 + (768*r**6)/7. - (256*r**8)/21. - (256*r**10)/231. - (256*r**12)/1001. - (256*r**14)/3003.
+    Z1_low = lambda r: 768./7 - 256/(7293.*r**10) - 256/(3003.*r**8) - 256/(1001.*r**6) - 256/(231.*r**4) - 256/(21.*r**2)
+    
+    safe_exp_neg_s = jnp.where(jnp.abs(s) > 1e-10, exp(-s), 1e10)
+    
+    f = jnp.zeros_like(s)
+    f = jnp.where(low_mask, Z1_low(safe_exp_neg_s) * safe_exp_neg_s, f)
+    f = jnp.where(mid_low_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
+    f = jnp.where(zero_mask, 96., f)  # Value at s=0 is 96
+    f = jnp.where(mid_high_mask, Z1(safe_exp_neg_s) * safe_exp_neg_s, f)
+    f = jnp.where(high_mask, Z1_high(safe_exp_neg_s) * safe_exp_neg_s, f)
+    
+    g = fftconvolve(P, f) * dL
+    g_k = g[N-1:2*N-1]
+    deltaE2 = k**3/(896.*pi**2) * P * g_k
+    
     return deltaE2
 
 def P_IA_13G(k, P):
