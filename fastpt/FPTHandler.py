@@ -383,8 +383,8 @@ class FPTHandler:
                     "P_0EtE": "_get_P_0EtE",
                     "P_E2tE": "_get_P_E2tE",
                     "P_tEtE": "_get_P_tEtE",
-                    "P_1loop": "one_loop_dd",
-                    "Ps": "one_loop_dd",
+                    "P_1loop": "_get_P_1loop",
+                    "Ps": "_get_Ps",
                     "Pd1d2": "_get_Pd1d2",
                     "Pd2d2": "_get_Pd2d2",
                     "Pd1s2": "_get_Pd1s2",
@@ -410,11 +410,6 @@ class FPTHandler:
                 passing_params, _ = self._prepare_function_params(func, override_kwargs)
                 result = func(**passing_params)
 
-                # Special handling for P_1loop and Ps terms which come from one_loop_dd, only func that returns a tuple
-                if term == "P_1loop" and isinstance(result, tuple):
-                    result = result[0]
-                elif term == "Ps" and isinstance(result, tuple):
-                    result = result[1]
             else:
                 func_name = self.term_sources[term][0]
                 func = getattr(self.fastpt, func_name)
