@@ -1598,7 +1598,9 @@ class FASTPT:
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
         result = self.cache.get("J_k_scalar", hash_key)
-        if result is not None: return result
+        if result is not None: 
+            print(f"Using cached result for J_k_scalar with X {self.X_registry[id(X)]}")
+            return result
         from numpy.fft import ifft, irfft
 
         pf, p, g_m, g_n, two_part_l, h_l = X

@@ -19,15 +19,66 @@ P_window = jnp.array([0.2, 0.2])
 C_window = 0.75
 
 if __name__ == "__main__":
-    from fastpt.IA_ta import P_IA_deltaE2 as oldPIA
-    from fastpt.jax_utils import P_IA_deltaE2, diffP_IA_deltaE2
-
     fast = FASTPT(k)
     jaax = JAXPT(jnp.array(k))
-    old = fast.IA_ta(P)[1]
-    newnew = jaax._get_P_deltaE2(P)
-    print(f"Max diff: {np.max(np.abs(old - newnew))}")
-    print(f"Fractional diff: {np.max(np.abs((old - newnew) / old))}")
+    
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    import numpy as np
+    
+    # Create a handler for the original FAST-PT implementation
+    handler = FPTHandler(fast, P=P)
+    
+    # Terms to compare
+    terms = ["P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop"]
+    
+    # Create a figure with subplots
+    fig = plt.figure(figsize=(15, 12))
+    gs = GridSpec(len(terms), 2, width_ratios=[3, 1], figure=fig)
+    
+    for i, term in enumerate(terms):
+        # Get results from both implementations
+        fast_result = handler.get(term)
+        jax_result = jaax.get(term, P)
+        
+        # Convert JAX array to numpy
+        jax_result_np = np.array(jax_result)
+        
+        # Create main comparison plot
+        ax1 = fig.add_subplot(gs[i, 0])
+        ax1.loglog(k, np.abs(fast_result), label=f'FAST-PT {term}', alpha=0.8)
+        ax1.loglog(k, np.abs(jax_result_np), label=f'JAX {term}', alpha=0.8, linestyle='--')
+        ax1.legend(loc='best')
+        ax1.set_xlabel('k')
+        ax1.set_ylabel('|P(k)|')
+        ax1.grid(True, which='both', linestyle=':', alpha=0.5)
+        
+        # Create fractional difference plot
+        ax2 = fig.add_subplot(gs[i, 1])
+        
+        # Calculate relative difference where fast_result is non-zero
+        mask = np.abs(fast_result) > 1e-10
+        if np.any(mask):
+            rel_diff = np.abs((fast_result[mask] - jax_result_np[mask]) / fast_result[mask])
+            ax2.loglog(k[mask], rel_diff, color='red')
+            ax2.set_ylabel('Relative Difference')
+            
+            # Report max relative difference
+            max_diff = np.max(rel_diff)
+            mean_diff = np.mean(rel_diff)
+            ax2.text(0.1, 0.9, f'Max: {max_diff:.2e}\nMean: {mean_diff:.2e}', 
+                    transform=ax2.transAxes, bbox=dict(facecolor='white', alpha=0.8))
+        else:
+            ax2.text(0.5, 0.5, "All zeros in reference", ha='center')
+            
+        ax2.grid(True, which='both', linestyle=':', alpha=0.5)
+        
+        # Add term name as subplot title
+        ax1.set_title(term)
+    
+    plt.tight_layout()
+    plt.savefig('fastpt_jaxpt_comparison.png', dpi=150)
+    plt.show()
 
 @pytest.fixture
 def k_arrays():
@@ -141,7 +192,10 @@ def test_every_term(jpt, fpt, term):
     fast = handler.get(term)
     jaax = jpt.get(term, P)
     if term in ("P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop"):
-        assert np.allclose(fast[:6000], jaax[:6000])
+        #Print the range of indices that differ
+        diff = np.abs(fast - jaax)
+        diff_indices = np.where(diff > 1e-5)
+        print(f"Indices that differ for {term}: {min(diff_indices)} to {max(diff_indices)}")
     assert np.allclose(fast, jaax)
 
 ############## k_extend Tests ##############
