@@ -23,8 +23,12 @@ if __name__ == "__main__":
     jaax = JAXPT(jnp.array(k))
     
     import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
     import numpy as np
+    import os
+    
+    # Create output directory for plots if it doesn't exist
+    output_dir = 'term_comparison_plots'
+    os.makedirs(output_dir, exist_ok=True)
     
     # Create a handler for the original FAST-PT implementation
     handler = FPTHandler(fast, P=P)
@@ -32,11 +36,12 @@ if __name__ == "__main__":
     # Terms to compare
     terms = ["P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop"]
     
-    # Create a figure with subplots
-    fig = plt.figure(figsize=(15, 12))
-    gs = GridSpec(len(terms), 2, width_ratios=[3, 1], figure=fig)
-    
-    for i, term in enumerate(terms):
+    # Process each term in a separate figure
+    for term in terms:
+        # Create a new figure for each term
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), 
+                                      gridspec_kw={'width_ratios': [3, 1]})
+        
         # Get results from both implementations
         fast_result = handler.get(term)
         jax_result = jaax.get(term, P)
@@ -45,23 +50,21 @@ if __name__ == "__main__":
         jax_result_np = np.array(jax_result)
         
         # Create main comparison plot
-        ax1 = fig.add_subplot(gs[i, 0])
-        ax1.loglog(k, np.abs(fast_result), label=f'FAST-PT {term}', alpha=0.8)
-        ax1.loglog(k, np.abs(jax_result_np), label=f'JAX {term}', alpha=0.8, linestyle='--')
+        ax1.loglog(k, np.abs(fast_result), label=f'FAST-PT', alpha=0.8)
+        # ax1.loglog(k, np.abs(jax_result_np), label=f'JAX', alpha=0.8, linestyle='--')
         ax1.legend(loc='best')
         ax1.set_xlabel('k')
         ax1.set_ylabel('|P(k)|')
         ax1.grid(True, which='both', linestyle=':', alpha=0.5)
+        ax1.set_title(f'Term: {term}')
         
         # Create fractional difference plot
-        ax2 = fig.add_subplot(gs[i, 1])
-        
-        # Calculate relative difference where fast_result is non-zero
         mask = np.abs(fast_result) > 1e-10
         if np.any(mask):
             rel_diff = np.abs((fast_result[mask] - jax_result_np[mask]) / fast_result[mask])
             ax2.loglog(k[mask], rel_diff, color='red')
             ax2.set_ylabel('Relative Difference')
+            ax2.set_xlabel('k')
             
             # Report max relative difference
             max_diff = np.max(rel_diff)
@@ -72,13 +75,48 @@ if __name__ == "__main__":
             ax2.text(0.5, 0.5, "All zeros in reference", ha='center')
             
         ax2.grid(True, which='both', linestyle=':', alpha=0.5)
+        ax2.set_title('Relative Difference')
         
-        # Add term name as subplot title
-        ax1.set_title(term)
+        plt.tight_layout()
+        plt.savefig(f'{output_dir}/{term}_comparison.png', dpi=150)
+        plt.close()  # Close the figure to free memory
     
+    print(f"All comparison plots saved to {output_dir}/")
+
+    # Additionally, create a summary plot with just the max and mean differences
+    plt.figure(figsize=(10, 6))
+    max_diffs = []
+    mean_diffs = []
+    
+    for term in terms:
+        fast_result = handler.get(term)
+        jax_result = jaax.get(term, P)
+        jax_result_np = np.array(jax_result)
+        
+        mask = np.abs(fast_result) > 1e-10
+        if np.any(mask):
+            rel_diff = np.abs((fast_result[mask] - jax_result_np[mask]) / fast_result[mask])
+            max_diffs.append(np.max(rel_diff))
+            mean_diffs.append(np.mean(rel_diff))
+        else:
+            max_diffs.append(np.nan)
+            mean_diffs.append(np.nan)
+    
+    x = np.arange(len(terms))
+    width = 0.35
+    
+    plt.bar(x - width/2, max_diffs, width, label='Max Difference')
+    plt.bar(x + width/2, mean_diffs, width, label='Mean Difference')
+    
+    plt.yscale('log')
+    plt.xlabel('Term')
+    plt.ylabel('Relative Difference')
+    plt.title('Summary of Relative Differences Between FAST-PT and JAX Implementations')
+    plt.xticks(x, terms, rotation=45)
+    plt.legend()
     plt.tight_layout()
-    plt.savefig('fastpt_jaxpt_comparison.png', dpi=150)
-    plt.show()
+    plt.savefig(f'{output_dir}/summary_comparison.png', dpi=150)
+    plt.close()
 
 @pytest.fixture
 def k_arrays():

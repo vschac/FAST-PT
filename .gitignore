@@ -4,3 +4,4 @@ examples/*.npy
 build/
 tests/benchmarking/*.txt
 plot_test_outputs/
+term_comparison_plots/
