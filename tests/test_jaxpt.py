@@ -1,4 +1,3 @@
-import pympler.asizeof
 import pytest
 import numpy as np
 from fastpt import FASTPT, FPTHandler
@@ -18,105 +17,59 @@ k = d[:, 0]
 P_window = jnp.array([0.2, 0.2])
 C_window = 0.75
 
-if __name__ == "__main__":
-    fast = FASTPT(k)
-    jaax = JAXPT(jnp.array(k))
-    
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import os
-    
-    # Create output directory for plots if it doesn't exist
-    output_dir = 'term_comparison_plots'
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Create a handler for the original FAST-PT implementation
-    handler = FPTHandler(fast, P=P)
-    
-    # Terms to compare
-    terms = ["P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop"]
-    
-    # Process each term in a separate figure
-    for term in terms:
-        # Create a new figure for each term
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), 
-                                      gridspec_kw={'width_ratios': [3, 1]})
-        
-        # Get results from both implementations
-        fast_result = handler.get(term)
-        jax_result = jaax.get(term, P)
-        
-        # Convert JAX array to numpy
-        jax_result_np = np.array(jax_result)
-        
-        # Create main comparison plot
-        ax1.loglog(k, np.abs(fast_result), label=f'FAST-PT', alpha=0.8)
-        # ax1.loglog(k, np.abs(jax_result_np), label=f'JAX', alpha=0.8, linestyle='--')
-        ax1.legend(loc='best')
-        ax1.set_xlabel('k')
-        ax1.set_ylabel('|P(k)|')
-        ax1.grid(True, which='both', linestyle=':', alpha=0.5)
-        ax1.set_title(f'Term: {term}')
-        
-        # Create fractional difference plot
-        mask = np.abs(fast_result) > 1e-10
-        if np.any(mask):
-            rel_diff = np.abs((fast_result[mask] - jax_result_np[mask]) / fast_result[mask])
-            ax2.loglog(k[mask], rel_diff, color='red')
-            ax2.set_ylabel('Relative Difference')
-            ax2.set_xlabel('k')
-            
-            # Report max relative difference
-            max_diff = np.max(rel_diff)
-            mean_diff = np.mean(rel_diff)
-            ax2.text(0.1, 0.9, f'Max: {max_diff:.2e}\nMean: {mean_diff:.2e}', 
-                    transform=ax2.transAxes, bbox=dict(facecolor='white', alpha=0.8))
-        else:
-            ax2.text(0.5, 0.5, "All zeros in reference", ha='center')
-            
-        ax2.grid(True, which='both', linestyle=':', alpha=0.5)
-        ax2.set_title('Relative Difference')
-        
-        plt.tight_layout()
-        plt.savefig(f'{output_dir}/{term}_comparison.png', dpi=150)
-        plt.close()  # Close the figure to free memory
-    
-    print(f"All comparison plots saved to {output_dir}/")
+from time import time
+import psutil
+import gc
 
-    # Additionally, create a summary plot with just the max and mean differences
-    plt.figure(figsize=(10, 6))
-    max_diffs = []
-    mean_diffs = []
+
+def profile_jaxpt():
+    # Force garbage collection before measurement
+    gc.collect()
+    jpt = JAXPT(k, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
+    # Get memory usage before initialization
+    process = psutil.Process()
+    memory_before = process.memory_info().rss / (1024 * 1024)  # MB
     
-    for term in terms:
-        fast_result = handler.get(term)
-        jax_result = jaax.get(term, P)
-        jax_result_np = np.array(jax_result)
-        
-        mask = np.abs(fast_result) > 1e-10
-        if np.any(mask):
-            rel_diff = np.abs((fast_result[mask] - jax_result_np[mask]) / fast_result[mask])
-            max_diffs.append(np.max(rel_diff))
-            mean_diffs.append(np.mean(rel_diff))
-        else:
-            max_diffs.append(np.nan)
-            mean_diffs.append(np.nan)
+    def get_term(P_input):
+        return jpt.get("P_E", P_input)
+    # Compute output for original input
+    P_jax = jnp.array(P)
+    output = get_term(P_jax)
     
-    x = np.arange(len(terms))
-    width = 0.35
+    # Create a random tangent vector with the same shape as the output
+    # Using a small seed for reproducibility
+    key = jax.random.PRNGKey(42)
+    tangent = jax.random.normal(key, output.shape)
+
+    # Time the function
+    start_time = time()
+    # Compute VJP (Vector-Jacobian Product)
+    _, vjp_fun = jax.vjp(get_term, P_jax)
+    gradient = vjp_fun(tangent)[0]
+    initialization_time = time() - start_time
     
-    plt.bar(x - width/2, max_diffs, width, label='Max Difference')
-    plt.bar(x + width/2, mean_diffs, width, label='Mean Difference')
+    # Force garbage collection after initialization
+    gc.collect()
     
-    plt.yscale('log')
-    plt.xlabel('Term')
-    plt.ylabel('Relative Difference')
-    plt.title('Summary of Relative Differences Between FAST-PT and JAX Implementations')
-    plt.xticks(x, terms, rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/summary_comparison.png', dpi=150)
-    plt.close()
+    # Get memory after initialization
+    memory_after = process.memory_info().rss / (1024 * 1024)  # MB
+    
+    print(f"JAXPT Initialization:")
+    print(f"Time: {initialization_time:.4f} seconds")
+    print(f"Memory: {memory_after - memory_before:.2f} MB increase")
+    print(f"Total memory: {memory_after:.2f} MB")
+    
+    return jpt, initialization_time, memory_after - memory_before
+
+if __name__ == "__main__":
+    profile_jaxpt()
+    from fastpt import FASTPT, FPTHandler
+    fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
+    handler = FPTHandler(fpt)
+    t0 = time()
+    handler.get("P_E", P=P)
+    t3 = time()
+    print(f"FASTPT time: {t3 - t0:.4f} seconds")
 
 @pytest.fixture
 def k_arrays():
@@ -565,13 +518,13 @@ def test_convolution_differentiability(jpt):
     except Exception as e:
         pytest.fail(f"JAX differentiation failed with error: {str(e)}")
 
-@pytest.mark.parametrize("term", ["P_deltaE2"
-                        #  ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                        #  "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
-                        #  "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
-                        #  "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
-                        #  "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
-                        # "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
+@pytest.mark.parametrize("term",
+                         ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
+                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                         "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
+                         "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
+                         "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
+                        "P_Btype2", "P_deltaE2", "sig3nl", "Pb1L", "Pb1L_2", "P_0tE", "P_1loop",
                         ])
 def test_terms_differentiability(jpt, term):
     """Test that each term is differentiable with respect to the input power spectrum."""
@@ -602,7 +555,6 @@ def test_terms_differentiability(jpt, term):
         grad_abs_mean = jnp.mean(jnp.abs(gradient))        
         # We don't want completely zero gradients, which could indicate a problem
         assert grad_abs_mean > 0, f"Gradient for {term} has zero mean absolute value"
-                
     except Exception as e:
         pytest.fail(f"JAX differentiation for term {term} failed with error: {str(e)}")
 

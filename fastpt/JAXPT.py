@@ -1,7 +1,5 @@
 from fastpt.jax_utils import p_window, c_window, jax_k_extend
-
 import jax.numpy as jnp
-from jax import grad
 from jax import jit
 from time import time
 import numpy as np
@@ -12,6 +10,7 @@ from fastpt import FASTPT as FPT
 config.update("jax_enable_x64", True)
 import functools
 from fastpt.jax_utils import P_13_reg, Y1_reg_NL, Y2_reg_NL, P_IA_B, P_IA_deltaE2, P_IA_13F, P_IA_13G
+from jax.numpy.fft import ifft, irfft
 
 def process_x_term(X):
     """Process X term for JAX compatibility, preserving complex values and handling nested arrays."""
@@ -89,10 +88,17 @@ class JAXPT:
         
         if (k is None or len(k) == 0):
             raise ValueError('You must provide an input k array.')        
-
-        #self.cache = CacheManager()
-
-        self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
+        if not isinstance(k, jnp.ndarray):
+            try:
+                k = jnp.asarray(k, dtype=jnp.float64)
+            except:
+                raise ValueError('Input k array must be a jax numpy array, automatic conversion failed.')
+        if not isinstance(P_window, jnp.ndarray) and P_window is not None:
+            try:
+                P_window = jnp.asarray(P_window, dtype=jnp.float64)
+            except:
+                raise ValueError('Input P_window array must be a jax numpy array, automatic conversion failed.')
+            
         self.__k_original = k
         self.temp_fpt = FPT(k.copy(), low_extrap=low_extrap, high_extrap=high_extrap, n_pad=n_pad)
         self.extrap = False
@@ -238,15 +244,17 @@ class JAXPT:
 
         #JIT Compile functions
         try:
-            self.J_k_scalar = jit(self.J_k_scalar, static_argnames=["n_pad", "k_size", "EK"])
+            self.J_k_scalar = jit(self.J_k_scalar, static_argnames=["n_pad", "k_size", "EK", "N," "l", 
+                                                                    "id_pad", "k_extrap", "k_final", "low_extrap", "high_extrap"])
         except:
             print("J_k_scalar JIT compilation failed. Using default python implementation.")
         try:
-            self._J_k_tensor_core = jit(self.J_k_tensor, static_argnames=["n_pad", "k_size", "EK"])
+            self._J_k_tensor_core = jit(self.J_k_tensor, static_argnames=["n_pad", "k_size", "EK", "N," "l", 
+                                                                          "id_pad", "k_extrap", "k_final", "low_extrap", "high_extrap"])
         except:
             print("J_k_tensor JIT compilation failed. Using default python implementation.")
         try:
-            self.fourier_coefficients = jit(self.fourier_coefficients)
+            self.fourier_coefficients = jit(self.fourier_coefficients, static_argnames=["N"])
         except:
             print("fourier_coefficients JIT compilation failed. Using default python implementation.")
         try:
@@ -265,137 +273,111 @@ class JAXPT:
             self.get = jit(self.get, static_argnames=["term"])
         except:
             print("get JIT compilation failed. Using default python implementation.")
+        try:
+            self.process_rows = jit(jax.vmap(
+                lambda i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size: 
+                    self._process_single_row(i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size)
+            ))
+        except Exception as e:
+            self.process_rows = self._process_single_row
+            raise e
         
+        #These cannot be cached properties since they would be accessed twice in one function call (the one loop functions)
+        #Therefore producing a side affect as the second access is done via cache and breaking differentiability
         self.X_spt = process_x_term(self.temp_fpt.X_spt)
         self.X_lpt = process_x_term(self.temp_fpt.X_lpt)
-        self.X_sptG = process_x_term(self.temp_fpt.X_sptG)
-        self.X_cleft = process_x_term(self.temp_fpt.X_cleft)
-        self.X_IA_A = process_x_term(self.temp_fpt.X_IA_A)
-        self.X_IA_B = process_x_term(self.temp_fpt.X_IA_B)
-        self.X_IA_E = process_x_term(self.temp_fpt.X_IA_E)
-        self.X_IA_DEE = process_x_term(self.temp_fpt.X_IA_DEE)
-        self.X_IA_DBB = process_x_term(self.temp_fpt.X_IA_DBB)
-        self.X_IA_deltaE1 = process_x_term(self.temp_fpt.X_IA_deltaE1)
-        self.X_IA_0E0E = process_x_term(self.temp_fpt.X_IA_0E0E)
-        self.X_IA_0B0B = process_x_term(self.temp_fpt.X_IA_0B0B)
-        self.X_IA_gb2_fe = process_x_term(self.temp_fpt.X_IA_gb2_fe)
-        self.X_IA_gb2_he = process_x_term(self.temp_fpt.X_IA_gb2_he)
-        self.X_IA_tij_feG2 = process_x_term(self.temp_fpt.X_IA_tij_feG2)
-        self.X_IA_tij_heG2 = process_x_term(self.temp_fpt.X_IA_tij_heG2)
-        self.X_IA_tij_F2F2 = process_x_term(self.temp_fpt.X_IA_tij_F2F2)
-        self.X_IA_tij_G2G2 = process_x_term(self.temp_fpt.X_IA_tij_G2G2)
-        self.X_IA_tij_F2G2 = process_x_term(self.temp_fpt.X_IA_tij_F2G2)
-        self.X_IA_tij_F2G2reg = process_x_term(self.temp_fpt.X_IA_tij_F2G2reg)
-        self.X_IA_gb2_F2 = process_x_term(self.temp_fpt.X_IA_gb2_F2)
-        self.X_IA_gb2_G2 = process_x_term(self.temp_fpt.X_IA_gb2_G2)
-        self.X_IA_gb2_S2F2 = process_x_term(self.temp_fpt.X_IA_gb2_S2F2)
-        self.X_IA_gb2_S2fe = process_x_term(self.temp_fpt.X_IA_gb2_S2fe)
-        self.X_IA_gb2_S2he = process_x_term(self.temp_fpt.X_IA_gb2_S2he)
-        self.X_IA_gb2_S2G2 = process_x_term(self.temp_fpt.X_IA_gb2_S2G2)
-        self.X_OV = process_x_term(self.temp_fpt.X_OV)
-        self.X_kP1 = process_x_term(self.temp_fpt.X_kP1)
-        self.X_kP2 = process_x_term(self.temp_fpt.X_kP2)
-        self.X_kP3 = process_x_term(self.temp_fpt.X_kP3)
-        self.X_RSDA = process_x_term(self.temp_fpt.X_RSDA)
-        self.X_RSDB = process_x_term(self.temp_fpt.X_RSDB)
 
 
-    # @jax_cached_property
-    # def X_spt(self):
-    #     return self.temp_fpt.X_spt
-    # @jax_cached_property
-    # def X_lpt(self):
-    #     return self.temp_fpt.X_lpt  
-    # @jax_cached_property
-    # def X_sptG(self):
-    #     return self.temp_fpt.X_sptG
-    # @jax_cached_property
-    # def X_cleft(self):
-    #     return self.temp_fpt.X_cleft
-    # @jax_cached_property
-    # def X_IA_A(self):
-    #     return self.temp_fpt.X_IA_A
-    # @jax_cached_property
-    # def X_IA_B(self):
-    #     return self.temp_fpt.X_IA_B
-    # @jax_cached_property
-    # def X_IA_E(self):
-    #     return self.temp_fpt.X_IA_E
-    # @jax_cached_property
-    # def X_IA_DEE(self):
-    #     return self.temp_fpt.X_IA_DEE
-    # @jax_cached_property
-    # def X_IA_DBB(self):
-    #     return self.temp_fpt.X_IA_DBB
-    # @jax_cached_property
-    # def X_IA_deltaE1(self):
-    #     return self.temp_fpt.X_IA_deltaE1
-    # @jax_cached_property
-    # def X_IA_0E0E(self):
-    #     return self.temp_fpt.X_IA_0E0E
-    # @jax_cached_property
-    # def X_IA_0B0B(self):
-    #     return self.temp_fpt.X_IA_0B0B
-    # @jax_cached_property
-    # def X_IA_gb2_fe(self):
-    #     return self.temp_fpt.X_IA_gb2_fe
-    # @jax_cached_property
-    # def X_IA_gb2_he(self):
-    #     return self.temp_fpt.X_IA_gb2_he
-    # @jax_cached_property
-    # def X_IA_tij_feG2(self):
-    #     return self.temp_fpt.X_IA_tij_feG2
-    # @jax_cached_property
-    # def X_IA_tij_heG2(self):
-    #     return self.temp_fpt.X_IA_tij_heG2
-    # @jax_cached_property
-    # def X_IA_tij_F2F2(self):
-    #     return self.temp_fpt.X_IA_tij_F2F2
-    # @jax_cached_property
-    # def X_IA_tij_G2G2(self):
-    #     return self.temp_fpt.X_IA_tij_G2G2
-    # @jax_cached_property
-    # def X_IA_tij_F2G2(self):
-    #     return self.temp_fpt.X_IA_tij_F2G2
-    # @jax_cached_property
-    # def X_IA_tij_F2G2reg(self):
-    #     return self.temp_fpt.X_IA_tij_F2G2reg
-    # @jax_cached_property
-    # def X_IA_gb2_F2(self):
-    #     return self.temp_fpt.X_IA_gb2_F2
-    # @jax_cached_property
-    # def X_IA_gb2_G2(self):
-    #     return self.temp_fpt.X_IA_gb2_G2
-    # @jax_cached_property
-    # def X_IA_gb2_S2F2(self):
-    #     return self.temp_fpt.X_IA_gb2_S2F2
-    # @jax_cached_property
-    # def X_IA_gb2_S2fe(self):
-    #     return self.temp_fpt.X_IA_gb2_S2fe
-    # @jax_cached_property
-    # def X_IA_gb2_S2he(self):
-    #     return self.temp_fpt.X_IA_gb2_S2he
-    # @jax_cached_property
-    # def X_IA_gb2_S2G2(self):
-    #     return self.temp_fpt.X_IA_gb2_S2G2
-    # @jax_cached_property
-    # def X_OV(self):
-    #     return self.temp_fpt.X_OV
-    # @jax_cached_property
-    # def X_kP1(self):
-    #     return self.temp_fpt.X_kP1
-    # @jax_cached_property
-    # def X_kP2(self):
-    #     return self.temp_fpt.X_kP2
-    # @jax_cached_property
-    # def X_kP3(self):
-    #     return self.temp_fpt.X_kP3
-    # @jax_cached_property
-    # def X_RSDA(self):
-    #     return self.temp_fpt.X_RSDA
-    # @jax_cached_property
-    # def X_RSDB(self):
-    #     return self.temp_fpt.X_RSDB
+    @jax_cached_property
+    def X_sptG(self):
+        return self.temp_fpt.X_sptG
+    @jax_cached_property
+    def X_cleft(self):
+        return self.temp_fpt.X_cleft
+    @jax_cached_property
+    def X_IA_A(self):
+        return self.temp_fpt.X_IA_A
+    @jax_cached_property
+    def X_IA_B(self):
+        return self.temp_fpt.X_IA_B
+    @jax_cached_property
+    def X_IA_E(self):
+        return self.temp_fpt.X_IA_E
+    @jax_cached_property
+    def X_IA_DEE(self):
+        return self.temp_fpt.X_IA_DEE
+    @jax_cached_property
+    def X_IA_DBB(self):
+        return self.temp_fpt.X_IA_DBB
+    @jax_cached_property
+    def X_IA_deltaE1(self):
+        return self.temp_fpt.X_IA_deltaE1
+    @jax_cached_property
+    def X_IA_0E0E(self):
+        return self.temp_fpt.X_IA_0E0E
+    @jax_cached_property
+    def X_IA_0B0B(self):
+        return self.temp_fpt.X_IA_0B0B
+    @jax_cached_property
+    def X_IA_gb2_fe(self):
+        return self.temp_fpt.X_IA_gb2_fe
+    @jax_cached_property
+    def X_IA_gb2_he(self):
+        return self.temp_fpt.X_IA_gb2_he
+    @jax_cached_property
+    def X_IA_tij_feG2(self):
+        return self.temp_fpt.X_IA_tij_feG2
+    @jax_cached_property
+    def X_IA_tij_heG2(self):
+        return self.temp_fpt.X_IA_tij_heG2
+    @jax_cached_property
+    def X_IA_tij_F2F2(self):
+        return self.temp_fpt.X_IA_tij_F2F2
+    @jax_cached_property
+    def X_IA_tij_G2G2(self):
+        return self.temp_fpt.X_IA_tij_G2G2
+    @jax_cached_property
+    def X_IA_tij_F2G2(self):
+        return self.temp_fpt.X_IA_tij_F2G2
+    @jax_cached_property
+    def X_IA_tij_F2G2reg(self):
+        return self.temp_fpt.X_IA_tij_F2G2reg
+    @jax_cached_property
+    def X_IA_gb2_F2(self):
+        return self.temp_fpt.X_IA_gb2_F2
+    @jax_cached_property
+    def X_IA_gb2_G2(self):
+        return self.temp_fpt.X_IA_gb2_G2
+    @jax_cached_property
+    def X_IA_gb2_S2F2(self):
+        return self.temp_fpt.X_IA_gb2_S2F2
+    @jax_cached_property
+    def X_IA_gb2_S2fe(self):
+        return self.temp_fpt.X_IA_gb2_S2fe
+    @jax_cached_property
+    def X_IA_gb2_S2he(self):
+        return self.temp_fpt.X_IA_gb2_S2he
+    @jax_cached_property
+    def X_IA_gb2_S2G2(self):
+        return self.temp_fpt.X_IA_gb2_S2G2
+    @jax_cached_property
+    def X_OV(self):
+        return self.temp_fpt.X_OV
+    @jax_cached_property
+    def X_kP1(self):
+        return self.temp_fpt.X_kP1
+    @jax_cached_property
+    def X_kP2(self):
+        return self.temp_fpt.X_kP2
+    @jax_cached_property
+    def X_kP3(self):
+        return self.temp_fpt.X_kP3
+    @jax_cached_property
+    def X_RSDA(self):
+        return self.temp_fpt.X_RSDA
+    @jax_cached_property
+    def X_RSDB(self):
+        return self.temp_fpt.X_RSDB
 
 
         
@@ -468,10 +450,6 @@ class JAXPT:
         return result
 
     def _get_1loop(self, P, C_window=None):
-        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, self.m, self.N, self.n_pad, self.id_pad, 
-                                 self.k_extrap, self.k_final, self.k_size, self.l,
-                                 C_window=C_window, low_extrap=self.low_extrap, high_extrap=self.high_extrap, EK=self.EK)
-        Ps = self._apply_extrapolation(Ps)
         P22 = self._get_P22(P, C_window=C_window)
         P13 = self._get_P13(P, C_window=C_window)
         P_1loop = P22 + P13
@@ -734,10 +712,16 @@ class JAXPT:
 
 
     def one_loop_dd_bias_b3nl(self, P, C_window=None):
-        return tuple(self.get(t, P, C_window) for t in self.term_groups["one_loop_dd_bias_b3nl"])
-    
+        results = []
+        for t in self.term_groups["one_loop_dd_bias_b3nl"]:
+            results.append(self.get(t, P, C_window))
+        return tuple(results)
+
     def one_loop_dd_bias_lpt_NL(self, P, C_window=None):
-        return tuple(self.get(t, P, C_window) for t in self.term_groups["one_loop_dd_bias_lpt_NL"])
+        results = []
+        for t in self.term_groups["one_loop_dd_bias_lpt_NL"]:
+            results.append(self.get(t, P, C_window))
+        return tuple(results)
 
     def IA_tt(self, P, C_window=None):
         return tuple(self.get(t, P, C_window) for t in self.term_groups["IA_tt"])
@@ -781,7 +765,6 @@ class JAXPT:
 
 
     def J_k_scalar(self, P, X, nu, m, N, n_pad, id_pad, k_extrap, k_final, k_size, l, C_window=None, low_extrap=None, high_extrap=None, EK=None):
-        from jax.numpy.fft import ifft, irfft
         
         pf, p, g_m, g_n, two_part_l, h_l = X
 
@@ -800,26 +783,8 @@ class JAXPT:
         
         A_out = jnp.zeros((pf.shape[0], k_size))
         
-        def process_single_row(i):
-            C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
-            
-            l_size = l.shape[0]
-            l_midpoint = l_size // 2  # Assuming l is centered around 0
-            
-            c_plus = C_l[l_midpoint:]  # Positive part (including 0)
-            c_minus = C_l[:l_midpoint]  # Negative part
-            
-            # Combine them, dropping the last element of c_plus
-            C_l_combined = jnp.concatenate([c_plus[:-1], c_minus])
-            
-            A_k = ifft(C_l_combined) * C_l_combined.size
-            
-            stride = max(1, A_k.shape[0] // k_size)
-            
-            return jnp.real(A_k[::stride][:k_size]) * pf[i] * k_final ** (-p[i] - 2)
-        
         rows = jnp.arange(pf.shape[0])
-        A_out = jax.vmap(process_single_row)(rows)
+        A_out = jax.vmap(self.process_rows)(rows)
         
         m_midpoint = (m.shape[0] + 1) // 2  # Position of 0 in m
         c_m_positive = c_m[m_midpoint-1:]  # Select m >= 0
@@ -832,7 +797,23 @@ class JAXPT:
         
         return P_out, A_out
 
-
+    def _process_single_row(self, i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size):
+        C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
+        
+        l_size = l.shape[0]
+        l_midpoint = l_size // 2  # Assuming l is centered around 0
+        
+        c_plus = C_l[l_midpoint:]  # Positive part (including 0)
+        c_minus = C_l[:l_midpoint]  # Negative part
+        
+        # Combine them, dropping the last element of c_plus
+        C_l_combined = jnp.concatenate([c_plus[:-1], c_minus])
+        
+        A_k = ifft(C_l_combined) * C_l_combined.size
+        
+        stride = max(1, A_k.shape[0] // k_size)
+        
+        return jnp.real(A_k[::stride][:k_size]) * pf[i] * k_final ** (-p[i] - 2)
 
     def J_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
         
@@ -890,7 +871,6 @@ class JAXPT:
         return P_fin, A_out
 
 
-
     def fourier_coefficients(self, P_b, m, N, C_window=None):
         from jax.numpy.fft import rfft
 
@@ -904,7 +884,6 @@ class JAXPT:
             c_m = c_m * c_window(m, window_size)
             
         return c_m
-
 
     def convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
         from jax.scipy.signal import fftconvolve
@@ -920,8 +899,6 @@ class JAXPT:
 
 
 if __name__ == "__main__":
-    #k = jnp.logspace(1e-4, 1, 1000)
-    #P = jnp.logspace(1, 2, 1000)
     from jax import vjp, jvp, grad, jit, vmap
     from fastpt.IA_ct import P_IA_13G as oldG, P_IA_13F as oldF
     from fastpt import FASTPT
@@ -932,26 +909,4 @@ if __name__ == "__main__":
     k = d[:, 0]
     jpt = JAXPT(k, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
     fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
-    # t0 = time()
-    # primals, vjp_fn = vjp(lambda p_input: jpt.J_k_tensor(p_input, jpt.X_IA_A, jpt.k_extrap, jpt.k_final,
-    #                                                jpt.k_size, jpt.n_pad, jpt.id_pad, jpt.l, jpt.m,
-    #                                                jpt.N, C_window=0.75, P_window=jpt.p_win,
-    #                                                low_extrap=-5, high_extrap=3, EK=jpt.EK), P)
-
-    # # Create tangent vectors for both outputs (P_fin and A_out)
-    # tangent_P_fin = jnp.ones_like(primals[0])
-    # tangent_A_out = jnp.zeros_like(primals[1])  # If you don't care about gradients for A_out
-    # gradient = vjp_fn((tangent_P_fin, tangent_A_out))
-    # t1 = time()
-    # print(f"Time: {t1 - t0:.4f} seconds")
-
-    # Ps, _ = jpt.J_k_scalar(P, jpt.X_spt, -2, jpt.m, jpt.N, jpt.n_pad, jpt.id_pad, 
-    #                              jpt.k_extrap, jpt.k_final, jpt.k_size, jpt.l,
-    #                              C_window=0.75, low_extrap=-5, high_extrap=3, EK=jpt.EK)
-    # Psf, _ = fpt.J_k_scalar(P, fpt.X_spt, -2, P_window=np.array([0.2, 0.2]), C_window=0.75)
-    # old = oldG(fpt.k_extrap, Psf)
-    # new = P_IA_13G(jpt.k_extrap, Ps)
-    # print(f"K's equal: ", np.allclose(jpt.k_extrap, fpt.k_extrap))
-    # print(f"P's equal: ", np.allclose(Psf, Ps))
-    # print(f"Result equal: ", np.allclose(old, new))
-    # print(f"Max difference: ", np.max(np.abs(old - new)))
+   
