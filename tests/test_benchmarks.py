@@ -111,4 +111,10 @@ def test_RSD_ABsum_mu(fpt):
 
 def test_IRres(fpt):
     bmark = np.transpose(fpt.IRres(P, C_window=C_window))
+    old_bmark = np.loadtxt('tests/benchmarking/P_IRres_benchmark.txt')
+    if not np.allclose(bmark, old_bmark):
+        differences = np.where(np.abs(bmark - old_bmark) > 1e-6)
+        print(f"Max difference: {np.max(np.abs(bmark - old_bmark))}")
+        print(f"Relative difference: {np.max(np.abs(bmark - old_bmark) / np.abs(old_bmark))}")
+        print("Differences found at indices:", differences)
     assert np.allclose(bmark, np.loadtxt('tests/benchmarking/P_IRres_benchmark.txt'))
