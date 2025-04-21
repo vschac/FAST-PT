@@ -39,7 +39,7 @@ class FPTHandler:
     >>> P_1loop = handler.get('P_E')  # Direct access to the P_E term of fpt.IA_tt
     """
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
-        if fastpt_instance is None or not isinstance(fastpt_instance, FASTPT):
+        if fastpt_instance is None:
             raise ValueError("You must provide a valid FASTPT instance.")
         self.__fastpt = fastpt_instance
         self.cache = {}
