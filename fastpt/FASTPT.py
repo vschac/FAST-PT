@@ -56,8 +56,20 @@ from . import RSD_ItypeII
 from .P_extend import k_extend
 from . import FASTPT_simple as fastpt_simple
 from .CacheManager import CacheManager
+from scipy.signal import fftconvolve
+from numpy.fft import ifft, irfft, rfft
 
 log2 = log(2.)
+from time import time
+def timer(func):
+    """Decorator to time function execution"""
+    def wrapper(*args, **kwargs):
+        start_time = time()
+        result = func(*args, **kwargs)
+        end_time = time()
+        print(f"(New) Function {func.__name__} executed in {end_time - start_time:.4f} seconds")
+        return result
+    return wrapper
 
 
 def cached_property(method):
@@ -608,36 +620,13 @@ class FASTPT:
 
         return params
     
-    def _clear_cached_x_params(self):
-        """
-        Clear cached parameters to free memory.
-        Call this method after completing memory-intensive calculations.
-        """
-        # Clear all cached X_ properties
-        for attr_name in dir(self):
-            if attr_name.startswith('X_') and hasattr(self, f'_{attr_name}'):
-                delattr(self, f'_{attr_name}')
-        
-        # Clear any other cached properties
-        for attr_name in list(vars(self).keys()):
-            if attr_name.startswith('_X_'):
-                delattr(self, attr_name)
-        
-        # Additional cleanup for objects that might retain large arrays
-        if hasattr(self, 'P_13_reg'):
-            self.P_13_reg = None
-        
-        # Force garbage collection
-        import gc
-        gc.collect()
-    
     ############## ABSTRACTED BEHAVIOR METHODS ##############
     def _apply_extrapolation(self, *args):
         """ Applies extrapolation to multiple variables at once """
         if not self.extrap:
             return args if len(args) > 1 else args[0]
         return [self.EK.PK_original(var)[1] for var in args] if len(args) > 1 else self.EK.PK_original(args[0])[1]
-    
+
     def _hash_arrays(self, arrays):
         """Helper function to create a hash from multiple numpy arrays or scalars"""
         if arrays is None: 
@@ -663,7 +652,7 @@ class FASTPT:
         if isinstance(arrays, np.ndarray):
             return hash(arrays.tobytes())
         return hash(arrays)
-    
+
     def _create_hash_key(self, term, X, P, P_window, C_window):
         """Create a hash key from the term and input parameters"""
         P_hash = self._hash_arrays(P)
@@ -731,7 +720,6 @@ class FASTPT:
 
 
     ### Top-level functions to output final quantities ###
-    
     def one_loop_dd(self, P, P_window=None, C_window=None): #Acts as its own get function (like IA_der)
         """
         Computes the standard 1-loop density-density corrections to the power spectrum.
@@ -755,32 +743,18 @@ class FASTPT:
         return Ps
     
     def _get_P_1loop(self, P, P_window=None, C_window=None):
-        #Not cached because both of these below are 
-        P22 = self._get_P22(P, P_window=P_window, C_window=C_window)
-        P13 = self._get_P13(P, P_window=P_window, C_window=C_window)
-        P_1loop = P22 + P13
-        P_1loop = self._apply_extrapolation(P_1loop)
-        return P_1loop
-    
-    def _get_P22(self, P, P_window=None, C_window=None):
-        hash_key, P_hash = self._create_hash_key("P22", self.X_spt, P, P_window, C_window)
-        result = self.cache.get("P22", hash_key)
+        hash_key, P_hash = self._create_hash_key("P_1loop", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P_1loop", hash_key)
         if result is not None: return result
+        Ps, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P22_coef = np.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
-        _, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P22_mat = np.multiply(P22_coef, np.transpose(mat))
         P22 = np.sum(P22_mat, axis=1)
-        self.cache.set(P22, "P22", hash_key, P_hash)
-        return P22
-
-    def _get_P13(self, P, P_window=None, C_window=None):
-        hash_key, P_hash = self._create_hash_key("P13", self.X_spt, P, P_window, C_window)
-        result = self.cache.get("P13", hash_key)
-        if result is not None: return result
-        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P13 = P_13_reg(self.k_extrap, Ps)
-        self.cache.set(P13, "P13", hash_key, P_hash)
-        return P13
+        P_1loop = P22 + P13
+        P_1loop = self._apply_extrapolation(P_1loop)
+        self.cache.set(P_1loop, "P_1loop", hash_key, P_hash)
+        return P_1loop
 
 
     #TODO add comments back explaining math behind one loop
@@ -930,6 +904,52 @@ class FASTPT:
         Pb2L = self._get_Pb2L(P, P_window=P_window, C_window=C_window)
         Pb2L_2 = self._get_Pb2L_2(P, P_window=P_window, C_window=C_window)
         sig4 = self._get_sig4(P, P_window=P_window, C_window=C_window)
+        # nu_arr = -2
+
+        # # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
+        # # get the matrix for each J_k component
+        # Ps, mat = self.J_k_scalar(P, self.X_lpt, nu_arr, P_window=P_window, C_window=C_window)
+
+        # [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
+        #                                                   mat[5, :], mat[6, :]]
+
+        # P22 = 2. * ((1219. / 1470.) * j000 + (671. / 1029.) * j002 + (32. / 1715.) * j004 + (1. / 3.) * j2n22 + (
+        #         62. / 35.) * j1n11 + (8. / 35.) * j1n13 + (1. / 6.) * j2n20)
+
+        # sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
+
+        # X1 = ((144. / 245.) * j000 - (176. / 343.) * j002 - (128. / 1715.) * j004 + (16. / 35.) * j1n11 - (
+        #         16. / 35.) * j1n13)
+        # X2 = ((16. / 21.) * j000 - (16. / 21.) * j002 + (16. / 35.) * j1n11 - (16. / 35.) * j1n13)
+        # X3 = (50. / 21.) * j000 + 2. * j1n11 - (8. / 21.) * j002
+        # X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
+        # X5 = j000
+
+        # Y1 = Y1_reg_NL(self.k_extrap, Ps)
+        # Y2 = Y2_reg_NL(self.k_extrap, Ps)
+
+        # Pb1L = X1 + Y1
+        # Pb1L_2 = X2 + Y2
+        # Pb1L_b2L = X3
+        # Pb2L = X4
+        # Pb2L_2 = X5
+
+        # if (self.extrap):
+        #     _, Ps = self.EK.PK_original(Ps)
+        #     # _, P_1loop=self.EK.PK_original(P_1loop)
+
+        #     _, Pb1L = self.EK.PK_original(Pb1L)
+        #     _, Pb1L_2 = self.EK.PK_original(Pb1L_2)
+        #     _, Pb1L_b2L = self.EK.PK_original(Pb1L_b2L)
+        #     _, Pb2L = self.EK.PK_original(Pb2L)
+        #     _, Pb2L_2 = self.EK.PK_original(Pb2L_2)
+        #     _, X1 = self.EK.PK_original(X1)
+        #     _, X2 = self.EK.PK_original(X2)
+        #     _, X3 = self.EK.PK_original(X3)
+        #     _, X4 = self.EK.PK_original(X4)
+        #     _, X5 = self.EK.PK_original(X5)
+        #     _, Y1 = self.EK.PK_original(Y1)
+        #     _, Y2 = self.EK.PK_original(Y2)
         return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
     
     def _get_Pb1L(self, P, P_window=None, C_window=None):
@@ -1028,7 +1048,6 @@ class FASTPT:
 
         return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_extrap,FR1,FR2
 
-    
     def IA_tt(self, P, P_window=None, C_window=None):
         """
         Computes intrinsic alignment tidal torque contributions.
@@ -1105,6 +1124,21 @@ class FASTPT:
         P_0E0E = self.compute_term("P_0E0E", self.X_IA_0E0E, P=P, P_window=P_window, C_window=C_window)
         P_0B0B = self.compute_term("P_0B0B", self.X_IA_0B0B, P=P, P_window=P_window, C_window=C_window)
         return P_deltaE1, P_deltaE2, P_0E0E, P_0B0B
+        # P_deltaE1, A = self.J_k_tensor(P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window)
+        # if (self.extrap):
+        #     _, P_deltaE1 = self.EK.PK_original(P_deltaE1)
+
+        # P_deltaE2 = P_IA_deltaE2(self.k_original, P)
+
+        # P_0E0E, A = self.J_k_tensor(P, self.X_IA_0E0E, P_window=P_window, C_window=C_window)
+        # if (self.extrap):
+        #     _, P_0E0E = self.EK.PK_original(P_0E0E)
+
+        # P_0B0B, A = self.J_k_tensor(P, self.X_IA_0B0B, P_window=P_window, C_window=C_window)
+        # if (self.extrap):
+        #     _, P_0B0B = self.EK.PK_original(P_0B0B)
+
+        # return 2. * P_deltaE1, 2. * P_deltaE2, P_0E0E, P_0B0B
     
     def _get_P_deltaE2(self, P):
         hash_key, P_hash = self._create_hash_key("P_deltaE2", None, P, None, None)
@@ -1521,7 +1555,7 @@ class FASTPT:
             return psmooth(x) + pw(x) * exp(-x ** 2 * Sigma)
 
         P = presum(k)
-        out_1loop = self.one_loop_dd(P, P_window=P_window, C_window=C_window)[0]
+        out_1loop = self._get_P_1loop(P, P_window=P_window, C_window=C_window)
         # p1loop = interpolate.InterpolatedUnivariateSpline(k,out_1loop) # is this necessary? out_1loop should already be at the correct k spacing
         return psmooth(k) + out_1loop + pw(k) * exp(-k ** 2 * Sigma) * (1 + Sigma * k ** 2)
 
@@ -1540,18 +1574,17 @@ class FASTPT:
     ######################################################################################
     ### Core functions used by top-level functions ###
 
-    def _cache_fourier_coefficients(self, P_b, C_window=None):
+    def _cache_fourier_coefficients(self, P_b, C_window=None, scalar=False):
         """Cache and return Fourier coefficients for a given biased power spectrum"""
     
         hash_key, P_hash = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
-
+        hash_key = hash_key ^ (hash(scalar) + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
         result = self.cache.get("fourier_coefficients", hash_key)
         if result is not None: 
             return result
-        from numpy.fft import rfft
     
         c_m_positive = rfft(P_b)
-        c_m_positive[-1] = c_m_positive[-1] / 2.
+        if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
         c_m_negative = np.conjugate(c_m_positive[1:])
         c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
     
@@ -1581,7 +1614,6 @@ class FASTPT:
         if result is not None: 
             return result
 
-        from scipy.signal import fftconvolve
         # Calculate convolution
         C_l = fftconvolve(c1 * g_m, c2 * g_n)
         #Old comments about C_l
@@ -1598,13 +1630,12 @@ class FASTPT:
         self.cache.set(C_l, "convolution", hash_key, None)
         return C_l
 
-
+    
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
         result = self.cache.get("J_k_scalar", hash_key)
         if result is not None: return result
-        from numpy.fft import ifft, irfft
 
         pf, p, g_m, g_n, two_part_l, h_l = X
 
@@ -1619,7 +1650,7 @@ class FASTPT:
         if (self.n_pad > 0):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
 
-        c_m = self._cache_fourier_coefficients(P_b, C_window)
+        c_m = self._cache_fourier_coefficients(P_b, C_window, scalar=True)
 
         A_out = np.zeros((pf.shape[0], self.k_size))
         for i in range(pf.shape[0]):
@@ -1648,13 +1679,12 @@ class FASTPT:
         self.cache.set((P_out, A_out), "J_k_scalar", hash_key, P_hash)
         return P_out, A_out
 
-    
+   
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
 
         hash_key, P_hash = self._create_hash_key("J_k_tensor", X, P, P_window, C_window)
         result = self.cache.get("J_k_tensor", hash_key)
         if result is not None: return result
-        from numpy.fft import ifft
 
         pf, p, nu1, nu2, g_m, g_n, h_l = X
 
@@ -1687,9 +1717,8 @@ class FASTPT:
             if (self.n_pad > 0):
                 P_b1 = np.pad(P_b1, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
                 P_b2 = np.pad(P_b2, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
-            c_m = self._cache_fourier_coefficients(P_b1, C_window)
-            c_n = self._cache_fourier_coefficients(P_b2, C_window)
-
+            c_m = self._cache_fourier_coefficients(P_b1, C_window, scalar=False)
+            c_n = self._cache_fourier_coefficients(P_b2, C_window, scalar=False)
             # convolve f_c and g_c
             C_l = self._cache_convolution(c_m, c_n, g_m[i,:], g_n[i,:], h_l[i,:])
 
