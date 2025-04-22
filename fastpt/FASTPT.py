@@ -180,7 +180,6 @@ class FASTPT:
                                                   high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
             return None
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
-        
         self.cache = CacheManager()
         self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
@@ -904,52 +903,6 @@ class FASTPT:
         Pb2L = self._get_Pb2L(P, P_window=P_window, C_window=C_window)
         Pb2L_2 = self._get_Pb2L_2(P, P_window=P_window, C_window=C_window)
         sig4 = self._get_sig4(P, P_window=P_window, C_window=C_window)
-        # nu_arr = -2
-
-        # # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
-        # # get the matrix for each J_k component
-        # Ps, mat = self.J_k_scalar(P, self.X_lpt, nu_arr, P_window=P_window, C_window=C_window)
-
-        # [j000, j002, j2n22, j1n11, j1n13, j004, j2n20] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
-        #                                                   mat[5, :], mat[6, :]]
-
-        # P22 = 2. * ((1219. / 1470.) * j000 + (671. / 1029.) * j002 + (32. / 1715.) * j004 + (1. / 3.) * j2n22 + (
-        #         62. / 35.) * j1n11 + (8. / 35.) * j1n13 + (1. / 6.) * j2n20)
-
-        # sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
-
-        # X1 = ((144. / 245.) * j000 - (176. / 343.) * j002 - (128. / 1715.) * j004 + (16. / 35.) * j1n11 - (
-        #         16. / 35.) * j1n13)
-        # X2 = ((16. / 21.) * j000 - (16. / 21.) * j002 + (16. / 35.) * j1n11 - (16. / 35.) * j1n13)
-        # X3 = (50. / 21.) * j000 + 2. * j1n11 - (8. / 21.) * j002
-        # X4 = (34. / 21.) * j000 + 2. * j1n11 + (8. / 21.) * j002
-        # X5 = j000
-
-        # Y1 = Y1_reg_NL(self.k_extrap, Ps)
-        # Y2 = Y2_reg_NL(self.k_extrap, Ps)
-
-        # Pb1L = X1 + Y1
-        # Pb1L_2 = X2 + Y2
-        # Pb1L_b2L = X3
-        # Pb2L = X4
-        # Pb2L_2 = X5
-
-        # if (self.extrap):
-        #     _, Ps = self.EK.PK_original(Ps)
-        #     # _, P_1loop=self.EK.PK_original(P_1loop)
-
-        #     _, Pb1L = self.EK.PK_original(Pb1L)
-        #     _, Pb1L_2 = self.EK.PK_original(Pb1L_2)
-        #     _, Pb1L_b2L = self.EK.PK_original(Pb1L_b2L)
-        #     _, Pb2L = self.EK.PK_original(Pb2L)
-        #     _, Pb2L_2 = self.EK.PK_original(Pb2L_2)
-        #     _, X1 = self.EK.PK_original(X1)
-        #     _, X2 = self.EK.PK_original(X2)
-        #     _, X3 = self.EK.PK_original(X3)
-        #     _, X4 = self.EK.PK_original(X4)
-        #     _, X5 = self.EK.PK_original(X5)
-        #     _, Y1 = self.EK.PK_original(Y1)
-        #     _, Y2 = self.EK.PK_original(Y2)
         return Ps, Pb1L, Pb1L_2, Pb1L_b2L, Pb2L, Pb2L_2, sig4
     
     def _get_Pb1L(self, P, P_window=None, C_window=None):
@@ -1067,7 +1020,7 @@ class FASTPT:
         return P_E, P_B
 
     ## eq 21 EE; eq 21 BB
-    
+
     def IA_mix(self, P, P_window=None, C_window=None):
         """
         Computes mixed intrinsic alignment contributions combining tidal 
@@ -1124,21 +1077,6 @@ class FASTPT:
         P_0E0E = self.compute_term("P_0E0E", self.X_IA_0E0E, P=P, P_window=P_window, C_window=C_window)
         P_0B0B = self.compute_term("P_0B0B", self.X_IA_0B0B, P=P, P_window=P_window, C_window=C_window)
         return P_deltaE1, P_deltaE2, P_0E0E, P_0B0B
-        # P_deltaE1, A = self.J_k_tensor(P, self.X_IA_deltaE1, P_window=P_window, C_window=C_window)
-        # if (self.extrap):
-        #     _, P_deltaE1 = self.EK.PK_original(P_deltaE1)
-
-        # P_deltaE2 = P_IA_deltaE2(self.k_original, P)
-
-        # P_0E0E, A = self.J_k_tensor(P, self.X_IA_0E0E, P_window=P_window, C_window=C_window)
-        # if (self.extrap):
-        #     _, P_0E0E = self.EK.PK_original(P_0E0E)
-
-        # P_0B0B, A = self.J_k_tensor(P, self.X_IA_0B0B, P_window=P_window, C_window=C_window)
-        # if (self.extrap):
-        #     _, P_0B0B = self.EK.PK_original(P_0B0B)
-
-        # return 2. * P_deltaE1, 2. * P_deltaE2, P_0E0E, P_0B0B
     
     def _get_P_deltaE2(self, P):
         hash_key, P_hash = self._create_hash_key("P_deltaE2", None, P, None, None)
@@ -1598,17 +1536,26 @@ class FASTPT:
     def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
         """Cache and return convolution results"""
 
-        c1_hash = self._hash_arrays(c1)
-        c2_hash = self._hash_arrays(c2)
-        g_m_hash = self._hash_arrays(g_m)
-        g_n_hash = self._hash_arrays(g_n)
-        h_l_hash = self._hash_arrays(h_l)
-        two_part_l_hash = self._hash_arrays(two_part_l)
-        hash_list = [c1_hash, c2_hash, g_m_hash, g_n_hash, h_l_hash, two_part_l_hash]
+        # Use MurmurHash for faster hashing with low collision rate
+        def fast_hash(arr):
+            if arr is None:
+                return 0
+            if isinstance(arr, np.ndarray):
+                # Use only first 1000 elements for large arrays as a speed optimization
+                if arr.size > 1000:
+                    sample = arr.ravel()[:1000]
+                    return hash(sample.tobytes()) ^ hash(arr.shape) ^ hash(arr.size)
+                return hash(arr.tobytes()) ^ hash(arr.shape)
+            return hash(arr)
+        
+        # Combine hashes with different prime multipliers to reduce collisions
         hash_key = 0
-        for h in hash_list:
-            if h is not None:
-                hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        primes = [17, 31, 61, 127, 257, 509]
+        arrays = [c1, c2, g_m, g_n, h_l, two_part_l]
+        
+        for i, arr in enumerate(arrays):
+            h = fast_hash(arr)
+            hash_key = hash_key ^ (h * primes[i % len(primes)])
 
         result = self.cache.get("convolution", hash_key)
         if result is not None: 
@@ -1630,7 +1577,7 @@ class FASTPT:
         self.cache.set(C_l, "convolution", hash_key, None)
         return C_l
 
-    
+    @timer
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
@@ -1679,7 +1626,6 @@ class FASTPT:
         self.cache.set((P_out, A_out), "J_k_scalar", hash_key, P_hash)
         return P_out, A_out
 
-   
     def J_k_tensor(self, P, X, P_window=None, C_window=None):
 
         hash_key, P_hash = self._create_hash_key("J_k_tensor", X, P, P_window, C_window)
