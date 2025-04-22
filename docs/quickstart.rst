@@ -9,16 +9,18 @@ Using FAST-PT is straightforward. Here's a simple example to get started:
 
    import numpy as np
    import matplotlib.pyplot as plt
-   from fastpt import FASTPT
+   from fastpt import FASTPT, FPTHandler
 
-   # Load a power spectrum
-   data = np.loadtxt('Pk_test.dat')
-   k = data[:, 0]
-   P = data[:, 1]
+   #Define a k range
+   k = np.logspace(1e-4, 1, 1000)
 
    # Initialize FASTPT
    fpt = FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=int(0.5*len(k)))
+   handler = FPTHandler(fpt)
 
+   # Use the handler to generate a power spectrum
+   P = handler.get_power_spectrum()
+   
    # Calculate one-loop corrections
    P_1loop, P_components = fpt.one_loop_dd(P, C_window=0.75)
 
