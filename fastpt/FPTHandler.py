@@ -1417,10 +1417,6 @@ class FPTHandler:
                 param_arrays[param_name] = np.full(max_len, value)
             
         if method.lower() == 'classy':
-            # print(f"Omega_b: {param_arrays['omega_b']}, \n"
-            #     f"Omega_cdm: {param_arrays['omega_cdm']}, \n"
-            #     f"h: {param_arrays['h']}, \n"
-            #     f"z: {param_arrays['z']}")
             output = []
             for i in range(max_len):
                 output.append(self._class_power_spectra(

@@ -1213,8 +1213,7 @@ class FASTPT:
         if result is not None: return result
         P_F2, _ = self.J_k_tensor(P, self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         P_G2, _ = self.J_k_tensor(P, self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
-        P_F2 = self._apply_extrapolation(P_F2)
-        P_G2 = self._apply_extrapolation(P_G2)
+        P_F2, P_G2 = self._apply_extrapolation(P_F2, P_G2)
         P_d2tE = 2 * (P_G2 - P_F2)
         self.cache.set(P_d2tE, "Pd2tE", hash_key, P_hash)
         return P_d2tE
@@ -1225,8 +1224,7 @@ class FASTPT:
         if result is not None: return result
         P_S2F2, _ = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         P_S2G2, _ = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
-        P_S2F2 = self._apply_extrapolation(P_S2F2)
-        P_S2G2 = self._apply_extrapolation(P_S2G2)
+        P_S2F2, P_S2G2 = self._apply_extrapolation(P_S2F2, P_S2G2)
         P_s2tE = 2 * (P_S2G2 - P_S2F2)
         self.cache.set(P_s2tE, "P_s2tE", hash_key, P_hash)
         return P_s2tE
@@ -1536,12 +1534,11 @@ class FASTPT:
     def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
         """Cache and return convolution results"""
 
-        # Use MurmurHash for faster hashing with low collision rate
+        # Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case
         def fast_hash(arr):
             if arr is None:
                 return 0
             if isinstance(arr, np.ndarray):
-                # Use only first 1000 elements for large arrays as a speed optimization
                 if arr.size > 1000:
                     sample = arr.ravel()[:1000]
                     return hash(sample.tobytes()) ^ hash(arr.shape) ^ hash(arr.size)
@@ -1577,7 +1574,6 @@ class FASTPT:
         self.cache.set(C_l, "convolution", hash_key, None)
         return C_l
 
-    @timer
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
