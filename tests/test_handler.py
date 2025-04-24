@@ -11,20 +11,7 @@ k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
 
-if __name__ == "__main__":
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-    pk = handler.generate_power_spectra(method='classy', 
-                                        omega_cdm=[0.10, 0.15, 0.20],
-                                        h=0.6,
-                                        omega_b=0.02,
-                                        z=0.9,
-                                        )
-    pk2 = handler.generate_power_spectra(method='camb',
-                                         omega_cdm=[0.10, 0.15, 0.20],
-                                        h=0.6,
-                                        omega_b=0.02,
-                                        z=0.9)
+
     
     
 
@@ -1299,3 +1286,31 @@ def test_generate_power_spectra_with_redshift(handler):
     # Power should decrease with increasing redshift
     for i in range(1, len(spectra)):
         assert np.mean(spectra[i]) < np.mean(spectra[i-1])
+
+if __name__ == "__main__":
+    # kbig = np.logspace(-4, 3, 3000)
+    # print(len(kbig))
+    # print(max(kbig))
+    k = np.loadtxt('k_h.txt')
+    k = k / 0.67
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    cosmosis_p = np.loadtxt('cosmosis_p.txt')
+    pk = handler.generate_power_spectra(method='classy')
+    pk = pk * 0.67 ** 3
+    pk2 = handler.generate_power_spectra(method='camb')
+    #camb2 = handler.genserate_power_spectra(method='camb', nonlinear=False)
+    #relational_diff = np.abs(pk2 - camb2) / camb2
+    import matplotlib.pyplot as plt
+    plt.plot(fpt.k_original * 0.67, pk, label='class')
+    plt.plot(fpt.k_original, pk2, label='camb')
+    plt.plot(fpt.k_original*0.67, cosmosis_p, label='cosmosis')
+    # plt.plot(fpt.k_original, relational_diff, label='diff')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('k')
+    plt.ylabel('P(k)')
+    plt.legend()
+    plt.show()
+
+    

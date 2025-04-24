@@ -1386,21 +1386,52 @@ class FPTHandler:
         
         return fig
     
-    def generate_power_spectra(self, method='classy', **kwargs):
+    def generate_power_spectra(self, method='classy', mode='single', **kwargs):
         """
         Generate power spectra using the specified method.
         """
+        if mode not in ('single', 'bulk', 'diff'):
+            raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
+    
+        if mode == 'diff':
+            return self._diff_power_spectra(method.lower(), **kwargs)
+        
+        #Is this params dict necessary or can we just pass kwargs directly?
         params = {
             'omega_cdm': kwargs.get('omega_cdm', 0.12),
             'h': kwargs.get('h', 0.67),
             'omega_b': kwargs.get('omega_b', 0.022),
             'z': kwargs.get('z', 0.0),
-            'n_s': kwargs.get('n_s', 0.96),
+            'ns': kwargs.get('ns', 0.96),
             'As': kwargs.get('As', 2.1e-9),
             'k_hunit': kwargs.get('k_hunit', True),
-            'nonlinear': kwargs.get('nonlinear', False)
+            'nonlinear': kwargs.get('nonlinear', False),
+            'H0': kwargs.get('H0', None),
+            'kmax': kwargs.get('kmax', None),
+            'hubble_units': kwargs.get('hubble_units', True),
+            'extrap_kmax': kwargs.get('extrap_kmax', None),
+            'k_per_logint': kwargs.get('k_per_logint', None),
+            'halofit_version': kwargs.get('halofit_version', 'mead')
         }
+
+        if mode == 'bulk':
+            return self._bulk_power_spectra(method.lower(), **params)
         
+        # Single mode
+        for k, v in params.items():
+            if isinstance(v, (list, np.ndarray)):
+                raise ValueError(f"Parameter '{k}' must be a single value for single mode.")
+        if method.lower() == 'classy':
+            return self._class_power_spectra(omega_cdm=params['omega_cdm'],
+                                             h=params['h'], 
+                                             omega_b=params['omega_b'], 
+                                             z=params['z'])
+        elif method.lower() == 'camb':
+            return self._camb_power_spectra(**params)
+        else:
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+    
+    def _bulk_power_spectra(self, method, **params):
         max_len = 1
         for param_name, value in params.items():
             if isinstance(value, (list, np.ndarray)):
@@ -1436,25 +1467,73 @@ class FPTHandler:
                     omega_cdm=param_arrays['omega_cdm'][i],
                     h=param_arrays['h'][i],
                     z=param_arrays['z'][i]
+                    #Update to include new params for CAMB
                 ))
             
             return output[0] if len(output) == 1 else output
         else:
             raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+
+    def _diff_power_spectra(self, method, **kwargs):
+        #Validate that every kwarg is a list of either length 1 or 3 (or make it a list if its a float/int)
+        for key, value in kwargs.items():
+            if key.lower() == 'z':
+                if isinstance(value, (int, float)):
+                    kwargs['z'] = [value]
+                continue
+            if isinstance(value, (int, float)):
+                kwargs[key] = [value]
+            if not isinstance(value, (list, np.ndarray)):
+                raise ValueError(f"Parameter '{key}' must be a list or numpy array.")
+            if len(value) not in (1, 3):
+                raise ValueError(f"Parameter '{key}' must have length 1 or 3.")
+            if len(value) == 1:
+                kwargs[key] = [value[0], value[0], value[0]]
+
+        if method == 'classy':
+            if len(kwargs) != 4:
+                raise ValueError("Four parameters are required: omega_cdm, h, omega_b, z.")
+            result = {}
+            for z in kwargs['z']:
+                output_arr = []
+                # Center column
+                output_arr.append([kwargs['omega_cdm'][1], kwargs['h'][1], kwargs['omega_b'][1]])
+                for param in ['omega_cdm', 'h', 'omega_b']:
+                    param_values = kwargs[param]
+                    if param_values[0] == param_values[1] == param_values[2]:
+                        continue
+                    for idx in [0, 2]:
+                        # Start with center values for all parameters
+                        values = [kwargs[p][1] for p in ['omega_cdm', 'h', 'omega_b']]
+                        # Replace the value for the current parameter with its low or high value
+                        param_index = ['omega_cdm', 'h', 'omega_b'].index(param)
+                        values[param_index] = kwargs[param][idx]
+                        
+                        output_arr.append(values)
+                from pprint import pprint
+                pprint(output_arr)       
+                for row in output_arr:
+                    key = tuple([row[0], row[1], row[2], z])
+                    result[key] = self._class_power_spectra(
+                        omega_cdm=row[0],
+                        h=row[1],
+                        omega_b=row[2],
+                        z=z
+                    )
+            return result
+        elif method == 'camb':
+            pass
+        else:
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
         
 
-    def _class_power_spectra(self, randomize=False, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
+    def _class_power_spectra(self, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
         try:
             from classy import Class
         except ImportError as e:
             raise ImportError("Classy is not installed. Please install it to use this function.") from e
         k = self.fastpt.k_original
         k_max = max(k)
-        if randomize:
-            omega_cdm = np.random.uniform(0.1, 0.14)
-            h = np.random.uniform(0.65, 0.75)
-            omega_b = np.random.uniform(0.02, 0.025)
-            z = np.random.uniform(0.0, 1.0)
         params = {
             'output': 'mPk',
             'P_k_max_1/Mpc': k_max * 1.1,
@@ -1470,59 +1549,70 @@ class FPTHandler:
         cosmo.struct_cleanup()
         cosmo.empty()
         return output
-    
-    def _camb_power_spectra(self, randomize=False, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0, n_s=0.96, 
-                        As=2.1e-9, k_hunit=True, nonlinear=False):
+
+    def _camb_power_spectra(self,
+                                z: float = 0.0,
+                                nonlinear: bool = True,
+                                h: float = 0.67,
+                                H0: float = None,
+                                omega_b: float = 0.022,
+                                omega_cdm: float = 0.122,
+                                As: float = 2.1e-9,
+                                ns: float = 0.965,
+                                halofit_version: str = 'mead',
+                                kmax: float = None,
+                                hubble_units: bool = True,
+                                k_hunit: bool = True,
+                                extrap_kmax: float = None,
+                                k_per_logint: int = None
+                               ):
         try:
-            from camb import model, get_results
+            import camb
         except ImportError as e:
             raise ImportError("CAMB is not installed. Please install it to use this function.") from e
-        
         k = self.fastpt.k_original
 
-        if randomize:
-            h = np.random.uniform(0.65, 0.75)
-            omega_cdm = np.random.uniform(0.1, 0.14)
-            omega_b = np.random.uniform(0.02, 0.025)
-            n_s = np.random.uniform(0.94, 0.98)
-            As = np.random.uniform(1.8e-9, 2.4e-9)
-            z = np.random.uniform(0.0, 1.0)
-        
-        # Set up CAMB parameters
-        pars = model.CAMBparams()
-        pars.set_cosmology(H0=h*100, ombh2=omega_b*h**2, omch2=omega_cdm*h**2)
-        pars.InitPower.set_params(ns=n_s, As=As)
-        
-        # Set redshift and k ranges
-        if k_hunit:
-            # Convert k from h/Mpc to 1/Mpc for CAMB
-            k_camb = k * h
-        else:
-            k_camb = k
-            
-        pars.set_matter_power(redshifts=[z], kmax=np.max(k_camb))
-        
-        # Set nonlinear correction if requested
-        if nonlinear:
-            pars.NonLinear = model.NonLinear_pk
-        
-        # Calculate results
-        results = get_results(pars)
-        
-        # Get matter power spectrum
-        k_camb_out, z_out, pk_camb = results.get_matter_power_spectrum(minkh=np.min(k_camb)/h if k_hunit else np.min(k_camb), 
-                                                                maxkh=np.max(k_camb)/h if k_hunit else np.max(k_camb), 
-                                                                npoints=len(k))
-        
-        # Interpolate to match exactly our k array
-        from scipy.interpolate import interp1d
-        if k_hunit:
-            # CAMB returns k in h/Mpc
-            pk_interp = interp1d(k_camb_out, pk_camb[0], bounds_error=False, fill_value='extrapolate')
-            power_spectrum = pk_interp(k)
-        else:
-            # Need to convert CAMB output k to 1/Mpc
-            pk_interp = interp1d(k_camb_out*h, pk_camb[0], bounds_error=False, fill_value='extrapolate')
-            power_spectrum = pk_interp(k)
-        
-        return power_spectrum
+        if H0 is None: H0 = h * 100
+         # 1) Set up CAMB parameters
+        pars = camb.CAMBparams()
+        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm)                 # standard cosmology
+        pars.InitPower.set_params(As=As, ns=ns)                            # primordial spectrum
+
+        # 2) Matter power settings
+        kmax = kmax or float(np.max(k))
+        pars.set_matter_power(redshifts=[z], kmax=kmax, k_per_logint=k_per_logint)
+
+        # 3) Choose HALOFIT version (no 'nonlinear' flag here)
+        pars.NonLinearModel.set_params(halofit_version=halofit_version)
+
+        # 4) Build interpolator, passing the nonlinear flag here
+        PK = camb.get_matter_power_interpolator(pars,
+                                                zmin=z, zmax=z, nz_step=1, zs=[z],
+                                                kmax=kmax,
+                                                nonlinear=nonlinear,
+                                                hubble_units=hubble_units,
+                                                k_hunit=k_hunit,
+                                                extrap_kmax=extrap_kmax,
+                                                k_per_logint=k_per_logint)
+
+        # 5) Evaluate at stored k
+        return PK.P(z, k)
+    
+
+if __name__ == "__main__":
+    k = np.logspace(-3, 1, 1000)
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    output = handler._class_power_spectra()
+    output2 = handler._camb_power_spectra(nonlinear=False)
+    from matplotlib import pyplot as plt
+    plt.plot(k, output, label='Class')
+    plt.plot(k, output2, label='CAMB')
+    plt.legend()
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('k [h/Mpc]')
+    plt.ylabel('P(k) [h^{-3} Mpc^3]')
+    plt.title('CAMB Power Spectrum')
+    plt.show()
+    
