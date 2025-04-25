@@ -631,8 +631,6 @@ class FASTPT:
         if arrays is None: 
             return hash(None)
         if isinstance(arrays, (tuple, list)):
-            # Avoid creating intermediate lists for storing hashes
-            # Instead build the hash directly using a single hash_key value
             hash_key_hash = 0
             for i, item in enumerate(arrays):
                 if isinstance(item, np.ndarray):
@@ -695,23 +693,19 @@ class FASTPT:
         if P is None: 
             raise ValueError('Compute term requires an input power spectrum array.')        
 
-        # Original Python implementation for single X case
         hash_key, P_hash = self._create_hash_key(term, X, P, P_window, C_window)
         result = self.cache.get(term, hash_key)
         if result is not None: 
             return result
 
-        # Compute the term
         result, _ = self.J_k_tensor(P, X, P_window=P_window, C_window=C_window)
         result = self._apply_extrapolation(result)
 
-        # Apply operation if provided
         if operation:
             final_result = operation(result)
             self.cache.set(final_result, term, hash_key, P_hash)
             return final_result
 
-        # Cache and return result
         self.cache.set(result, term, hash_key, P_hash)
         return result
     
@@ -719,7 +713,7 @@ class FASTPT:
 
 
     ### Top-level functions to output final quantities ###
-    def one_loop_dd(self, P, P_window=None, C_window=None): #Acts as its own get function (like IA_der)
+    def one_loop_dd(self, P, P_window=None, C_window=None):
         """
         Computes the standard 1-loop density-density corrections to the power spectrum.
     
@@ -1190,7 +1184,7 @@ class FASTPT:
         P_tEtE = 2*P_tEtE
         self.cache.set(P_tEtE, "P_tEtE", hash_key, P_hash)
         return P_tEtE
-    #IA_ctbias
+
     def gI_ct(self,P,P_window=None, C_window=None):
         """
         Computes galaxy bias cross intrinsic alignment velocity-shear contributions.
@@ -1228,31 +1222,7 @@ class FASTPT:
         P_s2tE = 2 * (P_S2G2 - P_S2F2)
         self.cache.set(P_s2tE, "P_s2tE", hash_key, P_hash)
         return P_s2tE
-
-
-    # Going away
-    # def IA_gb2(self,P,P_window=None, C_window=None):
-    #     """
-    #     Computes intrinsic alignment galaxy bias contributions (2nd order).
     
-    #     Returns
-    #     -------
-    #     tuple
-    #         (P_gb2sij, P_gb2dsij, P_gb2sij2) where:
-    #     P_gb2sij : Galaxy bias-tidal correlation
-    #     P_gb2dsij : Galaxy bias-density-tidal correlation
-    #     P_gb2sij2 : Galaxy bias-tidal squared correlation
-    #     """
-    #     self._validate_params(P=P, P_window=P_window, C_window=C_window)
-    #     P_gb2sij = self.compute_term("P_gb2sij", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
-    #                                   P=P, P_window=P_window, C_window=C_window)
-    #     P_gb2dsij = self.compute_term("P_gb2dsij", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
-    #                                     P=P, P_window=P_window, C_window=C_window)
-    #     P_gb2sij2 = self.compute_term("P_gb2sij2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
-    #                                    P=P, P_window=P_window, C_window=C_window)
-    #     return P_gb2sij, P_gb2dsij, P_gb2sij2
-    
-    #d2
     def gI_ta(self,P,P_window=None, C_window=None):
         """
         Computes intrinsic alignment 2nd-order density correlations.
@@ -1268,20 +1238,14 @@ class FASTPT:
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_d2E = self.compute_term("P_d2E", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
-        # was IA_gb2_he now fe
         P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        #Added
         P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
         P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        #Remove
-        # P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
-        #                             P=P, P_window=P_window, C_window=C_window)
         return P_d2E, P_d20E, P_s2E, P_s20E
 
-    #s2
     def gI_tt(self, P, P_window=None, C_window=None):
         """
         Computes intrinsic alignment 2nd-order tidal correlations.
@@ -1295,14 +1259,8 @@ class FASTPT:
         P_s2E2 : 2nd-order tidal-E-mode squared correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
-        #Gone
-        # P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
-        #                            P=P, P_window=P_window, C_window=C_window)
-        # P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
-        #                             P=P, P_window=P_window, C_window=C_window)
         P_s2E2 = self.compute_term("P_s2E2", self.X_IA_gb2_S2he, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        #Added, was IA_gb2_fe now he
         P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
         return P_s2E2, P_d2E2

@@ -151,8 +151,8 @@ def test_all_fastpt_functions_with_handler_params(fpt):
     func_names = (
         'one_loop_dd', 'one_loop_dd_bias', 'one_loop_dd_bias_b3nl',
         'one_loop_dd_bias_lpt_NL', 'IA_tt', 'IA_mix', 'IA_ta',
-        'IA_der', 'IA_ct', 'IA_ctbias', 'IA_gb2', 'IA_d2',
-        'IA_s2', 'OV', 'kPol', 'RSD_components', 'IRres',
+        'IA_der', 'IA_ct', 'gI_ct', 'gI_ta',
+        'gI_tt', 'OV', 'kPol', 'RSD_components', 'IRres',
         'RSD_ABsum_components', 'RSD_ABsum_mu',
     )
     
@@ -180,10 +180,9 @@ def test_all_fastpt_functions_with_run_params(fpt):
         'IA_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_der': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_ctbias': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_gb2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_d2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_s2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_tt': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'OV': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'kPol': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'RSD_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
@@ -251,10 +250,9 @@ def test_handler_function_equality(fpt):
         'IA_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_der': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_ctbias': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_gb2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_d2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_s2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_tt': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'OV': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'kPol': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'RSD_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
@@ -312,12 +310,11 @@ def test_get_method_basics(fpt, handler):
                                        "P_E", "P_B",
                                        "P_A", "P_Btype2", "P_DEE", "P_DBB",
                                        "P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B",
-                                       "P_gb2sij", "P_gb2dsij", "P_gb2sij2",
                                        "P_der",
                                        "P_0tE", "P_0EtE", "P_E2tE", "P_tEtE",
                                        "P_d2tE", "P_s2tE",
-                                       "P_s2E", "P_s20E", "P_s2E2",
-                                       "P_d2E", "P_d20E", "P_d2E2",
+                                       "P_s2E2", "P_d2E2",
+                                       "P_d2E", "P_d20E", "P_s2E", "P_s20E",
                                        "P_OV",
                                        "P_kP1", "P_kP2", "P_kP3"])                   
 def test_get_all_terms(fpt, handler, term_name):
@@ -351,10 +348,6 @@ def test_get_all_terms(fpt, handler, term_name):
             "P_deltaE2": ("IA_ta", 1),
             "P_0E0E": ("IA_ta", 2),
             "P_0B0B": ("IA_ta", 3),
-        
-            "P_gb2sij": ("IA_gb2", 0),
-            "P_gb2dsij": ("IA_gb2", 1),
-            "P_gb2sij2": ("IA_gb2", 2),
 
             "P_der": ("IA_der", 0),
 
@@ -363,16 +356,16 @@ def test_get_all_terms(fpt, handler, term_name):
             "P_E2tE": ("IA_ct", 2),
             "P_tEtE": ("IA_ct", 3),
         
-            "P_d2tE": ("IA_ctbias", 0),
-            "P_s2tE": ("IA_ctbias", 1),
+            "P_d2tE": ("gI_ct", 0),
+            "P_s2tE": ("gI_ct", 1),
         
-            "P_s2E": ("IA_s2", 0),
-            "P_s20E": ("IA_s2", 1),
-            "P_s2E2": ("IA_s2", 2),
+            "P_s2E2": ("gI_tt", 0),
+            "P_d2E2": ("gI_tt", 1),
         
-            "P_d2E": ("IA_d2", 0),
-            "P_d20E": ("IA_d2", 1),
-            "P_d2E2": ("IA_d2", 2),
+            "P_d2E": ("gI_ta", 0),
+            "P_d20E": ("gI_ta", 1),
+            "P_s2E": ("gI_ta", 2),
+            "P_s20E": ("gI_ta", 3),
         
             "P_OV": ("OV", 0),
         
@@ -1412,21 +1405,16 @@ def test_import_error_handling(monkeypatch):
         handler.generate_power_spectra(method='camb')
 
 if __name__ == "__main__":
-    # kbig = np.logspace(-4, 3, 3000)
-    # print(len(kbig))
-    # print(max(kbig))
     k = np.loadtxt('k_h.txt')
     k = k / 0.67
     fpt = FASTPT(k)
     handler = FPTHandler(fpt)
     cosmosis_p = np.loadtxt('cosmosis_p.txt')
     pk = handler.generate_power_spectra(method='classy')
-    pk = pk * 0.67 ** 3
-    pk2 = handler.generate_power_spectra(method='camb')
-    #camb2 = handler.genserate_power_spectra(method='camb', nonlinear=False)
-    #relational_diff = np.abs(pk2 - camb2) / camb2
+    # pk = pk * 0.67 ** 3
+    pk2 = handler.generate_power_spectra(method='camb', nonlinear=False)
     import matplotlib.pyplot as plt
-    plt.plot(fpt.k_original * 0.67, pk, label='class')
+    plt.plot(fpt.k_original, pk, label='class')
     plt.plot(fpt.k_original, pk2, label='camb')
     plt.plot(fpt.k_original*0.67, cosmosis_p, label='cosmosis')
     # plt.plot(fpt.k_original, relational_diff, label='diff')

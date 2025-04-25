@@ -21,7 +21,7 @@ class FPTHandler:
     save_all : str, optional
         File format to save all results ('txt', 'csv', or 'json'). Default is None.
     save_dir : str, optional
-        Directory to save results. Default is 'outputs' directory in package location.
+        Directory to save results. Default is 'outputs' directory in pak_hage location.
     max_cache_entries : int, optional
         Maximum number of results to keep in cache. Default is 500.
     **params : dict
@@ -99,9 +99,9 @@ class FPTHandler:
             "P_0E0E": ("IA_ta", "X_IA_0E0E", None),
             "P_0B0B": ("IA_ta", "X_IA_0B0B", None),
         
-            "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
-            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
-            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
+            # "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
+            # "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
+            # "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
 
             "P_der": ("IA_der", None),
 
@@ -110,16 +110,16 @@ class FPTHandler:
             "P_E2tE": ("IA_ct", None),
             "P_tEtE": ("IA_ct", None),
         
-            "P_d2tE": ("IA_ctbias", None),
-            "P_s2tE": ("IA_ctbias", None),
+            "P_d2tE": ("gI_ct", None),
+            "P_s2tE": ("gI_ct", None),
         
-            "P_s2E": ("IA_s2", "X_IA_gb2_S2F2", lambda x: 2 * x),
-            "P_s20E": ("IA_s2", "X_IA_gb2_S2fe", lambda x: 2 * x),
-            "P_s2E2": ("IA_s2", "X_IA_gb2_S2he", lambda x: 2 * x),
+            "P_s2E2": ("gI_tt", "X_IA_gb2_S2he", lambda x: 2 * x),
+            "P_d2E2": ("gI_tt", "X_IA_gb2_he", lambda x: 2 * x),
         
-            "P_d2E": ("IA_d2", "X_IA_gb2_F2", lambda x: 2 * x),
-            "P_d20E": ("IA_d2", "X_IA_gb2_he", lambda x: 2 * x),
-            "P_d2E2": ("IA_d2", "X_IA_gb2_fe", lambda x: 2 * x),
+            "P_d2E": ("gI_ta", "X_IA_gb2_F2", lambda x: 2 * x),
+            "P_d20E": ("gI_ta", "X_IA_gb2_fe", lambda x: 2 * x),
+            "P_s2E": ("gI_ta", "X_IA_gb2_S2F2", lambda x: 2 * x),
+            "P_s20E": ("gI_ta", "X_IA_gb2_S2fe", lambda x: 2 * x),
         
             "P_OV": ("OV", None),
         
@@ -501,9 +501,9 @@ class FPTHandler:
             #^^ also needs Pd1d1 and Pd1k2
             "pii": ("a00e", "c00e", "a0e0e", "a0b0b", "ae2e2", "ab2b2", "a0e2", 
                     "b0e2", "d0ee2", "d0bb2", "tijsij", "tijdsij", "tij2sij", "tijtij", "Pak2"),
-            #^^ also needs Pd1d1, Pak2 has a weird if check
+            #^^ also needs Pd1d1, Pak2 has a weird if chek_h
             "pim": ("a00e", "c00e", "a0e2", "b0e2", "tijsij", "Pak2"),
-            #^^ also needs Pd1d1, Pak2 has a weird if check
+            #^^ also needs Pd1d1, Pak2 has a weird if chek_h
             "pmm": ("P_1loop")
         }
 
@@ -813,7 +813,7 @@ class FPTHandler:
         _, ext = os.path.splitext(full_path)
         ext = ext.lower()
     
-        # Check for valid extension before checking if file exists
+        # Chek_h for valid extension before chek_hing if file exists
         if ext not in (".txt", ".csv", ".json"):
             raise FileNotFoundError(f"Unsupported file extension: {ext}. Must be '.txt', '.csv', or '.json'")
         if not os.path.exists(full_path):
@@ -881,11 +881,11 @@ class FPTHandler:
             else:
                 raise ValueError(f"Unsupported file extension: {ext}. Must be '.txt', '.csv', or '.json'")
             
-            # Handle special case for sig4 in bias functions - convert back to float
+            # Handle special case for sig4 in bias functions - convert bak_h to float
             # In one_loop_dd_bias and one_loop_dd_bias_b3nl, sig4 is at index 7
             # In one_loop_dd_bias_lpt_NL, sig4 is at index 6
             if func_name in ["one_loop_dd_bias", "one_loop_dd_bias_b3nl"] and len(arrays) > 7:
-                # Check if the array is mostly zeros with one value
+                # Chek_h if the array is mostly zeros with one value
                 if arrays[7].size > 1 and np.count_nonzero(arrays[7]) <= 1:
                     # Get the first non-zero value or the first value if all zeros
                     if np.any(arrays[7]):
@@ -895,7 +895,7 @@ class FPTHandler:
                     arrays[7] = sig4_value
                     
             elif func_name == "one_loop_dd_bias_lpt_NL" and len(arrays) > 6:
-                # Similar check for lpt_NL case
+                # Similar chek_h for lpt_NL case
                 if arrays[6].size > 1 and np.count_nonzero(arrays[6]) <= 1:
                     if np.any(arrays[6]):
                         sig4_value = arrays[6][np.nonzero(arrays[6])[0][0]]
@@ -1216,7 +1216,7 @@ class FPTHandler:
             # Apply scale factor if provided for this label
             scale = scale_factors.get(label, default_scale)
             
-            # Check if data contains negative values
+            # Chek_h if data contains negative values
             if isinstance(data_array, np.ndarray) and np.any(data_array < 0):
                 # Plot positive values
                 mask_pos = data_array >= 0
@@ -1372,8 +1372,8 @@ class FPTHandler:
             # Remove x-label from top plot to avoid overlap
             ax1.set_xlabel('')
         
-            # Only show x tick labels on bottom panel
-            plt.setp(ax1.get_xticklabels(), visible=False)
+            # Only show x tik_h labels on bottom panel
+            plt.setp(ax1.get_xtik_hlabels(), visible=False)
         
         # Save figure if path provided
         if 'save_path' in plot_kwargs:
@@ -1621,28 +1621,4 @@ class FPTHandler:
 
         # 5) Evaluate at stored k
         return PK.P(z, k)
-    
-
-if __name__ == "__main__":
-    k = np.logspace(-3, 1, 1000)
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt)
-    res = handler.generate_power_spectra(method='camb', mode='diff',
-                                   omega_cdm=[0.12, 0.14, 0.16],
-                                           h=0.68,
-                                     omega_b=[0.022, 0.024, 0.026],
-                                           z=[0.5,0.7])
-
-    # output = handler._class_power_spectra()
-    # output2 = handler._camb_power_spectra(nonlinear=False)
-    # from matplotlib import pyplot as plt
-    # plt.plot(k, output, label='Class')
-    # plt.plot(k, output2, label='CAMB')
-    # plt.legend()
-    # plt.xscale('log')
-    # plt.yscale('log')
-    # plt.xlabel('k [h/Mpc]')
-    # plt.ylabel('P(k) [h^{-3} Mpc^3]')
-    # plt.title('CAMB Power Spectrum')
-    # plt.show()
     

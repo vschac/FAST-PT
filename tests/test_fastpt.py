@@ -296,35 +296,27 @@ def test_IA_ct(fpt):
     for term in result:
         assert term.shape == P.shape
 
-def test_IA_ctbias(fpt):
-    """Test the IA_ctbias function"""
-    result = fpt.IA_ctbias(P)
+def test_gI_ct(fpt):
+    """Test the gI_ct function"""
+    result = fpt.gI_ct(P)
     assert isinstance(result, tuple)
     assert len(result) == 2
     for term in result:
         assert term.shape == P.shape
 
-def test_IA_gb2(fpt):
-    """Test the IA_gb2 function"""
-    result = fpt.IA_gb2(P)
-    assert isinstance(result, tuple)
-    assert len(result) == 3
-    for term in result:
-        assert term.shape == P.shape
-
-def test_IA_d2(fpt):
+def test_gI_ta(fpt):
     """Test the IA_d2 function"""
-    result = fpt.IA_d2(P)
+    result = fpt.gI_ta(P)
     assert isinstance(result, tuple)
-    assert len(result) == 3
+    assert len(result) == 4
     for term in result:
         assert term.shape == P.shape
 
-def test_IA_s2(fpt):
+def test_gI_tt(fpt):
     """Test the IA_s2 function"""
-    result = fpt.IA_s2(P)
+    result = fpt.gI_tt(P)
     assert isinstance(result, tuple)
-    assert len(result) == 3
+    assert len(result) == 2
     for term in result:
         assert term.shape == P.shape
 
