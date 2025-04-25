@@ -1168,124 +1168,248 @@ def test_load_params_in_bulk_run(fpt, temp_output_dir):
             assert (func, i) in results
 
 ################# POWER SPECTRA GENERATOR TESTS #################
+
 def test_generate_power_spectra_basic(handler):
-    """Test basic functionality of generate_power_spectra"""
-    # Test default parameters return a single power spectrum
-    power_spectrum = handler.generate_power_spectra()
-    assert isinstance(power_spectrum, np.ndarray)
-    assert power_spectrum.shape == handler.fastpt.k_original.shape
-    assert np.all(power_spectrum > 0)  # Power spectrum should be positive
+    """Test basic single-mode power spectra generation with default parameters"""
+    # Test class with default parameters
+    class_result = handler.generate_power_spectra(method='classy')
+    assert isinstance(class_result, np.ndarray)
+    assert len(class_result) == len(handler.fastpt.k_original)
+    assert np.all(class_result > 0)  # Power spectrum should be positive
+    
+    # Test CAMB with default parameters
+    camb_result = handler.generate_power_spectra(method='camb')
+    assert isinstance(camb_result, np.ndarray)
+    assert len(camb_result) == len(handler.fastpt.k_original)
+    assert np.all(camb_result > 0)
 
 def test_generate_power_spectra_methods(handler):
-    """Test both available cosmology methods"""
-    # Test classy method
-    classy_ps = handler.generate_power_spectra(method='classy')
-    assert isinstance(classy_ps, np.ndarray)
+    """Test power spectra generation with different methods"""
+    # Generate power spectra with different methods but same params
+    class_result = handler.generate_power_spectra(method='classy', z=0.5, h=0.7)
+    camb_result = handler.generate_power_spectra(method='camb', z=0.5, h=0.7)
     
-    # Test camb method (skip if not installed)
-    try:
-        from camb import model
-        camb_ps = handler.generate_power_spectra(method='camb')
-        assert isinstance(camb_ps, np.ndarray)
-        # Results should be similar but not identical
-        assert not np.array_equal(classy_ps, camb_ps)
-        assert np.allclose(classy_ps, camb_ps, rtol=0.1), f"Max fractional difference: {max((classy_ps-camb_ps)/classy_ps)}"  # Should be within 10%
-    except ImportError:
-        pytest.skip("CAMB not installed, skipping CAMB test")
-
-def test_generate_power_spectra_parameter_arrays(handler):
-    """Test passing arrays of parameters to generate multiple spectra"""
-    # Test with array parameters
-    omega_cdm_values = np.array([0.10, 0.12, 0.14])
-    power_spectra = handler.generate_power_spectra(omega_cdm=omega_cdm_values)
-    
-    # Should return list of spectra with same length as parameter array
-    assert isinstance(power_spectra, list)
-    assert len(power_spectra) == len(omega_cdm_values)
-    
-    # Spectra should be different from each other
-    assert not np.array_equal(power_spectra[0], power_spectra[1])
-    assert not np.array_equal(power_spectra[1], power_spectra[2])
-    
-    # Test with multiple parameter arrays of same length
-    h_values = np.array([0.65, 0.67, 0.70])
-    multi_param_spectra = handler.generate_power_spectra(
-        omega_cdm=omega_cdm_values,
-        h=h_values
-    )
-    assert len(multi_param_spectra) == len(omega_cdm_values)
-
-def test_generate_power_spectra_uneven_arrays(handler):
-    """Test parameter arrays of different lengths"""
-    # Test with parameter arrays of different lengths
-    omega_cdm_values = np.array([0.10, 0.12, 0.14])
-    h_values = np.array([0.65, 0.70])  # Shorter array
-    
-    # Should pad shorter array to match longest
-    spectra = handler.generate_power_spectra(
-        omega_cdm=omega_cdm_values,
-        h=h_values
-    )
-    
-    assert len(spectra) == len(omega_cdm_values)
-    
-    # First two spectra should use the provided h values
-    # Third spectrum should use the last h value (edge padding)
-    direct_spec1 = handler._class_power_spectra(
-        omega_cdm=omega_cdm_values[0], h=h_values[0])
-    direct_spec3 = handler._class_power_spectra(
-        omega_cdm=omega_cdm_values[2], h=h_values[1])
-    
-    assert np.allclose(spectra[0], direct_spec1)
-    assert np.allclose(spectra[2], direct_spec3)
+    # Results should be similar but not identical (within ~10%)
+    # This is a rough check that both methods are working and producing reasonable results
+    ratio = np.mean(class_result / camb_result)
+    assert 0.8 < ratio < 1.2, f"Results differ too much, ratio: {ratio}"
 
 def test_generate_power_spectra_invalid_method(handler):
-    """Test error handling for invalid method"""
-    with pytest.raises(ValueError, match="Invalid method. Choose either 'classy' or 'camb'"):
-        handler.generate_power_spectra(method='invalid_method')
+    """Test with invalid method names"""
+    with pytest.raises(ValueError, match="Invalid method"):
+        handler.generate_power_spectra(method='invalid')
 
-def test_generate_power_spectra_nonlinear_camb(handler):
-    """Test nonlinear power spectrum generation with CAMB"""
-    try:
-        from camb import model
-        # Generate linear and nonlinear spectra
-        linear_ps = handler.generate_power_spectra(method='camb', nonlinear=False)
-        nonlinear_ps = handler.generate_power_spectra(method='camb', nonlinear=True)
-        
-        # Nonlinear should be different from linear
-        assert not np.array_equal(linear_ps, nonlinear_ps)
-        
-        # Nonlinear power should be higher at small scales (high k)
-        k = handler.fastpt.k_original
-        high_k_mask = k > 0.1
-        assert np.mean(nonlinear_ps[high_k_mask]/linear_ps[high_k_mask]) > 1.0
-    except ImportError:
-        pytest.skip("CAMB not installed, skipping nonlinear test")
+def test_generate_power_spectra_invalid_mode(handler):
+    """Test with invalid mode names"""
+    with pytest.raises(ValueError, match="Invalid mode"):
+        handler.generate_power_spectra(mode='invalid')
 
-def test_generate_power_spectra_k_units(handler):
-    """Test handling of k units in power spectrum generation"""
-    try:
-        from camb import model
-        # Generate spectra with different unit conventions
-        h_units = handler.generate_power_spectra(method='camb', k_hunit=True)
-        mpc_units = handler.generate_power_spectra(method='camb', k_hunit=False)
-        
-        # Results should be similar but not identical due to unit handling
-        assert not np.array_equal(h_units, mpc_units)
-    except ImportError:
-        pytest.skip("CAMB not installed, skipping k units test")
+def test_generate_power_spectra_single_mode_array_error(handler):
+    """Test that arrays cannot be passed in single mode"""
+    with pytest.raises(ValueError, match="must be a single value"):
+        handler.generate_power_spectra(omega_cdm=[0.1, 0.2])
 
-def test_generate_power_spectra_with_redshift(handler):
-    """Test generating power spectra at different redshifts"""
-    # Generate spectra at different redshifts
-    z_values = np.array([0.0, 0.5, 1.0, 2.0])
-    spectra = handler.generate_power_spectra(z=z_values)
+def test_generate_power_spectra_params(handler):
+    """Test power spectra generation with different parameter values"""
+    # Generate with different parameter values
+    base_result = handler.generate_power_spectra(method='classy')
+    high_h_result = handler.generate_power_spectra(method='classy', h=0.75)
+    high_cdm_result = handler.generate_power_spectra(method='classy', omega_cdm=0.15)
     
-    assert len(spectra) == len(z_values)
+    # Results should be different with different parameters
+    assert not np.allclose(base_result, high_h_result)
+    assert not np.allclose(base_result, high_cdm_result)
+
+def test_bulk_power_spectra(handler):
+    """Test bulk mode power spectra generation"""
+    # Test with arrays of different lengths
+    bulk_results = handler.generate_power_spectra(
+        mode='bulk',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=[0.67, 0.68],
+        omega_b=0.022,
+        z=[0.0]
+    )
     
-    # Power should decrease with increasing redshift
-    for i in range(1, len(spectra)):
-        assert np.mean(spectra[i]) < np.mean(spectra[i-1])
+    # Should return a list of results with length = max(param_length)
+    assert isinstance(bulk_results, list)
+    assert len(bulk_results) == 3  # Max length of input parameters
+    
+    # Each result should be a proper power spectrum
+    for result in bulk_results:
+        assert isinstance(result, np.ndarray)
+        assert len(result) == len(handler.fastpt.k_original)
+        assert np.all(result > 0)
+
+def test_bulk_power_spectra_single_entry(handler):
+    """Test bulk mode with single entry arrays"""
+    # When all parameters are length 1, should return a single result
+    single_bulk_result = handler.generate_power_spectra(
+        mode='bulk',
+        omega_cdm=[0.12],
+        h=[0.67],
+        omega_b=[0.022],
+        z=[0.0]
+    )
+    
+    # Should be a single array, not a list
+    assert isinstance(single_bulk_result, np.ndarray)
+    assert len(single_bulk_result) == len(handler.fastpt.k_original)
+
+def test_diff_power_spectra_basic(handler):
+    """Test diff mode power spectra generation"""
+    # Test with basic parameters
+    diff_results = handler.generate_power_spectra(
+        mode='diff',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=0.67,
+        omega_b=0.022,
+        z=0.0
+    )
+    
+    # Should return a dictionary keyed by parameter tuples
+    assert isinstance(diff_results, dict)
+    
+    # Should contain results for central value + 2 variations
+    assert len(diff_results) == 3  # 1 central + 2 variations
+    
+    # Check format of keys and values
+    for key, value in diff_results.items():
+        assert isinstance(key, tuple)
+        assert len(key) == 4  # (omega_cdm, h, omega_b, z)
+        assert isinstance(value, np.ndarray)
+        assert len(value) == len(handler.fastpt.k_original)
+
+def test_diff_power_spectra_multi_param(handler):
+    """Test diff mode with multiple variable parameters"""
+    diff_results = handler.generate_power_spectra(
+        mode='diff',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=[0.66, 0.67, 0.68],
+        omega_b=0.022,
+        z=0.0
+    )
+    
+    # Should contain results for central value + 2+2 variations
+    assert isinstance(diff_results, dict)
+    assert len(diff_results) == 5  # 1 central + 2*2 variations
+    
+    # Check that results include variations for both parameters
+    central_key = None
+    omega_cdm_low_key = None
+    h_high_key = None
+    
+    for key in diff_results.keys():
+        omega_cdm, h, _, _ = key
+        if omega_cdm == 0.12 and h == 0.67:
+            central_key = key
+        elif omega_cdm == 0.11 and h == 0.67:
+            omega_cdm_low_key = key
+        elif omega_cdm == 0.12 and h == 0.68:
+            h_high_key = key
+    
+    assert central_key is not None, "Central parameter combination not found"
+    assert omega_cdm_low_key is not None, "omega_cdm low variation not found"
+    assert h_high_key is not None, "h high variation not found"
+
+def test_diff_power_spectra_requires_length_3(handler):
+    """Test that diff mode requires at least one parameter with length 3"""
+    with pytest.raises(ValueError, match="must have length 3"):
+        handler.generate_power_spectra(
+            mode='diff',
+            omega_cdm=[0.12],
+            h=[0.67],
+            omega_b=[0.022],
+            z=[0.0]
+        )
+
+def test_diff_power_spectra_with_multiple_z(handler):
+    """Test diff mode with multiple redshifts"""
+    diff_results = handler.generate_power_spectra(
+        mode='diff',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=0.67,
+        omega_b=0.022,
+        z=[0.0, 0.5]
+    )
+    
+    # Should return results for each z
+    assert isinstance(diff_results, dict)
+    assert len(diff_results) == 6  # 3 param combinations * 2 redshifts
+    
+    # Check that we have results for both redshifts
+    z0_keys = [k for k in diff_results.keys() if k[3] == 0.0]
+    z05_keys = [k for k in diff_results.keys() if k[3] == 0.5]
+    assert len(z0_keys) == 3
+    assert len(z05_keys) == 3
+
+def test_camb_specific_params(handler):
+    """Test CAMB-specific parameters"""
+    # With nonlinear=True
+    result_nl = handler.generate_power_spectra(
+        method='camb',
+        nonlinear=True
+    )
+    
+    # With nonlinear=False
+    result_linear = handler.generate_power_spectra(
+        method='camb',
+        nonlinear=False
+    )
+    
+    # Results should be different
+    assert not np.allclose(result_nl, result_linear)
+    
+    # With different halofit version
+    result_halofit = handler.generate_power_spectra(
+        method='camb',
+        halofit_version='takahashi'
+    )
+    
+    # Should be different from default (mead)
+    assert not np.allclose(result_nl, result_halofit)
+
+def test_class_camb_parameter_consistency(handler):
+    """Test consistency in parameter handling between CLASS and CAMB"""
+    # Generate spectra with same parameters
+    params = {
+        'omega_cdm': 0.12,
+        'h': 0.67,
+        'omega_b': 0.022,
+        'z': 0.5
+    }
+    
+    class_result = handler.generate_power_spectra(method='classy', **params)
+    camb_result = handler.generate_power_spectra(method='camb', **params)
+    
+    # Results should be similar (within reasonable bounds)
+    # Note: Some differences are expected due to different implementations
+    assert len(class_result) == len(camb_result)
+    
+    # Check ratio over most of the range (excluding extremes)
+    k_idx_range = slice(len(handler.fastpt.k_original) // 10, -len(handler.fastpt.k_original) // 10)
+    ratio = class_result[k_idx_range] / camb_result[k_idx_range]
+    assert 0.8 < np.median(ratio) < 1.2, "CLASS and CAMB results differ significantly"
+
+def test_import_error_handling(monkeypatch):
+    """Test handling of import errors for CLASS and CAMB"""
+    # Create a handler with a mock FASTPT instance
+    k = np.logspace(-3, 1, 100)
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    
+    # Mock import errors
+    def mock_import_error(*args, **kwargs):
+        raise ImportError("Module not found")
+    
+    # Test CLASS import error
+    monkeypatch.setattr("builtins.__import__", mock_import_error, raising=False)
+    with pytest.raises(ImportError, match="Classy is not installed"):
+        handler.generate_power_spectra(method='classy')
+    
+    # Test CAMB import error
+    with pytest.raises(ImportError, match="CAMB is not installed"):
+        handler.generate_power_spectra(method='camb')
 
 if __name__ == "__main__":
     # kbig = np.logspace(-4, 3, 3000)

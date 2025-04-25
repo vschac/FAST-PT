@@ -1389,47 +1389,36 @@ class FPTHandler:
     def generate_power_spectra(self, method='classy', mode='single', **kwargs):
         """
         Generate power spectra using the specified method.
+        
+        Parameters
+        ----------
+        method : str
+            Either 'classy' or 'camb'
+        mode : str
+            'single', 'bulk', or 'diff'
+        **kwargs
+            Cosmological parameters to pass to the appropriate method
         """
+        method = method.lower()
+        if method not in ('classy', 'camb'):
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+            
         if mode not in ('single', 'bulk', 'diff'):
             raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
-    
-        if mode == 'diff':
-            return self._diff_power_spectra(method.lower(), **kwargs)
-        
-        #Is this params dict necessary or can we just pass kwargs directly?
-        params = {
-            'omega_cdm': kwargs.get('omega_cdm', 0.12),
-            'h': kwargs.get('h', 0.67),
-            'omega_b': kwargs.get('omega_b', 0.022),
-            'z': kwargs.get('z', 0.0),
-            'ns': kwargs.get('ns', 0.96),
-            'As': kwargs.get('As', 2.1e-9),
-            'k_hunit': kwargs.get('k_hunit', True),
-            'nonlinear': kwargs.get('nonlinear', False),
-            'H0': kwargs.get('H0', None),
-            'kmax': kwargs.get('kmax', None),
-            'hubble_units': kwargs.get('hubble_units', True),
-            'extrap_kmax': kwargs.get('extrap_kmax', None),
-            'k_per_logint': kwargs.get('k_per_logint', None),
-            'halofit_version': kwargs.get('halofit_version', 'mead')
-        }
 
-        if mode == 'bulk':
-            return self._bulk_power_spectra(method.lower(), **params)
-        
-        # Single mode
-        for k, v in params.items():
-            if isinstance(v, (list, np.ndarray)):
-                raise ValueError(f"Parameter '{k}' must be a single value for single mode.")
-        if method.lower() == 'classy':
-            return self._class_power_spectra(omega_cdm=params['omega_cdm'],
-                                             h=params['h'], 
-                                             omega_b=params['omega_b'], 
-                                             z=params['z'])
-        elif method.lower() == 'camb':
-            return self._camb_power_spectra(**params)
-        else:
-            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+        if mode == 'diff':
+            return self._diff_power_spectra(method, **kwargs)
+        elif mode == 'bulk':
+            return self._bulk_power_spectra(method, **kwargs)
+        else: 
+            for key, val in kwargs.items():
+                if isinstance(val, (list, np.ndarray)):
+                    raise ValueError(f"Parameter '{key}' must be a single value for single mode.")
+                    
+            if method == 'classy':
+                return self._class_power_spectra(**kwargs)
+            else: 
+                return self._camb_power_spectra(**kwargs)
     
     def _bulk_power_spectra(self, method, **params):
         max_len = 1
@@ -1475,57 +1464,92 @@ class FPTHandler:
             raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
 
     def _diff_power_spectra(self, method, **kwargs):
-        #Validate that every kwarg is a list of either length 1 or 3 (or make it a list if its a float/int)
-        for key, value in kwargs.items():
-            if key.lower() == 'z':
-                if isinstance(value, (int, float)):
-                    kwargs['z'] = [value]
-                continue
-            if isinstance(value, (int, float)):
-                kwargs[key] = [value]
-            if not isinstance(value, (list, np.ndarray)):
-                raise ValueError(f"Parameter '{key}' must be a list or numpy array.")
-            if len(value) not in (1, 3):
-                raise ValueError(f"Parameter '{key}' must have length 1 or 3.")
-            if len(value) == 1:
-                kwargs[key] = [value[0], value[0], value[0]]
-
-        if method == 'classy':
-            if len(kwargs) != 4:
-                raise ValueError("Four parameters are required: omega_cdm, h, omega_b, z.")
-            result = {}
-            for z in kwargs['z']:
-                output_arr = []
-                # Center column
-                output_arr.append([kwargs['omega_cdm'][1], kwargs['h'][1], kwargs['omega_b'][1]])
-                for param in ['omega_cdm', 'h', 'omega_b']:
-                    param_values = kwargs[param]
-                    if param_values[0] == param_values[1] == param_values[2]:
-                        continue
-                    for idx in [0, 2]:
-                        # Start with center values for all parameters
-                        values = [kwargs[p][1] for p in ['omega_cdm', 'h', 'omega_b']]
-                        # Replace the value for the current parameter with its low or high value
-                        param_index = ['omega_cdm', 'h', 'omega_b'].index(param)
-                        values[param_index] = kwargs[param][idx]
-                        
-                        output_arr.append(values)
-                from pprint import pprint
-                pprint(output_arr)       
-                for row in output_arr:
-                    key = tuple([row[0], row[1], row[2], z])
-                    result[key] = self._class_power_spectra(
-                        omega_cdm=row[0],
-                        h=row[1],
-                        omega_b=row[2],
-                        z=z
-                    )
-            return result
-        elif method == 'camb':
-            pass
-        else:
+        if method not in ('classy', 'camb'):
             raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
         
+        diff_params = {
+            'omega_cdm': kwargs.get('omega_cdm', [0.12]),
+            'h': kwargs.get('h', [0.67]),
+            'omega_b': kwargs.get('omega_b', [0.022]),
+            'z': kwargs.get('z', [0.0]),
+        }
+        
+        has_param_with_length_3 = any(
+            isinstance(value, (list, np.ndarray)) and len(value) == 3
+            for value in diff_params.values()
+        )
+        if not has_param_with_length_3:
+            raise ValueError("At least one parameter must have length 3 to use diff mode.")
+        
+        camb_params = {
+            'As': kwargs.get('As', 2.1e-9),
+            'ns': kwargs.get('ns', 0.96),
+            'k_hunit': kwargs.get('k_hunit', True),
+            'nonlinear': kwargs.get('nonlinear', False),
+            'H0': kwargs.get('H0', None),
+            'kmax': kwargs.get('kmax', None),
+            'hubble_units': kwargs.get('hubble_units', True),
+            'extrap_kmax': kwargs.get('extrap_kmax', None),
+            'k_per_logint': kwargs.get('k_per_logint', None),
+            'halofit_version': kwargs.get('halofit_version', 'mead')
+        }
+        
+        for key, value in diff_params.items():
+            if key == 'z':
+                diff_params['z'] = [value] if isinstance(value, (int, float)) else value
+                continue
+                
+            if isinstance(value, (int, float)):
+                diff_params[key] = [value]            
+            if not isinstance(diff_params[key], (list, np.ndarray)):
+                raise ValueError(f"Parameter '{key}' must be a list or numpy array.")                
+            if len(diff_params[key]) not in (1, 3):
+                raise ValueError(f"Parameter '{key}' must have length 1 or 3.")                
+            if len(diff_params[key]) == 1:
+                diff_params[key] = [diff_params[key][0]] * 3
+        
+        result = {}
+        
+        compute_func = self._class_power_spectra if method == 'classy' else self._camb_power_spectra
+        
+        for z in diff_params['z']:
+            param_combinations = []
+            
+            center_values = [diff_params[p][1] for p in ['omega_cdm', 'h', 'omega_b']]
+            param_combinations.append(center_values)
+            
+            for param_idx, param in enumerate(['omega_cdm', 'h', 'omega_b']):
+                param_values = diff_params[param]
+                
+                if param_values[0] == param_values[1] == param_values[2]:
+                    continue
+                    
+                for val_idx in [0, 2]:
+                    values = center_values.copy()
+                    values[param_idx] = param_values[val_idx]
+                    param_combinations.append(values)
+
+            for combo in param_combinations:
+                omega_cdm, h, omega_b = combo
+                key = (omega_cdm, h, omega_b, z)
+                
+                if method == 'classy':
+                    result[key] = compute_func(
+                        omega_cdm=omega_cdm,
+                        h=h,
+                        omega_b=omega_b,
+                        z=z
+                    )
+                else: 
+                    result[key] = compute_func(
+                        omega_cdm=omega_cdm,
+                        h=h,
+                        omega_b=omega_b,
+                        z=z,
+                        **camb_params
+                    )
+        
+        return result
 
     def _class_power_spectra(self, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
         try:
@@ -1603,16 +1627,22 @@ if __name__ == "__main__":
     k = np.logspace(-3, 1, 1000)
     fpt = FASTPT(k)
     handler = FPTHandler(fpt)
-    output = handler._class_power_spectra()
-    output2 = handler._camb_power_spectra(nonlinear=False)
-    from matplotlib import pyplot as plt
-    plt.plot(k, output, label='Class')
-    plt.plot(k, output2, label='CAMB')
-    plt.legend()
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlabel('k [h/Mpc]')
-    plt.ylabel('P(k) [h^{-3} Mpc^3]')
-    plt.title('CAMB Power Spectrum')
-    plt.show()
+    res = handler.generate_power_spectra(method='camb', mode='diff',
+                                   omega_cdm=[0.12, 0.14, 0.16],
+                                           h=0.68,
+                                     omega_b=[0.022, 0.024, 0.026],
+                                           z=[0.5,0.7])
+
+    # output = handler._class_power_spectra()
+    # output2 = handler._camb_power_spectra(nonlinear=False)
+    # from matplotlib import pyplot as plt
+    # plt.plot(k, output, label='Class')
+    # plt.plot(k, output2, label='CAMB')
+    # plt.legend()
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.xlabel('k [h/Mpc]')
+    # plt.ylabel('P(k) [h^{-3} Mpc^3]')
+    # plt.title('CAMB Power Spectrum')
+    # plt.show()
     
