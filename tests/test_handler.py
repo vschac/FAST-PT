@@ -1406,18 +1406,15 @@ def test_import_error_handling(monkeypatch):
 
 if __name__ == "__main__":
     k = np.loadtxt('k_h.txt')
-    k = k / 0.67
     fpt = FASTPT(k)
     handler = FPTHandler(fpt)
     cosmosis_p = np.loadtxt('cosmosis_p.txt')
     pk = handler.generate_power_spectra(method='classy')
-    # pk = pk * 0.67 ** 3
     pk2 = handler.generate_power_spectra(method='camb', nonlinear=False)
     import matplotlib.pyplot as plt
     plt.plot(fpt.k_original, pk, label='class')
     plt.plot(fpt.k_original, pk2, label='camb')
-    plt.plot(fpt.k_original*0.67, cosmosis_p, label='cosmosis')
-    # plt.plot(fpt.k_original, relational_diff, label='diff')
+    plt.plot(fpt.k_original, cosmosis_p, label='cosmosis')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlabel('k')

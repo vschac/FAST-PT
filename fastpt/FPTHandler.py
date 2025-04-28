@@ -1563,12 +1563,15 @@ class FPTHandler:
             'z_max_pk': z,
             'h': h,
             'omega_b': omega_b,
-            'omega_cdm': omega_cdm
+            'omega_cdm': omega_cdm,
+            # 'ln10^{10}A_s':  np.log10(2.1e-9*1e10),
+            # 'n_s':           0.965, #Update these two to be passed as kwargs if needed
         }
         cosmo = Class()
         cosmo.set(params)
         cosmo.compute()
         output = np.array([cosmo.pk(k, z) for k in k])
+        # output = np.array([cosmo.pk(ki, 0.0) for ki in k]) * h**3
         cosmo.struct_cleanup()
         cosmo.empty()
         return output
