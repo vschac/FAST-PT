@@ -130,10 +130,8 @@ class FASTPT:
         
         Notes
         -----
-        The input k array must be:
-        1. Strictly increasing
-        2. Logarithmically spaced with consistent spacing
-        3. Contain an even number of elements
+        The input k array must be strictly increasing, logarithmically spaced with consistent spacing,
+        contain an even number of elements
         
         Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is 
         recommended to reduce numerical artifacts from the FFT-based algorithm.

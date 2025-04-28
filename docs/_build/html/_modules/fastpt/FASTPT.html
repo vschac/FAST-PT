@@ -131,8 +131,20 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">.P_extend</span><span class="w"> </span><span class="kn">import</span> <span class="n">k_extend</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">FASTPT_simple</span> <span class="k">as</span> <span class="n">fastpt_simple</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.CacheManager</span><span class="w"> </span><span class="kn">import</span> <span class="n">CacheManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fftconvolve</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.fft</span><span class="w"> </span><span class="kn">import</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">irfft</span><span class="p">,</span> <span class="n">rfft</span>
 
 <span class="n">log2</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">timer</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator to time function execution&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(New) Function </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> executed in </span><span class="si">{</span><span class="n">end_time</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">wrapper</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">cached_property</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
@@ -159,7 +171,7 @@
 <span class="sd">    Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        k : array_like</span>
-<span class="sd">            The input k-grid (wavenumbers) in h/Mpc. Must be logarithmically spaced</span>
+<span class="sd">            The input k-grid (wavenumbers) in 1/Mpc. Must be logarithmically spaced</span>
 <span class="sd">            with equal spacing in log(k) and contain an even number of elements.</span>
 <span class="sd">        </span>
 <span class="sd">        nu : float, optional</span>
@@ -195,10 +207,8 @@
 <span class="sd">        </span>
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
-<span class="sd">        The input k array must be:</span>
-<span class="sd">        1. Strictly increasing</span>
-<span class="sd">        2. Logarithmically spaced with consistent spacing</span>
-<span class="sd">        3. Contain an even number of elements</span>
+<span class="sd">        The input k array must be strictly increasing, logarithmically spaced with consistent spacing,</span>
+<span class="sd">        contain an even number of elements</span>
 <span class="sd">        </span>
 <span class="sd">        Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is </span>
 <span class="sd">        recommended to reduce numerical artifacts from the FFT-based algorithm.</span>
@@ -247,7 +257,6 @@
                                                   <span class="n">high_extrap</span><span class="o">=</span><span class="n">high_extrap</span><span class="p">,</span> <span class="n">n_pad</span><span class="o">=</span><span class="n">n_pad</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
         <span class="c1"># Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.</span>
-        
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">CacheManager</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">X_registry</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1">#Stores the names of X terms to be used as an efficient unique identifier in hash keys</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__k_original</span> <span class="o">=</span> <span class="n">k</span>
@@ -688,43 +697,18 @@
 
         <span class="k">return</span> <span class="n">params</span>
     
-    <span class="k">def</span><span class="w"> </span><span class="nf">_clear_cached_x_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Clear cached parameters to free memory.</span>
-<span class="sd">        Call this method after completing memory-intensive calculations.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Clear all cached X_ properties</span>
-        <span class="k">for</span> <span class="n">attr_name</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">attr_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;X_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">attr_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">):</span>
-                <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">attr_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-        
-        <span class="c1"># Clear any other cached properties</span>
-        <span class="k">for</span> <span class="n">attr_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-            <span class="k">if</span> <span class="n">attr_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_X_&#39;</span><span class="p">):</span>
-                <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
-        
-        <span class="c1"># Additional cleanup for objects that might retain large arrays</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;P_13_reg&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">P_13_reg</span> <span class="o">=</span> <span class="kc">None</span>
-        
-        <span class="c1"># Force garbage collection</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
-        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-    
     <span class="c1">############## ABSTRACTED BEHAVIOR METHODS ##############</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_apply_extrapolation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Applies extrapolation to multiple variables at once &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">extrap</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">args</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">EK</span><span class="o">.</span><span class="n">PK_original</span><span class="p">(</span><span class="n">var</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">EK</span><span class="o">.</span><span class="n">PK_original</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_hash_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to create a hash from multiple numpy arrays or scalars&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">arrays</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> 
             <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-            <span class="c1"># Avoid creating intermediate lists for storing hashes</span>
-            <span class="c1"># Instead build the hash directly using a single hash_key value</span>
             <span class="n">hash_key_hash</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arrays</span><span class="p">):</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
@@ -743,7 +727,7 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
         <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_hash_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a hash key from the term and input parameters&quot;&quot;&quot;</span>
         <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
@@ -789,23 +773,19 @@
         <span class="k">if</span> <span class="n">P</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> 
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Compute term requires an input power spectrum array.&#39;</span><span class="p">)</span>        
 
-        <span class="c1"># Original Python implementation for single X case</span>
         <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
             <span class="k">return</span> <span class="n">result</span>
 
-        <span class="c1"># Compute the term</span>
         <span class="n">result</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
-        <span class="c1"># Apply operation if provided</span>
         <span class="k">if</span> <span class="n">operation</span><span class="p">:</span>
             <span class="n">final_result</span> <span class="o">=</span> <span class="n">operation</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">final_result</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">final_result</span>
 
-        <span class="c1"># Cache and return result</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span></div>
 
@@ -814,10 +794,9 @@
 
 
     <span class="c1">### Top-level functions to output final quantities ###</span>
-    
 <div class="viewcode-block" id="FASTPT.one_loop_dd">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.one_loop_dd">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">one_loop_dd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="c1">#Acts as its own get function (like IA_der)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">one_loop_dd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes the standard 1-loop density-density corrections to the power spectrum.</span>
 <span class="sd">    </span>
@@ -829,39 +808,30 @@
 <span class="sd">        Ps : Smoothed input power spectrum</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">Ps</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_scalar</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">Ps</span><span class="p">)</span>
-        <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;one_loop_dd&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;one_loop_dd&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">Ps</span>
-        <span class="n">P22</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P22</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P13</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P13</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_1loop</span> <span class="o">=</span> <span class="n">P22</span> <span class="o">+</span> <span class="n">P13</span>
-        <span class="n">P_1loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_1loop</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P_1loop</span><span class="p">,</span> <span class="s2">&quot;one_loop_dd&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
+        <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Ps</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+        <span class="n">P_1loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_1loop</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_1loop</span><span class="p">,</span> <span class="n">Ps</span> <span class="c1">#This return is going to be different than the original bc the original return is </span></div>
 
                         <span class="c1"># different depending on the todo list which is going to be deprecated.</span>
     
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_P22</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;P22&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;P22&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_Ps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">Ps</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_scalar</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+        <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">Ps</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Ps</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_P_1loop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;P_1loop&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;P_1loop&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
+        <span class="n">Ps</span><span class="p">,</span> <span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_scalar</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P22_coef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="o">*</span><span class="mi">1219</span><span class="o">/</span><span class="mf">1470.</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="mi">671</span><span class="o">/</span><span class="mf">1029.</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="mi">32</span><span class="o">/</span><span class="mf">1715.</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="mi">1</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="mi">62</span><span class="o">/</span><span class="mf">35.</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="mi">8</span><span class="o">/</span><span class="mf">35.</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mf">3.</span><span class="p">])</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_scalar</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P22_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">P22_coef</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">mat</span><span class="p">))</span>
         <span class="n">P22</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">P22_mat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P22</span><span class="p">,</span> <span class="s2">&quot;P22&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">P22</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_P13</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;P13&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;P13&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
-        <span class="n">Ps</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_scalar</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_spt</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P13</span> <span class="o">=</span> <span class="n">P_13_reg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k_extrap</span><span class="p">,</span> <span class="n">Ps</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P13</span><span class="p">,</span> <span class="s2">&quot;P13&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">P13</span>
+        <span class="n">P_1loop</span> <span class="o">=</span> <span class="n">P22</span> <span class="o">+</span> <span class="n">P13</span>
+        <span class="n">P_1loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_1loop</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P_1loop</span><span class="p">,</span> <span class="s2">&quot;P_1loop&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">P_1loop</span>
 
 
     <span class="c1">#TODO add comments back explaining math behind one loop</span>
@@ -1121,7 +1091,6 @@
         <span class="k">return</span> <span class="n">FQ1_ep</span><span class="p">,</span><span class="n">FQ2_ep</span><span class="p">,</span><span class="n">FQ5_ep</span><span class="p">,</span><span class="n">FQ8_ep</span><span class="p">,</span><span class="n">FQs2_ep</span><span class="p">,</span><span class="n">FR1_ep</span><span class="p">,</span><span class="n">FR2_ep</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">k_extrap</span><span class="p">,</span><span class="n">FR1</span><span class="p">,</span><span class="n">FR2</span></div>
 
 
-    
 <div class="viewcode-block" id="FASTPT.IA_tt">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_tt">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_tt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1144,7 +1113,7 @@
 
 
     <span class="c1">## eq 21 EE; eq 21 BB</span>
-    
+
 <div class="viewcode-block" id="FASTPT.IA_mix">
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_mix">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1245,16 +1214,16 @@
 <a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_ct">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">IA_ct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Computes intrinsic alignment counter-term contributions.</span>
+<span class="sd">        Computes intrinsic alignment velocity-shear contributions.</span>
 <span class="sd">    </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        tuple</span>
 <span class="sd">            (P_0tE, P_0EtE, P_E2tE, P_tEtE) where:</span>
-<span class="sd">        P_0tE : Density-tidal E-mode correlation</span>
-<span class="sd">        P_0EtE : E-mode-tidal E-mode correlation</span>
-<span class="sd">        P_E2tE : Second E-mode-tidal E-mode correlation</span>
-<span class="sd">        P_tEtE : Tidal E-mode auto-correlation</span>
+<span class="sd">        P_0tE : Density-velocity E-mode correlation</span>
+<span class="sd">        P_0EtE : E-mode-velocity E-mode correlation</span>
+<span class="sd">        P_E2tE : Second torquing-velocity E-mode correlation</span>
+<span class="sd">        P_tEtE : Velocity E-mode auto-correlation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_0tE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_0tE</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -1326,19 +1295,19 @@
         <span class="n">P_tEtE</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">P_tEtE</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P_tEtE</span><span class="p">,</span> <span class="s2">&quot;P_tEtE&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_tEtE</span>
-    
-<div class="viewcode-block" id="FASTPT.IA_ctbias">
-<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_ctbias">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">IA_ctbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="FASTPT.gI_ct">
+<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.gI_ct">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gI_ct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Computes intrinsic alignment counter-term bias contributions.</span>
+<span class="sd">        Computes galaxy bias cross intrinsic alignment velocity-shear contributions.</span>
 <span class="sd">    </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        tuple</span>
 <span class="sd">            (P_d2tE, P_s2tE) where:</span>
-<span class="sd">        P_d2tE : Second-order density-tidal E-mode correlation</span>
-<span class="sd">        P_s2tE : Second-order tidal-tidal E-mode correlation</span>
+<span class="sd">        P_d2tE : Second-order density-velocity E-mode correlation</span>
+<span class="sd">        P_s2tE : Second-order tidal-velocity E-mode correlation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_d2tE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_d2tE</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -1352,8 +1321,7 @@
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
         <span class="n">P_F2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_F2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_G2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_G2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_F2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_F2</span><span class="p">)</span>
-        <span class="n">P_G2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_G2</span><span class="p">)</span>
+        <span class="n">P_F2</span><span class="p">,</span> <span class="n">P_G2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_F2</span><span class="p">,</span> <span class="n">P_G2</span><span class="p">)</span>
         <span class="n">P_d2tE</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">P_G2</span> <span class="o">-</span> <span class="n">P_F2</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P_d2tE</span><span class="p">,</span> <span class="s2">&quot;Pd2tE&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_d2tE</span>
@@ -1364,41 +1332,14 @@
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
         <span class="n">P_S2F2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2F2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_S2G2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_k_tensor</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2G2</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_S2F2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_S2F2</span><span class="p">)</span>
-        <span class="n">P_S2G2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_S2G2</span><span class="p">)</span>
+        <span class="n">P_S2F2</span><span class="p">,</span> <span class="n">P_S2G2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_extrapolation</span><span class="p">(</span><span class="n">P_S2F2</span><span class="p">,</span> <span class="n">P_S2G2</span><span class="p">)</span>
         <span class="n">P_s2tE</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">P_S2G2</span> <span class="o">-</span> <span class="n">P_S2F2</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">P_s2tE</span><span class="p">,</span> <span class="s2">&quot;P_s2tE&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_s2tE</span>
-
     
-<div class="viewcode-block" id="FASTPT.IA_gb2">
-<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_gb2">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">IA_gb2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Computes intrinsic alignment galaxy bias contributions (2nd order).</span>
-<span class="sd">    </span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tuple</span>
-<span class="sd">            (P_gb2sij, P_gb2dsij, P_gb2sij2) where:</span>
-<span class="sd">        P_gb2sij : Galaxy bias-tidal correlation</span>
-<span class="sd">        P_gb2dsij : Galaxy bias-density-tidal correlation</span>
-<span class="sd">        P_gb2sij2 : Galaxy bias-tidal squared correlation</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_gb2sij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_gb2sij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
-                                      <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_gb2dsij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_gb2dsij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
-                                        <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_gb2sij2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_gb2sij2&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_he</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
-                                       <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">P_gb2sij</span><span class="p">,</span> <span class="n">P_gb2dsij</span><span class="p">,</span> <span class="n">P_gb2sij2</span></div>
-
-    
-
-<div class="viewcode-block" id="FASTPT.IA_d2">
-<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_d2">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">IA_d2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FASTPT.gI_ta">
+<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.gI_ta">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gI_ta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes intrinsic alignment 2nd-order density correlations.</span>
 <span class="sd">    </span>
@@ -1413,17 +1354,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_d2E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d2E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                    <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_d20E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d20E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_he</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">P_d20E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d20E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                     <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_d2E2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d2E2&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">P_s2E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s2E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
+                                   <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+        <span class="n">P_s20E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s20E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                     <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">P_d2E</span><span class="p">,</span> <span class="n">P_d20E</span><span class="p">,</span> <span class="n">P_d2E2</span></div>
+        <span class="k">return</span> <span class="n">P_d2E</span><span class="p">,</span> <span class="n">P_d20E</span><span class="p">,</span> <span class="n">P_s2E</span><span class="p">,</span> <span class="n">P_s20E</span></div>
 
 
-    
-<div class="viewcode-block" id="FASTPT.IA_s2">
-<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.IA_s2">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">IA_s2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FASTPT.gI_tt">
+<a class="viewcode-back" href="../../api.html#fastpt.FASTPT.gI_tt">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gI_tt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes intrinsic alignment 2nd-order tidal correlations.</span>
 <span class="sd">    </span>
@@ -1436,13 +1378,11 @@
 <span class="sd">        P_s2E2 : 2nd-order tidal-E-mode squared correlation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_s2E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s2E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
-                                   <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="n">P_s20E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s20E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2fe</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
-                                    <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_s2E2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s2E2&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2he</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
                                     <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">P_s2E</span><span class="p">,</span> <span class="n">P_s20E</span><span class="p">,</span> <span class="n">P_s2E2</span></div>
+        <span class="n">P_d2E2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d2E2&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_he</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
+                                    <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">P_s2E2</span><span class="p">,</span> <span class="n">P_d2E2</span></div>
 
 
     
@@ -1658,7 +1598,7 @@
             <span class="k">return</span> <span class="n">psmooth</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">pw</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Sigma</span><span class="p">)</span>
 
         <span class="n">P</span> <span class="o">=</span> <span class="n">presum</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-        <span class="n">out_1loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out_1loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_P_1loop</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="c1"># p1loop = interpolate.InterpolatedUnivariateSpline(k,out_1loop) # is this necessary? out_1loop should already be at the correct k spacing</span>
         <span class="k">return</span> <span class="n">psmooth</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">out_1loop</span> <span class="o">+</span> <span class="n">pw</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">k</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Sigma</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">Sigma</span> <span class="o">*</span> <span class="n">k</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
 
@@ -1684,18 +1624,17 @@
     <span class="c1">######################################################################################</span>
     <span class="c1">### Core functions used by top-level functions ###</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_fourier_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_fourier_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cache and return Fourier coefficients for a given biased power spectrum&quot;&quot;&quot;</span>
     
         <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-
+        <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="n">scalar</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x9e3779b9</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
             <span class="k">return</span> <span class="n">result</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.fft</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfft</span>
     
         <span class="n">c_m_positive</span> <span class="o">=</span> <span class="n">rfft</span><span class="p">(</span><span class="n">P_b</span><span class="p">)</span>
-        <span class="n">c_m_positive</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_m_positive</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span>
+        <span class="c1">#if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. </span>
         <span class="n">c_m_negative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">c_m_positive</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
         <span class="n">c_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">c_m_negative</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">c_m_positive</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
     
@@ -1709,23 +1648,30 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_cache_convolution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span><span class="p">,</span> <span class="n">two_part_l</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cache and return convolution results&quot;&quot;&quot;</span>
 
-        <span class="n">c1_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">c1</span><span class="p">)</span>
-        <span class="n">c2_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">c2</span><span class="p">)</span>
-        <span class="n">g_m_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">g_m</span><span class="p">)</span>
-        <span class="n">g_n_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">g_n</span><span class="p">)</span>
-        <span class="n">h_l_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">h_l</span><span class="p">)</span>
-        <span class="n">two_part_l_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash_arrays</span><span class="p">(</span><span class="n">two_part_l</span><span class="p">)</span>
-        <span class="n">hash_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">c1_hash</span><span class="p">,</span> <span class="n">c2_hash</span><span class="p">,</span> <span class="n">g_m_hash</span><span class="p">,</span> <span class="n">g_n_hash</span><span class="p">,</span> <span class="n">h_l_hash</span><span class="p">,</span> <span class="n">two_part_l_hash</span><span class="p">]</span>
+        <span class="c1"># Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">fast_hash</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
+                    <span class="n">sample</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="mi">1000</span><span class="p">]</span>
+                    <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        
+        <span class="c1"># Combine hashes with different prime multipliers to reduce collisions</span>
         <span class="n">hash_key</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hash_list</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mh">0x9e3779b9</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">primes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">17</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">127</span><span class="p">,</span> <span class="mi">257</span><span class="p">,</span> <span class="mi">509</span><span class="p">]</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span><span class="p">,</span> <span class="n">two_part_l</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arrays</span><span class="p">):</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">fast_hash</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+            <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">primes</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">primes</span><span class="p">)])</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;convolution&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
             <span class="k">return</span> <span class="n">result</span>
 
-        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fftconvolve</span>
         <span class="c1"># Calculate convolution</span>
         <span class="n">C_l</span> <span class="o">=</span> <span class="n">fftconvolve</span><span class="p">(</span><span class="n">c1</span> <span class="o">*</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">g_n</span><span class="p">)</span>
         <span class="c1">#Old comments about C_l</span>
@@ -1742,13 +1688,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">C_l</span><span class="p">,</span> <span class="s2">&quot;convolution&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">C_l</span>
 
-
     <span class="k">def</span><span class="w"> </span><span class="nf">J_k_scalar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         
         <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;J_k_scalar&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;J_k_scalar&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.fft</span><span class="w"> </span><span class="kn">import</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">irfft</span>
 
         <span class="n">pf</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">two_part_l</span><span class="p">,</span> <span class="n">h_l</span> <span class="o">=</span> <span class="n">X</span>
 
@@ -1763,7 +1707,7 @@
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
             <span class="n">P_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">P_b</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="n">c_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
+        <span class="n">c_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">A_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_size</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
@@ -1792,13 +1736,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">((</span><span class="n">P_out</span><span class="p">,</span> <span class="n">A_out</span><span class="p">),</span> <span class="s2">&quot;J_k_scalar&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_out</span><span class="p">,</span> <span class="n">A_out</span>
 
-    
     <span class="k">def</span><span class="w"> </span><span class="nf">J_k_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;J_k_tensor&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;J_k_tensor&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">result</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.fft</span><span class="w"> </span><span class="kn">import</span> <span class="n">ifft</span>
 
         <span class="n">pf</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">nu1</span><span class="p">,</span> <span class="n">nu2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span> <span class="o">=</span> <span class="n">X</span>
 
@@ -1831,9 +1773,8 @@
             <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
                 <span class="n">P_b1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">P_b1</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
                 <span class="n">P_b2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">P_b2</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">c_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b1</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-            <span class="n">c_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b2</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-
+            <span class="n">c_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b1</span><span class="p">,</span> <span class="n">C_window</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">c_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_fourier_coefficients</span><span class="p">(</span><span class="n">P_b2</span><span class="p">,</span> <span class="n">C_window</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="c1"># convolve f_c and g_c</span>
             <span class="n">C_l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_convolution</span><span class="p">(</span><span class="n">c_m</span><span class="p">,</span> <span class="n">c_n</span><span class="p">,</span> <span class="n">g_m</span><span class="p">[</span><span class="n">i</span><span class="p">,:],</span> <span class="n">g_n</span><span class="p">[</span><span class="n">i</span><span class="p">,:],</span> <span class="n">h_l</span><span class="p">[</span><span class="n">i</span><span class="p">,:])</span>
 

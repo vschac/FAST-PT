@@ -32,10 +32,10 @@ class FPTHandler:
     >>> from fastpt import FASTPT, FPTHandler
     >>> import numpy as np
     >>> k = np.logspace(-3, 1, 200)
-    >>> P = np.abs(np.sin(k))  # Example power spectrum
     >>> fpt = FASTPT(k)
-    >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
-    >>> result = handler.run('one_loop_dd')
+    >>> handler = FPTHandler(fpt, C_window=0.75)
+    >>> P = handler.generate_power_spectra()
+    >>> handler.update_default_params(P=P)
     >>> P_1loop = handler.get('P_E')  # Direct access to the P_E term of fpt.IA_tt
     """
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
@@ -253,7 +253,7 @@ class FPTHandler:
             
         Examples
         --------
-        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
         >>> P_1loop_result = handler.run('one_loop_dd')
         >>> ia_result = handler.run('IA_tt', save_type='csv')
         """
@@ -369,7 +369,6 @@ class FPTHandler:
         >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
         >>> P_1loop = handler.get('P_1loop')
         >>> ia_terms = handler.get('P_E', 'P_B')
-        >>> print(ia_terms['P_E'].shape)
         """
         if not terms:
             raise ValueError("At least one term must be provided.")
@@ -582,7 +581,7 @@ class FPTHandler:
         --------
         >>> handler = FPTHandler(fpt)
         >>> handler.list_available_functions()
-        ['OV', 'IA_ct', 'IA_ctbias', 'IA_d2', 'IA_der', ...]
+        ['OV', 'IA_ct', 'gI_ct', 'gI_tt', 'IA_der', ...]
         """
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("_")])
 
