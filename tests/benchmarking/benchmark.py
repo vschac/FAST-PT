@@ -28,10 +28,10 @@ P_IA_tt = fpt.IA_tt(P, C_window=C_window)
 P_IA_ta = fpt.IA_ta(P, C_window=C_window)
 P_IA_mix = fpt.IA_mix(P, C_window=C_window)
 P_IA_ct = fpt.IA_ct(P, C_window=C_window)
-P_IA_ctbias = fpt.IA_ctbias(P, C_window=C_window)
-P_IA_gb2 = fpt.IA_gb2(P, C_window=C_window)
-P_IA_d2 = fpt.IA_d2(P, C_window=C_window)
-P_IA_s2 = fpt.IA_s2(P, C_window=C_window)
+P_gI_ct = fpt.gI_ct(P, C_window=C_window)
+# P_IA_gb2 = fpt.IA_gb2(P, C_window=C_window)
+P_gI_ta = fpt.gI_ta(P, C_window=C_window)
+P_gI_tt = fpt.gI_tt(P, C_window=C_window)
 P_IA_der = fpt.IA_der(P, C_window=C_window)
 
 # RSD terms - note P_RSD requires f=1.0 parameter
@@ -54,10 +54,9 @@ names = {
     'P_IA_ta': P_IA_ta,
     'P_IA_mix': P_IA_mix,
     'P_IA_ct': P_IA_ct,
-    'P_IA_ctbias': P_IA_ctbias,
-    'P_IA_gb2': P_IA_gb2,
-    'P_IA_d2': P_IA_d2,
-    'P_IA_s2': P_IA_s2,
+    'P_gI_ct': P_gI_ct,
+    'P_gI_ta': P_gI_ta,
+    'P_gI_tt': P_gI_tt,
     'P_IA_der': P_IA_der,
     'P_RSD': P_RSD,
     'P_RSD_ABsum_components': P_RSD_ABsum_components,

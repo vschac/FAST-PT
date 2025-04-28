@@ -46,6 +46,5 @@ fastpt/param_matrix.py
 fastpt/timing_utils.py
 tests/test_benchmarks.py
 tests/test_cache.py
-tests/test_cython.py
 tests/test_fastpt.py
 tests/test_handler.py

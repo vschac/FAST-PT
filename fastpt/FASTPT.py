@@ -94,7 +94,7 @@ class FASTPT:
     Parameters
         ----------
         k : array_like
-            The input k-grid (wavenumbers) in h/Mpc. Must be logarithmically spaced
+            The input k-grid (wavenumbers) in 1/Mpc. Must be logarithmically spaced
             with equal spacing in log(k) and contain an even number of elements.
         
         nu : float, optional
@@ -130,10 +130,8 @@ class FASTPT:
         
         Notes
         -----
-        The input k array must be:
-        1. Strictly increasing
-        2. Logarithmically spaced with consistent spacing
-        3. Contain an even number of elements
+        The input k array must be strictly increasing, logarithmically spaced with consistent spacing,
+        contain an even number of elements
         
         Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is 
         recommended to reduce numerical artifacts from the FFT-based algorithm.
@@ -631,8 +629,6 @@ class FASTPT:
         if arrays is None: 
             return hash(None)
         if isinstance(arrays, (tuple, list)):
-            # Avoid creating intermediate lists for storing hashes
-            # Instead build the hash directly using a single hash_key value
             hash_key_hash = 0
             for i, item in enumerate(arrays):
                 if isinstance(item, np.ndarray):
@@ -695,23 +691,19 @@ class FASTPT:
         if P is None: 
             raise ValueError('Compute term requires an input power spectrum array.')        
 
-        # Original Python implementation for single X case
         hash_key, P_hash = self._create_hash_key(term, X, P, P_window, C_window)
         result = self.cache.get(term, hash_key)
         if result is not None: 
             return result
 
-        # Compute the term
         result, _ = self.J_k_tensor(P, X, P_window=P_window, C_window=C_window)
         result = self._apply_extrapolation(result)
 
-        # Apply operation if provided
         if operation:
             final_result = operation(result)
             self.cache.set(final_result, term, hash_key, P_hash)
             return final_result
 
-        # Cache and return result
         self.cache.set(result, term, hash_key, P_hash)
         return result
     
@@ -719,7 +711,7 @@ class FASTPT:
 
 
     ### Top-level functions to output final quantities ###
-    def one_loop_dd(self, P, P_window=None, C_window=None): #Acts as its own get function (like IA_der)
+    def one_loop_dd(self, P, P_window=None, C_window=None):
         """
         Computes the standard 1-loop density-density corrections to the power spectrum.
     
@@ -1110,16 +1102,16 @@ class FASTPT:
     
     def IA_ct(self,P,P_window=None, C_window=None):
         """
-        Computes intrinsic alignment counter-term contributions.
+        Computes intrinsic alignment velocity-shear contributions.
     
         Returns
         -------
         tuple
             (P_0tE, P_0EtE, P_E2tE, P_tEtE) where:
-        P_0tE : Density-tidal E-mode correlation
-        P_0EtE : E-mode-tidal E-mode correlation
-        P_E2tE : Second E-mode-tidal E-mode correlation
-        P_tEtE : Tidal E-mode auto-correlation
+        P_0tE : Density-velocity E-mode correlation
+        P_0EtE : E-mode-velocity E-mode correlation
+        P_E2tE : Second torquing-velocity E-mode correlation
+        P_tEtE : Velocity E-mode auto-correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_0tE = self._get_P_0tE(P, P_window=P_window, C_window=C_window)
@@ -1190,17 +1182,17 @@ class FASTPT:
         P_tEtE = 2*P_tEtE
         self.cache.set(P_tEtE, "P_tEtE", hash_key, P_hash)
         return P_tEtE
-    
-    def IA_ctbias(self,P,P_window=None, C_window=None):
+
+    def gI_ct(self,P,P_window=None, C_window=None):
         """
-        Computes intrinsic alignment counter-term bias contributions.
+        Computes galaxy bias cross intrinsic alignment velocity-shear contributions.
     
         Returns
         -------
         tuple
             (P_d2tE, P_s2tE) where:
-        P_d2tE : Second-order density-tidal E-mode correlation
-        P_s2tE : Second-order tidal-tidal E-mode correlation
+        P_d2tE : Second-order density-velocity E-mode correlation
+        P_s2tE : Second-order tidal-velocity E-mode correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_d2tE = self._get_P_d2tE(P, P_window=P_window, C_window=C_window)
@@ -1228,31 +1220,8 @@ class FASTPT:
         P_s2tE = 2 * (P_S2G2 - P_S2F2)
         self.cache.set(P_s2tE, "P_s2tE", hash_key, P_hash)
         return P_s2tE
-
     
-    def IA_gb2(self,P,P_window=None, C_window=None):
-        """
-        Computes intrinsic alignment galaxy bias contributions (2nd order).
-    
-        Returns
-        -------
-        tuple
-            (P_gb2sij, P_gb2dsij, P_gb2sij2) where:
-        P_gb2sij : Galaxy bias-tidal correlation
-        P_gb2dsij : Galaxy bias-density-tidal correlation
-        P_gb2sij2 : Galaxy bias-tidal squared correlation
-        """
-        self._validate_params(P=P, P_window=P_window, C_window=C_window)
-        P_gb2sij = self.compute_term("P_gb2sij", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
-                                      P=P, P_window=P_window, C_window=C_window)
-        P_gb2dsij = self.compute_term("P_gb2dsij", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
-                                        P=P, P_window=P_window, C_window=C_window)
-        P_gb2sij2 = self.compute_term("P_gb2sij2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
-                                       P=P, P_window=P_window, C_window=C_window)
-        return P_gb2sij, P_gb2dsij, P_gb2sij2
-    
-
-    def IA_d2(self,P,P_window=None, C_window=None):
+    def gI_ta(self,P,P_window=None, C_window=None):
         """
         Computes intrinsic alignment 2nd-order density correlations.
     
@@ -1267,14 +1236,15 @@ class FASTPT:
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_d2E = self.compute_term("P_d2E", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
-        P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_he, operation=lambda x: 2 * x,
+        P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
+        P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
+                                   P=P, P_window=P_window, C_window=C_window)
+        P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        return P_d2E, P_d20E, P_d2E2
+        return P_d2E, P_d20E, P_s2E, P_s20E
 
-    
-    def IA_s2(self, P, P_window=None, C_window=None):
+    def gI_tt(self, P, P_window=None, C_window=None):
         """
         Computes intrinsic alignment 2nd-order tidal correlations.
     
@@ -1287,13 +1257,11 @@ class FASTPT:
         P_s2E2 : 2nd-order tidal-E-mode squared correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
-        P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
-                                   P=P, P_window=P_window, C_window=C_window)
-        P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
-                                    P=P, P_window=P_window, C_window=C_window)
         P_s2E2 = self.compute_term("P_s2E2", self.X_IA_gb2_S2he, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        return P_s2E, P_s20E, P_s2E2
+        P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
+                                    P=P, P_window=P_window, C_window=C_window)
+        return P_s2E2, P_d2E2
 
     
     def OV(self, P, P_window=None, C_window=None):
@@ -1520,7 +1488,7 @@ class FASTPT:
             return result
     
         c_m_positive = rfft(P_b)
-        if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
+        #if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
         c_m_negative = np.conjugate(c_m_positive[1:])
         c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
     
