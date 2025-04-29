@@ -12,7 +12,7 @@ The core of the FAST-PT algorithm is to compute integrals of the form:
 
 .. math::
 
-   \\int \\frac{d^3q}{(2 \\pi)^3} K(q,k-q) P(q) P(|k-q|)
+   \int \frac{d^3q}{(2 \pi)^3} K(q,k-q) P(q) P(|k-q|)
 
 by using Fourier transforms to reduce computational complexity from :math:`O(N^2)` to :math:`O(N\\log N)`, where :math:`N` is the number of input points.
 

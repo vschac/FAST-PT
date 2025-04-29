@@ -9,8 +9,8 @@ class FPTHandler:
     Handler class for FAST-PT that simplifies function calls and result management.
     
     This class provides a simplified interface for working with FAST-PT functions,
-    with features including parameter validation, caching of results, saving/loading
-    outputs, and direct access to specific power spectrum terms.
+    with features including power spectra generation, saving/loading outputs, 
+    direct access to specific power spectrum terms, and more.
     
     Parameters
     ----------
@@ -19,7 +19,7 @@ class FPTHandler:
     do_cache : bool, optional
         Whether to cache function results for repeated calls. Default is False.
     save_all : str, optional
-        File format to save all results ('txt', 'csv', or 'json'). Default is None.
+        File format to save all results ('txt', 'csv', or 'json'). If one is provided, all outputs of the run function will be saved. Default is None.
     save_dir : str, optional
         Directory to save results. Default is 'outputs' directory in package location.
     max_cache_entries : int, optional
@@ -32,10 +32,10 @@ class FPTHandler:
     >>> from fastpt import FASTPT, FPTHandler
     >>> import numpy as np
     >>> k = np.logspace(-3, 1, 200)
-    >>> P = np.abs(np.sin(k))  # Example power spectrum
     >>> fpt = FASTPT(k)
-    >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
-    >>> result = handler.run('one_loop_dd')
+    >>> handler = FPTHandler(fpt, C_window=0.75)
+    >>> P = handler.generate_power_spectra()
+    >>> handler.update_default_params(P=P)
     >>> P_1loop = handler.get('P_E')  # Direct access to the P_E term of fpt.IA_tt
     """
     def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
@@ -99,9 +99,9 @@ class FPTHandler:
             "P_0E0E": ("IA_ta", "X_IA_0E0E", None),
             "P_0B0B": ("IA_ta", "X_IA_0B0B", None),
         
-            "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
-            "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
-            "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
+            # "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
+            # "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
+            # "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
 
             "P_der": ("IA_der", None),
 
@@ -110,16 +110,16 @@ class FPTHandler:
             "P_E2tE": ("IA_ct", None),
             "P_tEtE": ("IA_ct", None),
         
-            "P_d2tE": ("IA_ctbias", None),
-            "P_s2tE": ("IA_ctbias", None),
+            "P_d2tE": ("gI_ct", None),
+            "P_s2tE": ("gI_ct", None),
         
-            "P_s2E": ("IA_s2", "X_IA_gb2_S2F2", lambda x: 2 * x),
-            "P_s20E": ("IA_s2", "X_IA_gb2_S2fe", lambda x: 2 * x),
-            "P_s2E2": ("IA_s2", "X_IA_gb2_S2he", lambda x: 2 * x),
+            "P_s2E2": ("gI_tt", "X_IA_gb2_S2he", lambda x: 2 * x),
+            "P_d2E2": ("gI_tt", "X_IA_gb2_he", lambda x: 2 * x),
         
-            "P_d2E": ("IA_d2", "X_IA_gb2_F2", lambda x: 2 * x),
-            "P_d20E": ("IA_d2", "X_IA_gb2_he", lambda x: 2 * x),
-            "P_d2E2": ("IA_d2", "X_IA_gb2_fe", lambda x: 2 * x),
+            "P_d2E": ("gI_ta", "X_IA_gb2_F2", lambda x: 2 * x),
+            "P_d20E": ("gI_ta", "X_IA_gb2_fe", lambda x: 2 * x),
+            "P_s2E": ("gI_ta", "X_IA_gb2_S2F2", lambda x: 2 * x),
+            "P_s20E": ("gI_ta", "X_IA_gb2_S2fe", lambda x: 2 * x),
         
             "P_OV": ("OV", None),
         
@@ -253,7 +253,7 @@ class FPTHandler:
             
         Examples
         --------
-        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
+        >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
         >>> P_1loop_result = handler.run('one_loop_dd')
         >>> ia_result = handler.run('IA_tt', save_type='csv')
         """
@@ -369,7 +369,6 @@ class FPTHandler:
         >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
         >>> P_1loop = handler.get('P_1loop')
         >>> ia_terms = handler.get('P_E', 'P_B')
-        >>> print(ia_terms['P_E'].shape)
         """
         if not terms:
             raise ValueError("At least one term must be provided.")
@@ -501,9 +500,9 @@ class FPTHandler:
             #^^ also needs Pd1d1 and Pd1k2
             "pii": ("a00e", "c00e", "a0e0e", "a0b0b", "ae2e2", "ab2b2", "a0e2", 
                     "b0e2", "d0ee2", "d0bb2", "tijsij", "tijdsij", "tij2sij", "tijtij", "Pak2"),
-            #^^ also needs Pd1d1, Pak2 has a weird if check
+            #^^ also needs Pd1d1, Pak2 has a weird if chek_h
             "pim": ("a00e", "c00e", "a0e2", "b0e2", "tijsij", "Pak2"),
-            #^^ also needs Pd1d1, Pak2 has a weird if check
+            #^^ also needs Pd1d1, Pak2 has a weird if chek_h
             "pmm": ("P_1loop")
         }
 
@@ -582,7 +581,7 @@ class FPTHandler:
         --------
         >>> handler = FPTHandler(fpt)
         >>> handler.list_available_functions()
-        ['OV', 'IA_ct', 'IA_ctbias', 'IA_d2', 'IA_der', ...]
+        ['OV', 'IA_ct', 'gI_ct', 'gI_tt', 'IA_der', ...]
         """
         print([f for f in dir(self.fastpt) if callable(getattr(self.fastpt, f)) and not f.startswith("_")])
 
@@ -1386,75 +1385,279 @@ class FPTHandler:
         
         return fig
     
-    def generate_power_spectra(self, randomize=True, amount=1, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
+    def generate_power_spectra(self, method='classy', mode='single', **kwargs):
         """
-        Generate power spectra using Classy. Specify your own cosmo parameters or randomize them within their proper ranges.
-
+        Generate power spectra using the specified mode and method.
+        
         Parameters
         ----------
-        randomize : bool, optional
-            Whether to randomize cosmological parameters. Default is True.
-        amount : int, optional
-            Number of power spectra to generate. Default is 1.
-        omega_cdm : float, optional
-            Omega_cdm value. Default is 0.12.
-        h : float, optional
-            Hubble parameter. Default is 0.67.
-        omega_b : float, optional
-            Omega_b value. Default is 0.022.
-        z : float, optional
-            Redshift value. Default is 0.0.
+        method : str
+            Either 'classy' or 'camb'
+        mode : str
+            'single', 'bulk', or 'diff'
 
-        Returns
-        -------
-        list, or numpy.ndarray
-            List of generated power spectra (numpy arrays) is amount is greater than 1 otherwise just the power spectrum.
-        
-        Raises
-        ------
-        ImportError
-            If Classy is not installed.
-
-        Examples
-        --------
-        >>> handler = FPTHandler(fpt)
-        >>> P = handler.generate_power_spectra()
-        >>> # P is a single numpy array of the generated power spectrum
-        >>> spectra = handler.generate_power_spectra(amount=5)
-        >>> # spectra is an array that will contain 5 generated power spectra (numpy arrays)
+            - single: generate one power spectra with the given params, which should be passed as floats or bools
+            - bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.
+            - diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.
+        **kwargs
+            Cosmological parameters to pass to the appropriate method
+            
+            - For CLASSY: omega_b, omega_cdm, h, z
+            - For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint
         """
+        method = method.lower()
+        if method not in ('classy', 'camb'):
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+            
+        if mode not in ('single', 'bulk', 'diff'):
+            raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
+
+        if mode not in ('single', 'bulk', 'diff'):
+            raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
+
+        if method == 'classy':
+            camb_specific_params = {'As', 'ns', 'k_hunit', 'nonlinear', 'H0', 'kmax', 
+                            'hubble_units', 'extrap_kmax', 'k_per_logint', 'halofit_version'}
+            class_params = {'omega_cdm', 'h', 'omega_b', 'z'}
+            camb_params_used = [param for param in camb_specific_params if param in kwargs]
+            if camb_params_used:
+                import warnings
+                warnings.warn(f"CAMB-specific parameters will be ignored when using CLASS: {camb_params_used}")
+                kwargs = {k: v for k, v in kwargs.items() if k in class_params}
+        
+        if mode == 'diff':
+            return self._diff_power_spectra(method, **kwargs)
+        elif mode == 'bulk':
+            return self._bulk_power_spectra(method, **kwargs)
+        else: 
+            for key, val in kwargs.items():
+                if isinstance(val, (list, np.ndarray)):
+                    raise ValueError(f"Parameter '{key}' must be a single value for single mode.")
+                    
+            if method == 'classy':
+                return self._class_power_spectra(**kwargs)
+            else: 
+                return self._camb_power_spectra(**kwargs)
+    
+    def _bulk_power_spectra(self, method, **params):
+        max_len = 1
+        for param_name, value in params.items():
+            if isinstance(value, (list, np.ndarray)):
+                max_len = max(max_len, len(value))
+        
+        param_arrays = {}
+        for param_name, value in params.items():
+            if isinstance(value, (list, np.ndarray)):
+                if len(value) < max_len:
+                    param_arrays[param_name] = np.pad(value, (0, max_len - len(value)), mode='edge')
+                else:
+                    param_arrays[param_name] = np.array(value)
+            else:
+                param_arrays[param_name] = np.full(max_len, value)
+            
+        if method.lower() == 'classy':
+            output = []
+            for i in range(max_len):
+                output.append(self._class_power_spectra(
+                    omega_b=param_arrays['omega_b'][i],
+                    omega_cdm=param_arrays['omega_cdm'][i],
+                    h=param_arrays['h'][i],
+                    z=param_arrays['z'][i]
+                ))
+            
+            return output[0] if len(output) == 1 else output
+            
+        elif method.lower() == 'camb':
+            output = []
+            for i in range(max_len):
+                output.append(self._camb_power_spectra(
+                    omega_b=param_arrays['omega_b'][i],
+                    omega_cdm=param_arrays['omega_cdm'][i],
+                    h=param_arrays['h'][i],
+                    z=param_arrays['z'][i],
+                    As=param_arrays['As'][i],
+                    ns=param_arrays['ns'][i],
+                    halofit_version=param_arrays['halofit_version'][i],
+                    k_hunit=param_arrays['k_hunit'][i],
+                    nonlinear=param_arrays['nonlinear'][i],
+                    H0=param_arrays['H0'][i],
+                    kmax=param_arrays['kmax'][i],
+                    hubble_units=param_arrays['hubble_units'][i],
+                    extrap_kmax=param_arrays['extrap_kmax'][i],
+                    k_per_logint=param_arrays['k_per_logint'][i],
+                ))
+            
+            return output[0] if len(output) == 1 else output
+        else:
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+
+    def _diff_power_spectra(self, method, **kwargs):
+        if method not in ('classy', 'camb'):
+            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+        
+        diff_params = {
+            'omega_cdm': kwargs.get('omega_cdm', [0.12]),
+            'h': kwargs.get('h', [0.67]),
+            'omega_b': kwargs.get('omega_b', [0.022]),
+            'z': kwargs.get('z', [0.0]),
+        }
+        
+        has_param_with_length_3 = any(
+            isinstance(value, (list, np.ndarray)) and len(value) == 3
+            for value in diff_params.values()
+        )
+        if not has_param_with_length_3:
+            raise ValueError("At least one parameter must have length 3 to use diff mode.")
+        
+        camb_params = {
+            'As': kwargs.get('As', 2.1e-9),
+            'ns': kwargs.get('ns', 0.96),
+            'k_hunit': kwargs.get('k_hunit', True),
+            'nonlinear': kwargs.get('nonlinear', False),
+            'H0': kwargs.get('H0', None),
+            'kmax': kwargs.get('kmax', None),
+            'hubble_units': kwargs.get('hubble_units', True),
+            'extrap_kmax': kwargs.get('extrap_kmax', None),
+            'k_per_logint': kwargs.get('k_per_logint', None),
+            'halofit_version': kwargs.get('halofit_version', 'mead')
+        }
+        
+        for key, value in diff_params.items():
+            if key == 'z':
+                diff_params['z'] = [value] if isinstance(value, (int, float)) else value
+                continue
+                
+            if isinstance(value, (int, float)):
+                diff_params[key] = [value]            
+            if not isinstance(diff_params[key], (list, np.ndarray)):
+                raise ValueError(f"Parameter '{key}' must be a list or numpy array.")                
+            if len(diff_params[key]) not in (1, 3):
+                raise ValueError(f"Parameter '{key}' must have length 1 or 3.")                
+            if len(diff_params[key]) == 1:
+                diff_params[key] = [diff_params[key][0]] * 3
+        
+        result = {}
+        
+        compute_func = self._class_power_spectra if method == 'classy' else self._camb_power_spectra
+        
+        for z in diff_params['z']:
+            param_combinations = []
+            
+            center_values = [diff_params[p][1] for p in ['omega_cdm', 'h', 'omega_b']]
+            param_combinations.append(center_values)
+            
+            for param_idx, param in enumerate(['omega_cdm', 'h', 'omega_b']):
+                param_values = diff_params[param]
+                
+                if param_values[0] == param_values[1] == param_values[2]:
+                    continue
+                    
+                for val_idx in [0, 2]:
+                    values = center_values.copy()
+                    values[param_idx] = param_values[val_idx]
+                    param_combinations.append(values)
+
+            for combo in param_combinations:
+                omega_cdm, h, omega_b = combo
+                key = (omega_cdm, h, omega_b, z)
+                
+                if method == 'classy':
+                    result[key] = compute_func(
+                        omega_cdm=omega_cdm,
+                        h=h,
+                        omega_b=omega_b,
+                        z=z
+                    )
+                else: 
+                    result[key] = compute_func(
+                        omega_cdm=omega_cdm,
+                        h=h,
+                        omega_b=omega_b,
+                        z=z,
+                        **camb_params
+                    )
+        
+        return result
+
+    def _class_power_spectra(self, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
         try:
             from classy import Class
         except ImportError as e:
             raise ImportError("Classy is not installed. Please install it to use this function.") from e
         k = self.fastpt.k_original
         k_max = max(k)
-        output = []
-        if amount > 1: 
-            randomize = True #If multiple power spectra are requested, force randomization
-            print("You are generating multiple power spectra, randomizing parameters is enabled.")
-            print("Beginning generation...")
-        for _ in range(amount):
-            if randomize:
-                omega_cdm = np.random.uniform(0.1, 0.14)
-                h = np.random.uniform(0.65, 0.75)
-                omega_b = np.random.uniform(0.02, 0.025)
-                z = np.random.uniform(0.0, 1.0)
-            params = {
-                'output': 'mPk',
-                'P_k_max_1/Mpc': k_max * 1.1,
-                'z_max_pk': z,
-                'h': h,
-                'omega_b': omega_b,
-                'omega_cdm': omega_cdm
-            }
-            cosmo = Class()
-            cosmo.set(params)
-            cosmo.compute()
-            output.append(np.array([cosmo.pk(k, z) for k in k]))
-            cosmo.struct_cleanup()
-            cosmo.empty()
-        print("Done!")
-        if amount == 1:
-            return output[0]
+        params = {
+            'output': 'mPk',
+            'P_k_max_1/Mpc': k_max * 1.1,
+            'z_max_pk': z,
+            'h': h,
+            'omega_b': omega_b,
+            'omega_cdm': omega_cdm,
+            # 'ln10^{10}A_s':  np.log10(2.1e-9*1e10),
+            # 'n_s':           0.965, #Update these two to be passed as kwargs if needed
+        }
+        cosmo = Class()
+        cosmo.set(params)
+        cosmo.compute()
+        output = np.array([cosmo.pk(k, z) for k in k])
+        # output = np.array([cosmo.pk(ki, 0.0) for ki in k]) * h**3
+        cosmo.struct_cleanup()
+        cosmo.empty()
         return output
+
+    def _camb_power_spectra(self,
+                                z: float = 0.0,
+                                nonlinear: bool = True,
+                                h: float = 0.67,
+                                H0: float = None,
+                                omega_b: float = 0.022,
+                                omega_cdm: float = 0.122,
+                                As: float = 2.1e-9,
+                                ns: float = 0.965,
+                                halofit_version: str = 'mead',
+                                kmax: float = None,
+                                hubble_units: bool = True,
+                                k_hunit: bool = True,
+                                extrap_kmax: float = None,
+                                k_per_logint: int = None
+                               ):
+        try:
+            import camb
+        except ImportError as e:
+            raise ImportError("CAMB is not installed. Please install it to use this function.") from e
+        k = self.fastpt.k_original
+
+        if H0 is None: H0 = h * 100
+         # 1) Set up CAMB parameters
+        pars = camb.CAMBparams()
+        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm)                 # standard cosmology
+        pars.InitPower.set_params(As=As, ns=ns)                            # primordial spectrum
+
+        # 2) Matter power settings
+        kmax = kmax or float(np.max(k))
+        pars.set_matter_power(redshifts=[z], kmax=kmax, k_per_logint=k_per_logint)
+
+        # 3) Choose HALOFIT version (no 'nonlinear' flag here)
+        pars.NonLinearModel.set_params(halofit_version=halofit_version)
+
+        # 4) Build interpolator, passing the nonlinear flag here
+        PK = camb.get_matter_power_interpolator(pars,
+                                                zmin=z, zmax=z, nz_step=1, zs=[z],
+                                                kmax=kmax,
+                                                nonlinear=nonlinear,
+                                                hubble_units=hubble_units,
+                                                k_hunit=k_hunit,
+                                                extrap_kmax=extrap_kmax,
+                                                k_per_logint=k_per_logint)
+
+        # 5) Evaluate at stored k
+        return PK.P(z, k)
+    
+if __name__ == '__main__':
+
+    k = np.logspace(1e-4, 1, 1000)
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    handler.generate_power_spectra(method='classy', mode='single', omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0,
+                                   As=2.1e-9, ns=0.965, halofit_version='mead', hubble_units=True,
+                                   k_hunit=True, extrap_kmax=None, k_per_logint=None)

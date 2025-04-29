@@ -42,18 +42,21 @@ Using the FPTHandler
    from fastpt import FASTPT, FPTHandler
 
    # Initialize with default parameters
-   k_values = np.logspace(-3, 1, 100)
-   P_values = np.abs(np.sin(k_values))  # Example power spectrum
+   k_values = np.logspace(-3, 1, 1000)
 
    fastpt_instance = FASTPT(k_values)
-   handler = FPTHandler(fastpt_instance, P=P_values, P_window=np.array([0.2, 0.2]), C_window=0.75)
+   handler = FPTHandler(fastpt_instance, P_window=np.array([0.2, 0.2]), C_window=0.75)
 
-   # Run one_loop_dd calculation
-   result = handler.run('one_loop_dd')
-   print("Result:", result)
+   # Generate and store a power spectrum
+   P = handler.generate_power_spectra()
+   handler.update_default_params(P=P)
 
-   # Show available FASTPT functions
-   handler.list_available_functions()
+   # Get the 1-loop power spectrum, using the default parameters
+   result = handler.get("P_1loop")
 
-   # Show cache information
-   handler.show_cache_info()
+   #Plot the results
+   handler.plot(data=result)
+
+   # Save the results and your parameters
+   handler.save_output(result, "one_loop_dd")
+   handler.save_params("params.npz")

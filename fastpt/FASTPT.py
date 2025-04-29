@@ -58,8 +58,20 @@ from . import FASTPT_simple as fastpt_simple
 from .CacheManager import CacheManager
 from scipy.signal import fftconvolve
 from numpy.fft import ifft, irfft, rfft
+from scipy.signal import fftconvolve
+from numpy.fft import ifft, irfft, rfft
 
 log2 = log(2.)
+from time import time
+def timer(func):
+    """Decorator to time function execution"""
+    def wrapper(*args, **kwargs):
+        start_time = time()
+        result = func(*args, **kwargs)
+        end_time = time()
+        print(f"(New) Function {func.__name__} executed in {end_time - start_time:.4f} seconds")
+        return result
+    return wrapper
 from time import time
 def timer(func):
     """Decorator to time function execution"""
@@ -94,7 +106,7 @@ class FASTPT:
     Parameters
         ----------
         k : array_like
-            The input k-grid (wavenumbers) in h/Mpc. Must be logarithmically spaced
+            The input k-grid (wavenumbers) in 1/Mpc. Must be logarithmically spaced
             with equal spacing in log(k) and contain an even number of elements.
         
         nu : float, optional
@@ -130,10 +142,8 @@ class FASTPT:
         
         Notes
         -----
-        The input k array must be:
-        1. Strictly increasing
-        2. Logarithmically spaced with consistent spacing
-        3. Contain an even number of elements
+        The input k array must be strictly increasing, logarithmically spaced with consistent spacing,
+        contain an even number of elements
         
         Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is 
         recommended to reduce numerical artifacts from the FFT-based algorithm.
@@ -180,7 +190,6 @@ class FASTPT:
                                                   high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
             return None
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
-        
         self.cache = CacheManager()
         self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
@@ -627,13 +636,12 @@ class FASTPT:
             return args if len(args) > 1 else args[0]
         return [self.EK.PK_original(var)[1] for var in args] if len(args) > 1 else self.EK.PK_original(args[0])[1]
 
+
     def _hash_arrays(self, arrays):
         """Helper function to create a hash from multiple numpy arrays or scalars"""
         if arrays is None: 
             return hash(None)
         if isinstance(arrays, (tuple, list)):
-            # Avoid creating intermediate lists for storing hashes
-            # Instead build the hash directly using a single hash_key value
             hash_key_hash = 0
             for i, item in enumerate(arrays):
                 if isinstance(item, np.ndarray):
@@ -652,6 +660,7 @@ class FASTPT:
         if isinstance(arrays, np.ndarray):
             return hash(arrays.tobytes())
         return hash(arrays)
+
 
     def _create_hash_key(self, term, X, P, P_window, C_window):
         """Create a hash key from the term and input parameters"""
@@ -696,23 +705,19 @@ class FASTPT:
         if P is None: 
             raise ValueError('Compute term requires an input power spectrum array.')        
 
-        # Original Python implementation for single X case
         hash_key, P_hash = self._create_hash_key(term, X, P, P_window, C_window)
         result = self.cache.get(term, hash_key)
         if result is not None: 
             return result
 
-        # Compute the term
         result, _ = self.J_k_tensor(P, X, P_window=P_window, C_window=C_window)
         result = self._apply_extrapolation(result)
 
-        # Apply operation if provided
         if operation:
             final_result = operation(result)
             self.cache.set(final_result, term, hash_key, P_hash)
             return final_result
 
-        # Cache and return result
         self.cache.set(result, term, hash_key, P_hash)
         return result
     
@@ -734,6 +739,8 @@ class FASTPT:
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         Ps = self._get_Ps(P, P_window=P_window, C_window=C_window)
         P_1loop = self._get_P_1loop(P, P_window=P_window, C_window=C_window)
+        Ps = self._get_Ps(P, P_window=P_window, C_window=C_window)
+        P_1loop = self._get_P_1loop(P, P_window=P_window, C_window=C_window)
         return P_1loop, Ps #This return is going to be different than the original bc the original return is 
                         # different depending on the todo list which is going to be deprecated.
     
@@ -745,12 +752,25 @@ class FASTPT:
     def _get_P_1loop(self, P, P_window=None, C_window=None):
         hash_key, P_hash = self._create_hash_key("P_1loop", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P_1loop", hash_key)
+    def _get_Ps(self, P, P_window=None, C_window=None):
+        Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        Ps = self._apply_extrapolation(Ps)
+        return Ps
+    
+    def _get_P_1loop(self, P, P_window=None, C_window=None):
+        hash_key, P_hash = self._create_hash_key("P_1loop", self.X_spt, P, P_window, C_window)
+        result = self.cache.get("P_1loop", hash_key)
         if result is not None: return result
+        Ps, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         Ps, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P22_coef = np.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
         P22_mat = np.multiply(P22_coef, np.transpose(mat))
         P22 = np.sum(P22_mat, axis=1)
         P13 = P_13_reg(self.k_extrap, Ps)
+        P_1loop = P22 + P13
+        P_1loop = self._apply_extrapolation(P_1loop)
+        self.cache.set(P_1loop, "P_1loop", hash_key, P_hash)
+        return P_1loop
         P_1loop = P22 + P13
         P_1loop = self._apply_extrapolation(P_1loop)
         self.cache.set(P_1loop, "P_1loop", hash_key, P_hash)
@@ -1048,6 +1068,7 @@ class FASTPT:
 
         return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_extrap,FR1,FR2
 
+
     def IA_tt(self, P, P_window=None, C_window=None):
         """
         Computes intrinsic alignment tidal torque contributions.
@@ -1067,7 +1088,7 @@ class FASTPT:
         return P_E, P_B
 
     ## eq 21 EE; eq 21 BB
-    
+
     def IA_mix(self, P, P_window=None, C_window=None):
         """
         Computes mixed intrinsic alignment contributions combining tidal 
@@ -1172,16 +1193,16 @@ class FASTPT:
     
     def IA_ct(self,P,P_window=None, C_window=None):
         """
-        Computes intrinsic alignment counter-term contributions.
+        Computes intrinsic alignment velocity-shear contributions.
     
         Returns
         -------
         tuple
             (P_0tE, P_0EtE, P_E2tE, P_tEtE) where:
-        P_0tE : Density-tidal E-mode correlation
-        P_0EtE : E-mode-tidal E-mode correlation
-        P_E2tE : Second E-mode-tidal E-mode correlation
-        P_tEtE : Tidal E-mode auto-correlation
+        P_0tE : Density-velocity E-mode correlation
+        P_0EtE : E-mode-velocity E-mode correlation
+        P_E2tE : Second torquing-velocity E-mode correlation
+        P_tEtE : Velocity E-mode auto-correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_0tE = self._get_P_0tE(P, P_window=P_window, C_window=C_window)
@@ -1252,17 +1273,17 @@ class FASTPT:
         P_tEtE = 2*P_tEtE
         self.cache.set(P_tEtE, "P_tEtE", hash_key, P_hash)
         return P_tEtE
-    
-    def IA_ctbias(self,P,P_window=None, C_window=None):
+
+    def gI_ct(self,P,P_window=None, C_window=None):
         """
-        Computes intrinsic alignment counter-term bias contributions.
+        Computes galaxy bias cross intrinsic alignment velocity-shear contributions.
     
         Returns
         -------
         tuple
             (P_d2tE, P_s2tE) where:
-        P_d2tE : Second-order density-tidal E-mode correlation
-        P_s2tE : Second-order tidal-tidal E-mode correlation
+        P_d2tE : Second-order density-velocity E-mode correlation
+        P_s2tE : Second-order tidal-velocity E-mode correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_d2tE = self._get_P_d2tE(P, P_window=P_window, C_window=C_window)
@@ -1275,8 +1296,7 @@ class FASTPT:
         if result is not None: return result
         P_F2, _ = self.J_k_tensor(P, self.X_IA_gb2_F2, P_window=P_window, C_window=C_window)
         P_G2, _ = self.J_k_tensor(P, self.X_IA_gb2_G2, P_window=P_window, C_window=C_window)
-        P_F2 = self._apply_extrapolation(P_F2)
-        P_G2 = self._apply_extrapolation(P_G2)
+        P_F2, P_G2 = self._apply_extrapolation(P_F2, P_G2)
         P_d2tE = 2 * (P_G2 - P_F2)
         self.cache.set(P_d2tE, "Pd2tE", hash_key, P_hash)
         return P_d2tE
@@ -1287,36 +1307,12 @@ class FASTPT:
         if result is not None: return result
         P_S2F2, _ = self.J_k_tensor(P, self.X_IA_gb2_S2F2, P_window=P_window, C_window=C_window)
         P_S2G2, _ = self.J_k_tensor(P, self.X_IA_gb2_S2G2, P_window=P_window, C_window=C_window)
-        P_S2F2 = self._apply_extrapolation(P_S2F2)
-        P_S2G2 = self._apply_extrapolation(P_S2G2)
+        P_S2F2, P_S2G2 = self._apply_extrapolation(P_S2F2, P_S2G2)
         P_s2tE = 2 * (P_S2G2 - P_S2F2)
         self.cache.set(P_s2tE, "P_s2tE", hash_key, P_hash)
         return P_s2tE
-
     
-    def IA_gb2(self,P,P_window=None, C_window=None):
-        """
-        Computes intrinsic alignment galaxy bias contributions (2nd order).
-    
-        Returns
-        -------
-        tuple
-            (P_gb2sij, P_gb2dsij, P_gb2sij2) where:
-        P_gb2sij : Galaxy bias-tidal correlation
-        P_gb2dsij : Galaxy bias-density-tidal correlation
-        P_gb2sij2 : Galaxy bias-tidal squared correlation
-        """
-        self._validate_params(P=P, P_window=P_window, C_window=C_window)
-        P_gb2sij = self.compute_term("P_gb2sij", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
-                                      P=P, P_window=P_window, C_window=C_window)
-        P_gb2dsij = self.compute_term("P_gb2dsij", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
-                                        P=P, P_window=P_window, C_window=C_window)
-        P_gb2sij2 = self.compute_term("P_gb2sij2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
-                                       P=P, P_window=P_window, C_window=C_window)
-        return P_gb2sij, P_gb2dsij, P_gb2sij2
-    
-
-    def IA_d2(self,P,P_window=None, C_window=None):
+    def gI_ta(self,P,P_window=None, C_window=None):
         """
         Computes intrinsic alignment 2nd-order density correlations.
     
@@ -1331,14 +1327,15 @@ class FASTPT:
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_d2E = self.compute_term("P_d2E", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
                                    P=P, P_window=P_window, C_window=C_window)
-        P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_he, operation=lambda x: 2 * x,
+        P_d20E = self.compute_term("P_d20E", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_fe, operation=lambda x: 2 * x,
+        P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
+                                   P=P, P_window=P_window, C_window=C_window)
+        P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        return P_d2E, P_d20E, P_d2E2
+        return P_d2E, P_d20E, P_s2E, P_s20E
 
-    
-    def IA_s2(self, P, P_window=None, C_window=None):
+    def gI_tt(self, P, P_window=None, C_window=None):
         """
         Computes intrinsic alignment 2nd-order tidal correlations.
     
@@ -1351,13 +1348,11 @@ class FASTPT:
         P_s2E2 : 2nd-order tidal-E-mode squared correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
-        P_s2E = self.compute_term("P_s2E", self.X_IA_gb2_S2F2, operation=lambda x: 2 * x,
-                                   P=P, P_window=P_window, C_window=C_window)
-        P_s20E = self.compute_term("P_s20E", self.X_IA_gb2_S2fe, operation=lambda x: 2 * x,
-                                    P=P, P_window=P_window, C_window=C_window)
         P_s2E2 = self.compute_term("P_s2E2", self.X_IA_gb2_S2he, operation=lambda x: 2 * x,
                                     P=P, P_window=P_window, C_window=C_window)
-        return P_s2E, P_s20E, P_s2E2
+        P_d2E2 = self.compute_term("P_d2E2", self.X_IA_gb2_he, operation=lambda x: 2 * x,
+                                    P=P, P_window=P_window, C_window=C_window)
+        return P_s2E2, P_d2E2
 
     
     def OV(self, P, P_window=None, C_window=None):
@@ -1556,6 +1551,7 @@ class FASTPT:
 
         P = presum(k)
         out_1loop = self._get_P_1loop(P, P_window=P_window, C_window=C_window)
+        out_1loop = self._get_P_1loop(P, P_window=P_window, C_window=C_window)
         # p1loop = interpolate.InterpolatedUnivariateSpline(k,out_1loop) # is this necessary? out_1loop should already be at the correct k spacing
         return psmooth(k) + out_1loop + pw(k) * exp(-k ** 2 * Sigma) * (1 + Sigma * k ** 2)
 
@@ -1579,6 +1575,7 @@ class FASTPT:
     
         hash_key, P_hash = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
         hash_key = hash_key ^ (hash(scalar) + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        hash_key = hash_key ^ (hash(scalar) + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
         result = self.cache.get("fourier_coefficients", hash_key)
         if result is not None: 
             return result
@@ -1598,17 +1595,25 @@ class FASTPT:
     def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
         """Cache and return convolution results"""
 
-        c1_hash = self._hash_arrays(c1)
-        c2_hash = self._hash_arrays(c2)
-        g_m_hash = self._hash_arrays(g_m)
-        g_n_hash = self._hash_arrays(g_n)
-        h_l_hash = self._hash_arrays(h_l)
-        two_part_l_hash = self._hash_arrays(two_part_l)
-        hash_list = [c1_hash, c2_hash, g_m_hash, g_n_hash, h_l_hash, two_part_l_hash]
+        # Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case
+        def fast_hash(arr):
+            if arr is None:
+                return 0
+            if isinstance(arr, np.ndarray):
+                if arr.size > 1000:
+                    sample = arr.ravel()[:1000]
+                    return hash(sample.tobytes()) ^ hash(arr.shape) ^ hash(arr.size)
+                return hash(arr.tobytes()) ^ hash(arr.shape)
+            return hash(arr)
+        
+        # Combine hashes with different prime multipliers to reduce collisions
         hash_key = 0
-        for h in hash_list:
-            if h is not None:
-                hash_key = hash_key ^ (h + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        primes = [17, 31, 61, 127, 257, 509]
+        arrays = [c1, c2, g_m, g_n, h_l, two_part_l]
+        
+        for i, arr in enumerate(arrays):
+            h = fast_hash(arr)
+            hash_key = hash_key ^ (h * primes[i % len(primes)])
 
         result = self.cache.get("convolution", hash_key)
         if result is not None: 
@@ -1650,6 +1655,7 @@ class FASTPT:
         if (self.n_pad > 0):
             P_b = np.pad(P_b, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
 
+        c_m = self._cache_fourier_coefficients(P_b, C_window, scalar=True)
         c_m = self._cache_fourier_coefficients(P_b, C_window, scalar=True)
 
         A_out = np.zeros((pf.shape[0], self.k_size))
@@ -1717,6 +1723,8 @@ class FASTPT:
             if (self.n_pad > 0):
                 P_b1 = np.pad(P_b1, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
                 P_b2 = np.pad(P_b2, pad_width=(self.n_pad, self.n_pad), mode='constant', constant_values=0)
+            c_m = self._cache_fourier_coefficients(P_b1, C_window, scalar=False)
+            c_n = self._cache_fourier_coefficients(P_b2, C_window, scalar=False)
             c_m = self._cache_fourier_coefficients(P_b1, C_window, scalar=False)
             c_n = self._cache_fourier_coefficients(P_b2, C_window, scalar=False)
             # convolve f_c and g_c

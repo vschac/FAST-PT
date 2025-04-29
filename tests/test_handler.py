@@ -11,14 +11,9 @@ k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
 
-if __name__ == "__main__":
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window, f=0.6, mu_n=0.5, L=0.2, h=0.67, rsdrag=135)
-    from time import time
-    t0 = time()
-    handler.get("P_E")
-    t1 = time()
-    print(f"Time: {t1 - t0:.4f}")
+
+    
+    
 
 @pytest.fixture
 def fpt():
@@ -156,8 +151,8 @@ def test_all_fastpt_functions_with_handler_params(fpt):
     func_names = (
         'one_loop_dd', 'one_loop_dd_bias', 'one_loop_dd_bias_b3nl',
         'one_loop_dd_bias_lpt_NL', 'IA_tt', 'IA_mix', 'IA_ta',
-        'IA_der', 'IA_ct', 'IA_ctbias', 'IA_gb2', 'IA_d2',
-        'IA_s2', 'OV', 'kPol', 'RSD_components', 'IRres',
+        'IA_der', 'IA_ct', 'gI_ct', 'gI_ta',
+        'gI_tt', 'OV', 'kPol', 'RSD_components', 'IRres',
         'RSD_ABsum_components', 'RSD_ABsum_mu',
     )
     
@@ -185,10 +180,9 @@ def test_all_fastpt_functions_with_run_params(fpt):
         'IA_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_der': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_ctbias': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_gb2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_d2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_s2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_tt': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'OV': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'kPol': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'RSD_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
@@ -256,10 +250,9 @@ def test_handler_function_equality(fpt):
         'IA_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_der': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'IA_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_ctbias': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_gb2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_d2': {'P': P, 'P_window': P_window, 'C_window': C_window},
-        'IA_s2': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ct': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_ta': {'P': P, 'P_window': P_window, 'C_window': C_window},
+        'gI_tt': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'OV': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'kPol': {'P': P, 'P_window': P_window, 'C_window': C_window},
         'RSD_components': {'P': P, 'P_window': P_window, 'C_window': C_window, 'f': 0.5},
@@ -317,12 +310,11 @@ def test_get_method_basics(fpt, handler):
                                        "P_E", "P_B",
                                        "P_A", "P_Btype2", "P_DEE", "P_DBB",
                                        "P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B",
-                                       "P_gb2sij", "P_gb2dsij", "P_gb2sij2",
                                        "P_der",
                                        "P_0tE", "P_0EtE", "P_E2tE", "P_tEtE",
                                        "P_d2tE", "P_s2tE",
-                                       "P_s2E", "P_s20E", "P_s2E2",
-                                       "P_d2E", "P_d20E", "P_d2E2",
+                                       "P_s2E2", "P_d2E2",
+                                       "P_d2E", "P_d20E", "P_s2E", "P_s20E",
                                        "P_OV",
                                        "P_kP1", "P_kP2", "P_kP3"])                   
 def test_get_all_terms(fpt, handler, term_name):
@@ -356,10 +348,6 @@ def test_get_all_terms(fpt, handler, term_name):
             "P_deltaE2": ("IA_ta", 1),
             "P_0E0E": ("IA_ta", 2),
             "P_0B0B": ("IA_ta", 3),
-        
-            "P_gb2sij": ("IA_gb2", 0),
-            "P_gb2dsij": ("IA_gb2", 1),
-            "P_gb2sij2": ("IA_gb2", 2),
 
             "P_der": ("IA_der", 0),
 
@@ -368,16 +356,16 @@ def test_get_all_terms(fpt, handler, term_name):
             "P_E2tE": ("IA_ct", 2),
             "P_tEtE": ("IA_ct", 3),
         
-            "P_d2tE": ("IA_ctbias", 0),
-            "P_s2tE": ("IA_ctbias", 1),
+            "P_d2tE": ("gI_ct", 0),
+            "P_s2tE": ("gI_ct", 1),
         
-            "P_s2E": ("IA_s2", 0),
-            "P_s20E": ("IA_s2", 1),
-            "P_s2E2": ("IA_s2", 2),
+            "P_s2E2": ("gI_tt", 0),
+            "P_d2E2": ("gI_tt", 1),
         
-            "P_d2E": ("IA_d2", 0),
-            "P_d20E": ("IA_d2", 1),
-            "P_d2E2": ("IA_d2", 2),
+            "P_d2E": ("gI_ta", 0),
+            "P_d20E": ("gI_ta", 1),
+            "P_s2E": ("gI_ta", 2),
+            "P_s20E": ("gI_ta", 3),
         
             "P_OV": ("OV", 0),
         
@@ -1172,15 +1160,266 @@ def test_load_params_in_bulk_run(fpt, temp_output_dir):
         for i in range(len(power_spectra)):
             assert (func, i) in results
 
-################# Power Spectra Generator Tests #################
-def test_generate_power_spectra(handler):
-    """Test the generation of power spectra"""
-    P = handler.generate_power_spectra()
-    assert isinstance(P, np.ndarray)
-    assert len(P) == 3000
-    spectra = handler.generate_power_spectra(amount=3)
-    assert isinstance(spectra, list)
-    assert len(spectra) == 3
-    assert not np.array_equal(spectra[0], spectra[1]) and not np.array_equal(spectra[1], spectra[2]) and not np.array_equal(spectra[0], spectra[2])
-    Ps = handler.generate_power_spectra(amount=3, randomize=False)
-    assert not np.array_equal(P, Ps[0]) and not np.array_equal(P, Ps[1]) and not np.array_equal(P, Ps[2])
+################# POWER SPECTRA GENERATOR TESTS #################
+
+def test_generate_power_spectra_basic(handler):
+    """Test basic single-mode power spectra generation with default parameters"""
+    # Test class with default parameters
+    class_result = handler.generate_power_spectra(method='classy')
+    assert isinstance(class_result, np.ndarray)
+    assert len(class_result) == len(handler.fastpt.k_original)
+    assert np.all(class_result > 0)  # Power spectrum should be positive
+    
+    # Test CAMB with default parameters
+    camb_result = handler.generate_power_spectra(method='camb')
+    assert isinstance(camb_result, np.ndarray)
+    assert len(camb_result) == len(handler.fastpt.k_original)
+    assert np.all(camb_result > 0)
+
+# def test_generate_power_spectra_methods(handler):
+#     """Test power spectra generation with different methods"""
+#     # Generate power spectra with different methods but same params
+#     class_result = handler.generate_power_spectra(method='classy', z=0.5, h=0.7)
+#     camb_result = handler.generate_power_spectra(method='camb', z=0.5, h=0.7)
+    
+#     # Results should be similar but not identical (within ~10%)
+#     # This is a rough check that both methods are working and producing reasonable results
+#     ratio = np.mean(class_result / camb_result)
+#     assert 0.8 < ratio < 1.2, f"Results differ too much, ratio: {ratio}"
+
+def test_generate_power_spectra_invalid_method(handler):
+    """Test with invalid method names"""
+    with pytest.raises(ValueError, match="Invalid method"):
+        handler.generate_power_spectra(method='invalid')
+
+def test_generate_power_spectra_invalid_mode(handler):
+    """Test with invalid mode names"""
+    with pytest.raises(ValueError, match="Invalid mode"):
+        handler.generate_power_spectra(mode='invalid')
+
+def test_generate_power_spectra_single_mode_array_error(handler):
+    """Test that arrays cannot be passed in single mode"""
+    with pytest.raises(ValueError, match="must be a single value"):
+        handler.generate_power_spectra(omega_cdm=[0.1, 0.2])
+
+def test_generate_power_spectra_params(handler):
+    """Test power spectra generation with different parameter values"""
+    # Generate with different parameter values
+    base_result = handler.generate_power_spectra(method='classy')
+    high_h_result = handler.generate_power_spectra(method='classy', h=0.75)
+    high_cdm_result = handler.generate_power_spectra(method='classy', omega_cdm=0.15)
+    
+    # Results should be different with different parameters
+    assert not np.allclose(base_result, high_h_result)
+    assert not np.allclose(base_result, high_cdm_result)
+
+def test_bulk_power_spectra(handler):
+    """Test bulk mode power spectra generation"""
+    # Test with arrays of different lengths
+    bulk_results = handler.generate_power_spectra(
+        mode='bulk',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=[0.67, 0.68],
+        omega_b=0.022,
+        z=[0.0]
+    )
+    
+    # Should return a list of results with length = max(param_length)
+    assert isinstance(bulk_results, list)
+    assert len(bulk_results) == 3  # Max length of input parameters
+    
+    # Each result should be a proper power spectrum
+    for result in bulk_results:
+        assert isinstance(result, np.ndarray)
+        assert len(result) == len(handler.fastpt.k_original)
+        assert np.all(result > 0)
+
+def test_bulk_power_spectra_single_entry(handler):
+    """Test bulk mode with single entry arrays"""
+    # When all parameters are length 1, should return a single result
+    single_bulk_result = handler.generate_power_spectra(
+        mode='bulk',
+        omega_cdm=[0.12],
+        h=[0.67],
+        omega_b=[0.022],
+        z=[0.0]
+    )
+    
+    # Should be a single array, not a list
+    assert isinstance(single_bulk_result, np.ndarray)
+    assert len(single_bulk_result) == len(handler.fastpt.k_original)
+
+def test_diff_power_spectra_basic(handler):
+    """Test diff mode power spectra generation"""
+    # Test with basic parameters
+    diff_results = handler.generate_power_spectra(
+        mode='diff',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=0.67,
+        omega_b=0.022,
+        z=0.0
+    )
+    
+    # Should return a dictionary keyed by parameter tuples
+    assert isinstance(diff_results, dict)
+    
+    # Should contain results for central value + 2 variations
+    assert len(diff_results) == 3  # 1 central + 2 variations
+    
+    # Check format of keys and values
+    for key, value in diff_results.items():
+        assert isinstance(key, tuple)
+        assert len(key) == 4  # (omega_cdm, h, omega_b, z)
+        assert isinstance(value, np.ndarray)
+        assert len(value) == len(handler.fastpt.k_original)
+
+def test_diff_power_spectra_multi_param(handler):
+    """Test diff mode with multiple variable parameters"""
+    diff_results = handler.generate_power_spectra(
+        mode='diff',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=[0.66, 0.67, 0.68],
+        omega_b=0.022,
+        z=0.0
+    )
+    
+    # Should contain results for central value + 2+2 variations
+    assert isinstance(diff_results, dict)
+    assert len(diff_results) == 5  # 1 central + 2*2 variations
+    
+    # Check that results include variations for both parameters
+    central_key = None
+    omega_cdm_low_key = None
+    h_high_key = None
+    
+    for key in diff_results.keys():
+        omega_cdm, h, _, _ = key
+        if omega_cdm == 0.12 and h == 0.67:
+            central_key = key
+        elif omega_cdm == 0.11 and h == 0.67:
+            omega_cdm_low_key = key
+        elif omega_cdm == 0.12 and h == 0.68:
+            h_high_key = key
+    
+    assert central_key is not None, "Central parameter combination not found"
+    assert omega_cdm_low_key is not None, "omega_cdm low variation not found"
+    assert h_high_key is not None, "h high variation not found"
+
+def test_diff_power_spectra_requires_length_3(handler):
+    """Test that diff mode requires at least one parameter with length 3"""
+    with pytest.raises(ValueError, match="must have length 3"):
+        handler.generate_power_spectra(
+            mode='diff',
+            omega_cdm=[0.12],
+            h=[0.67],
+            omega_b=[0.022],
+            z=[0.0]
+        )
+
+def test_diff_power_spectra_with_multiple_z(handler):
+    """Test diff mode with multiple redshifts"""
+    diff_results = handler.generate_power_spectra(
+        mode='diff',
+        omega_cdm=[0.11, 0.12, 0.13],
+        h=0.67,
+        omega_b=0.022,
+        z=[0.0, 0.5]
+    )
+    
+    # Should return results for each z
+    assert isinstance(diff_results, dict)
+    assert len(diff_results) == 6  # 3 param combinations * 2 redshifts
+    
+    # Check that we have results for both redshifts
+    z0_keys = [k for k in diff_results.keys() if k[3] == 0.0]
+    z05_keys = [k for k in diff_results.keys() if k[3] == 0.5]
+    assert len(z0_keys) == 3
+    assert len(z05_keys) == 3
+
+def test_camb_specific_params(handler):
+    """Test CAMB-specific parameters"""
+    # With nonlinear=True
+    result_nl = handler.generate_power_spectra(
+        method='camb',
+        nonlinear=True
+    )
+    
+    # With nonlinear=False
+    result_linear = handler.generate_power_spectra(
+        method='camb',
+        nonlinear=False
+    )
+    
+    # Results should be different
+    assert not np.allclose(result_nl, result_linear)
+    
+    # With different halofit version
+    result_halofit = handler.generate_power_spectra(
+        method='camb',
+        halofit_version='takahashi'
+    )
+    
+    # Should be different from default (mead)
+    assert not np.allclose(result_nl, result_halofit)
+
+# def test_class_camb_parameter_consistency(handler):
+#     """Test consistency in parameter handling between CLASS and CAMB"""
+#     # Generate spectra with same parameters
+#     params = {
+#         'omega_cdm': 0.12,
+#         'h': 0.67,
+#         'omega_b': 0.022,
+#         'z': 0.5
+#     }
+    
+#     class_result = handler.generate_power_spectra(method='classy', **params)
+#     camb_result = handler.generate_power_spectra(method='camb', **params)
+    
+#     # Results should be similar (within reasonable bounds)
+#     # Note: Some differences are expected due to different implementations
+#     assert len(class_result) == len(camb_result)
+    
+    # Check ratio over most of the range (excluding extremes)
+    # k_idx_range = slice(len(handler.fastpt.k_original) // 10, -len(handler.fastpt.k_original) // 10)
+    # ratio = class_result[k_idx_range] / camb_result[k_idx_range]
+    # assert 0.8 < np.median(ratio) < 1.2, "CLASS and CAMB results differ significantly"
+
+def test_import_error_handling(monkeypatch):
+    """Test handling of import errors for CLASS and CAMB"""
+    # Create a handler with a mock FASTPT instance
+    k = np.logspace(-3, 1, 100)
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    
+    # Mock import errors
+    def mock_import_error(*args, **kwargs):
+        raise ImportError("Module not found")
+    
+    # Test CLASS import error
+    monkeypatch.setattr("builtins.__import__", mock_import_error, raising=False)
+    with pytest.raises(ImportError, match="Classy is not installed"):
+        handler.generate_power_spectra(method='classy')
+    
+    # Test CAMB import error
+    with pytest.raises(ImportError, match="CAMB is not installed"):
+        handler.generate_power_spectra(method='camb')
+
+if __name__ == "__main__":
+    k = np.loadtxt('k_h.txt')
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    cosmosis_p = np.loadtxt('cosmosis_p.txt')
+    pk = handler.generate_power_spectra(method='classy')
+    pk2 = handler.generate_power_spectra(method='camb', nonlinear=False)
+    import matplotlib.pyplot as plt
+    plt.plot(fpt.k_original, pk, label='class')
+    plt.plot(fpt.k_original, pk2, label='camb')
+    plt.plot(fpt.k_original, cosmosis_p, label='cosmosis')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('k')
+    plt.ylabel('P(k)')
+    plt.legend()
+    plt.show()
+
+    

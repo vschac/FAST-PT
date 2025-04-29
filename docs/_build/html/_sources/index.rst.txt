@@ -14,6 +14,7 @@ FAST-PT is a code to calculate quantities in cosmological perturbation theory at
    api
    examples
    theory
+   changelog
 
 Indices and tables
 ==================
