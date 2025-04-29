@@ -22,6 +22,7 @@ Minor Changes
 * Parameter validtion: The parameters P, P_window, and C_window are now validated at every function call to ensure that they have the proper traits needed for the calculation. This is done to prevent errors from propagating through the code and causing issues later on.
 * N_pad default: If no n_pad is provided during initialization, the default value is now set to 0.5 * len(k). This is done to prevent errors from propagating through the code and causing issues later on.
 * Nu deprecation: The nu parameter is now deprecated as it is no longer needed for initialization. It will always be set to -2.
+* One_loop_dd return: One_loop_dd will only return P_1loop, Ps, no longer the dd_bias terms as well as they were previously contingent on the to_do list which is being deprecated. 
 
 
 Performance Improvements
