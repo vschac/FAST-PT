@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; FAST-PT 3.2 documentation</title>
+  <title>API Reference &mdash; FAST-PT 4.0.0b0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=828ea960"></script>
+      <script src="_static/documentation_options.js?v=fcf9cf13"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -106,6 +106,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog / Migration Guide</a></li>
 </ul>
 
         </div>
@@ -578,15 +579,15 @@ alignment and tidal torque.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastpt.</span></span><span class="sig-name descname"><span class="pre">FPTHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fastpt_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT.FASTPT"><span class="pre">FASTPT</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cache_entries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler" title="Link to this definition"></a></dt>
 <dd><p>Handler class for FAST-PT that simplifies function calls and result management.</p>
 <p>This class provides a simplified interface for working with FAST-PT functions,
-with features including parameter validation, caching of results, saving/loading
-outputs, and direct access to specific power spectrum terms.</p>
+with features including power spectra generation, saving/loading outputs,
+direct access to specific power spectrum terms, and more.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fastpt_instance</strong> (<a class="reference internal" href="#fastpt.FASTPT" title="fastpt.FASTPT"><em>FASTPT</em></a>) – An initialized FASTPT instance.</p></li>
 <li><p><strong>do_cache</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to cache function results for repeated calls. Default is False.</p></li>
-<li><p><strong>save_all</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File format to save all results (‘txt’, ‘csv’, or ‘json’). Default is None.</p></li>
-<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results. Default is ‘outputs’ directory in pak_hage location.</p></li>
+<li><p><strong>save_all</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File format to save all results (‘txt’, ‘csv’, or ‘json’). If one is provided, all outputs of the run function will be saved. Default is None.</p></li>
+<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results. Default is ‘outputs’ directory in package location.</p></li>
 <li><p><strong>max_cache_entries</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of results to keep in cache. Default is 500.</p></li>
 <li><p><strong>**params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Default parameters to use for all function calls.</p></li>
 </ul>
@@ -693,13 +694,24 @@ in subsequent function calls.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.generate_power_spectra">
 <span class="sig-name descname"><span class="pre">generate_power_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'classy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'single'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FPTHandler.html#FPTHandler.generate_power_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.generate_power_spectra" title="Link to this definition"></a></dt>
-<dd><p>Generate power spectra using the specified method.</p>
+<dd><p>Generate power spectra using the specified mode and method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Either ‘classy’ or ‘camb’</p></li>
-<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – ‘single’, ‘bulk’, or ‘diff’</p></li>
-<li><p><strong>**kwargs</strong> – Cosmological parameters to pass to the appropriate method</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – <p>‘single’, ‘bulk’, or ‘diff’</p>
+<ul>
+<li><p>single: generate one power spectra with the given params, which should be passed as floats or bools</p></li>
+<li><p>bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.</p></li>
+<li><p>diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.</p></li>
+</ul>
+</p></li>
+<li><p><strong>**kwargs</strong> – <p>Cosmological parameters to pass to the appropriate method</p>
+<ul>
+<li><p>For CLASSY: omega_b, omega_cdm, h, z</p></li>
+<li><p>For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint</p></li>
+</ul>
+</p></li>
 </ul>
 </dd>
 </dl>
@@ -960,7 +972,7 @@ caches results if enabled, and optionally saves the output to a file.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>function_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the FAST-PT function to run</p></li>
 <li><p><strong>save_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File format to save results (‘txt’, ‘csv’, or ‘json’)</p></li>
-<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results. Defaults to the class’s output_dir.</p></li>
+<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Directory to save results. Defaults to the class’s save_dir (self.output_dir).</p></li>
 <li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional parameters to pass to the FAST-PT function</p></li>
 </ul>
 </dd>

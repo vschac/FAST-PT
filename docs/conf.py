@@ -38,6 +38,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom static files (such as style sheets)
 html_static_path = ['_static']
+# html_css_files = ['custom.css']
 
 # Configure autodoc to skip special methods
 autodoc_default_options = {

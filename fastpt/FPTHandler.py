@@ -98,10 +98,6 @@ class FPTHandler:
             "P_deltaE2": ("IA_ta", None),
             "P_0E0E": ("IA_ta", "X_IA_0E0E", None),
             "P_0B0B": ("IA_ta", "X_IA_0B0B", None),
-        
-            # "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
-            # "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
-            # "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
 
             "P_der": ("IA_der", None),
 
@@ -127,25 +123,6 @@ class FPTHandler:
             "P_kP2": ("kPol", "X_kP2", lambda x: x / (160 * pi ** 2)),
             "P_kP3": ("kPol", "X_kP3",lambda x: x / (80 * pi ** 2)),
         
-            # "A1": ("RSD_components", 0),
-            # "A3": ("RSD_components", 1),
-            # "A5": ("RSD_components", 2),
-            # "B0": ("RSD_components", 3),
-            # "B2": ("RSD_components", 4),
-            # "B4": ("RSD_components", 5),
-            # "B6": ("RSD_components", 6),
-            # "P_Ap1": ("RSD_components", 7),
-            # "P_Ap3": ("RSD_components", 8),
-            # "P_Ap5": ("RSD_components", 9),
-        
-            # "ABsum_mu2": ("RSD_ABsum_components", 0),
-            # "ABsum_mu4": ("RSD_ABsum_components", 1),
-            # "ABsum_mu6": ("RSD_ABsum_components", 2),
-            # "ABsum_mu8": ("RSD_ABsum_components", 3),
-        
-            # "ABsum": ("RSD_ABsum_components", 0),
-
-            # "P_IRres": ("IRres", 0),
         }
  
     @property
@@ -237,7 +214,7 @@ class FPTHandler:
         save_type : str, optional
             File format to save results ('txt', 'csv', or 'json')
         save_dir : str, optional
-            Directory to save results. Defaults to the class's output_dir.
+            Directory to save results. Defaults to the class's save_dir (self.output_dir).
         **override_kwargs : dict
             Additional parameters to pass to the FAST-PT function
             
@@ -412,27 +389,15 @@ class FPTHandler:
             else:
                 func_name = self.term_sources[term][0]
                 func = getattr(self.fastpt, func_name)
-                passing_params, params_info = self._prepare_function_params(func, override_kwargs)
+                passing_params, _ = self._prepare_function_params(func, override_kwargs)
 
                 compute_func = getattr(self.fastpt, "compute_term")
 
                 X_source = self.term_sources[term][1]
                 operation = self.term_sources[term][2]
 
-                # Handle case where we need multiple X terms (like for ctbias)
-                if isinstance(X_source, tuple):
-                    X_names = X_source
-                    X_terms = []
-                    for name in X_names:
-                        if name in dir(self.fastpt):
-                            X_terms.append(getattr(self.fastpt, name))
-                        else:
-                            raise AttributeError(f"'{name}' not found in FASTPT")
-                    result = compute_func(term, tuple(X_terms), operation=operation, **passing_params)
-                else:
-                    # Standard case with a single X tracer
-                    X_term = getattr(self.fastpt, X_source)
-                    result = compute_func(term, X_term, operation=operation, **passing_params)                
+                X_term = getattr(self.fastpt, X_source)
+                result = compute_func(term, X_term, operation=operation, **passing_params)                
                 
             output[term] = result
 

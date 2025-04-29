@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>fastpt.FPTHandler &mdash; FAST-PT 3.2 documentation</title>
+  <title>fastpt.FPTHandler &mdash; FAST-PT 4.0.0b0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=828ea960"></script>
+      <script src="../../_static/documentation_options.js?v=fcf9cf13"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -46,6 +46,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog / Migration Guide</a></li>
 </ul>
 
         </div>
@@ -86,8 +87,8 @@
 <span class="sd">    Handler class for FAST-PT that simplifies function calls and result management.</span>
 <span class="sd">    </span>
 <span class="sd">    This class provides a simplified interface for working with FAST-PT functions,</span>
-<span class="sd">    with features including parameter validation, caching of results, saving/loading</span>
-<span class="sd">    outputs, and direct access to specific power spectrum terms.</span>
+<span class="sd">    with features including power spectra generation, saving/loading outputs, </span>
+<span class="sd">    direct access to specific power spectrum terms, and more.</span>
 <span class="sd">    </span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -96,9 +97,9 @@
 <span class="sd">    do_cache : bool, optional</span>
 <span class="sd">        Whether to cache function results for repeated calls. Default is False.</span>
 <span class="sd">    save_all : str, optional</span>
-<span class="sd">        File format to save all results (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;). Default is None.</span>
+<span class="sd">        File format to save all results (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;). If one is provided, all outputs of the run function will be saved. Default is None.</span>
 <span class="sd">    save_dir : str, optional</span>
-<span class="sd">        Directory to save results. Default is &#39;outputs&#39; directory in pak_hage location.</span>
+<span class="sd">        Directory to save results. Default is &#39;outputs&#39; directory in package location.</span>
 <span class="sd">    max_cache_entries : int, optional</span>
 <span class="sd">        Maximum number of results to keep in cache. Default is 500.</span>
 <span class="sd">    **params : dict</span>
@@ -177,10 +178,6 @@
             <span class="s2">&quot;P_deltaE2&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ta&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="s2">&quot;P_0E0E&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ta&quot;</span><span class="p">,</span> <span class="s2">&quot;X_IA_0E0E&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="s2">&quot;P_0B0B&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_ta&quot;</span><span class="p">,</span> <span class="s2">&quot;X_IA_0B0B&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-        
-            <span class="c1"># &quot;P_gb2sij&quot;: (&quot;IA_gb2&quot;, &quot;X_IA_gb2_F2&quot;, lambda x: 2 * x),</span>
-            <span class="c1"># &quot;P_gb2dsij&quot;: (&quot;IA_gb2&quot;, &quot;X_IA_gb2_fe&quot;, lambda x: 2 * x),</span>
-            <span class="c1"># &quot;P_gb2sij2&quot;: (&quot;IA_gb2&quot;, &quot;X_IA_gb2_he&quot;, lambda x: 2 * x),</span>
 
             <span class="s2">&quot;P_der&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;IA_der&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
 
@@ -206,25 +203,6 @@
             <span class="s2">&quot;P_kP2&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;kPol&quot;</span><span class="p">,</span> <span class="s2">&quot;X_kP2&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">160</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)),</span>
             <span class="s2">&quot;P_kP3&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;kPol&quot;</span><span class="p">,</span> <span class="s2">&quot;X_kP3&quot;</span><span class="p">,</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">80</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)),</span>
         
-            <span class="c1"># &quot;A1&quot;: (&quot;RSD_components&quot;, 0),</span>
-            <span class="c1"># &quot;A3&quot;: (&quot;RSD_components&quot;, 1),</span>
-            <span class="c1"># &quot;A5&quot;: (&quot;RSD_components&quot;, 2),</span>
-            <span class="c1"># &quot;B0&quot;: (&quot;RSD_components&quot;, 3),</span>
-            <span class="c1"># &quot;B2&quot;: (&quot;RSD_components&quot;, 4),</span>
-            <span class="c1"># &quot;B4&quot;: (&quot;RSD_components&quot;, 5),</span>
-            <span class="c1"># &quot;B6&quot;: (&quot;RSD_components&quot;, 6),</span>
-            <span class="c1"># &quot;P_Ap1&quot;: (&quot;RSD_components&quot;, 7),</span>
-            <span class="c1"># &quot;P_Ap3&quot;: (&quot;RSD_components&quot;, 8),</span>
-            <span class="c1"># &quot;P_Ap5&quot;: (&quot;RSD_components&quot;, 9),</span>
-        
-            <span class="c1"># &quot;ABsum_mu2&quot;: (&quot;RSD_ABsum_components&quot;, 0),</span>
-            <span class="c1"># &quot;ABsum_mu4&quot;: (&quot;RSD_ABsum_components&quot;, 1),</span>
-            <span class="c1"># &quot;ABsum_mu6&quot;: (&quot;RSD_ABsum_components&quot;, 2),</span>
-            <span class="c1"># &quot;ABsum_mu8&quot;: (&quot;RSD_ABsum_components&quot;, 3),</span>
-        
-            <span class="c1"># &quot;ABsum&quot;: (&quot;RSD_ABsum_components&quot;, 0),</span>
-
-            <span class="c1"># &quot;P_IRres&quot;: (&quot;IRres&quot;, 0),</span>
         <span class="p">}</span></div>
 
  
@@ -319,7 +297,7 @@
 <span class="sd">        save_type : str, optional</span>
 <span class="sd">            File format to save results (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;)</span>
 <span class="sd">        save_dir : str, optional</span>
-<span class="sd">            Directory to save results. Defaults to the class&#39;s output_dir.</span>
+<span class="sd">            Directory to save results. Defaults to the class&#39;s save_dir (self.output_dir).</span>
 <span class="sd">        **override_kwargs : dict</span>
 <span class="sd">            Additional parameters to pass to the FAST-PT function</span>
 <span class="sd">            </span>
@@ -500,27 +478,15 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">func_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="p">[</span><span class="n">term</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">func_name</span><span class="p">)</span>
-                <span class="n">passing_params</span><span class="p">,</span> <span class="n">params_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_function_params</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">override_kwargs</span><span class="p">)</span>
+                <span class="n">passing_params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_function_params</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">override_kwargs</span><span class="p">)</span>
 
                 <span class="n">compute_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="s2">&quot;compute_term&quot;</span><span class="p">)</span>
 
                 <span class="n">X_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="p">[</span><span class="n">term</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">operation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="p">[</span><span class="n">term</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
 
-                <span class="c1"># Handle case where we need multiple X terms (like for ctbias)</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X_source</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                    <span class="n">X_names</span> <span class="o">=</span> <span class="n">X_source</span>
-                    <span class="n">X_terms</span> <span class="o">=</span> <span class="p">[]</span>
-                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">X_names</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">):</span>
-                            <span class="n">X_terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; not found in FASTPT&quot;</span><span class="p">)</span>
-                    <span class="n">result</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">X_terms</span><span class="p">),</span> <span class="n">operation</span><span class="o">=</span><span class="n">operation</span><span class="p">,</span> <span class="o">**</span><span class="n">passing_params</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># Standard case with a single X tracer</span>
-                    <span class="n">X_term</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">X_source</span><span class="p">)</span>
-                    <span class="n">result</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">X_term</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="n">operation</span><span class="p">,</span> <span class="o">**</span><span class="n">passing_params</span><span class="p">)</span>                
+                <span class="n">X_term</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">X_source</span><span class="p">)</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">X_term</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="n">operation</span><span class="p">,</span> <span class="o">**</span><span class="n">passing_params</span><span class="p">)</span>                
                 
             <span class="n">output</span><span class="p">[</span><span class="n">term</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
 
@@ -930,7 +896,7 @@
         <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
         <span class="n">ext</span> <span class="o">=</span> <span class="n">ext</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     
-        <span class="c1"># Chek_h for valid extension before chek_hing if file exists</span>
+        <span class="c1"># Check for valid extension before checking if file exists</span>
         <span class="k">if</span> <span class="n">ext</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;.json&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported file extension: </span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">. Must be &#39;.txt&#39;, &#39;.csv&#39;, or &#39;.json&#39;&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
@@ -998,11 +964,11 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported file extension: </span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">. Must be &#39;.txt&#39;, &#39;.csv&#39;, or &#39;.json&#39;&quot;</span><span class="p">)</span>
             
-            <span class="c1"># Handle special case for sig4 in bias functions - convert bak_h to float</span>
+            <span class="c1"># Handle special case for sig4 in bias functions - convert back to float</span>
             <span class="c1"># In one_loop_dd_bias and one_loop_dd_bias_b3nl, sig4 is at index 7</span>
             <span class="c1"># In one_loop_dd_bias_lpt_NL, sig4 is at index 6</span>
             <span class="k">if</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;one_loop_dd_bias&quot;</span><span class="p">,</span> <span class="s2">&quot;one_loop_dd_bias_b3nl&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
-                <span class="c1"># Chek_h if the array is mostly zeros with one value</span>
+                <span class="c1"># Check if the array is mostly zeros with one value</span>
                 <span class="k">if</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="c1"># Get the first non-zero value or the first value if all zeros</span>
                     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">7</span><span class="p">]):</span>
@@ -1012,7 +978,7 @@
                     <span class="n">arrays</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">sig4_value</span>
                     
             <span class="k">elif</span> <span class="n">func_name</span> <span class="o">==</span> <span class="s2">&quot;one_loop_dd_bias_lpt_NL&quot;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">:</span>
-                <span class="c1"># Similar chek_h for lpt_NL case</span>
+                <span class="c1"># Similar check for lpt_NL case</span>
                 <span class="k">if</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">6</span><span class="p">]):</span>
                         <span class="n">sig4_value</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">6</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
@@ -1342,7 +1308,7 @@
             <span class="c1"># Apply scale factor if provided for this label</span>
             <span class="n">scale</span> <span class="o">=</span> <span class="n">scale_factors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">default_scale</span><span class="p">)</span>
             
-            <span class="c1"># Chek_h if data contains negative values</span>
+            <span class="c1"># Check if data contains negative values</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
                 <span class="c1"># Plot positive values</span>
                 <span class="n">mask_pos</span> <span class="o">=</span> <span class="n">data_array</span> <span class="o">&gt;=</span> <span class="mi">0</span>
@@ -1501,8 +1467,8 @@
             <span class="c1"># Remove x-label from top plot to avoid overlap</span>
             <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
         
-            <span class="c1"># Only show x tik_h labels on bottom panel</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">get_xtik_hlabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># Only show x tick labels on bottom panel</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         
         <span class="c1"># Save figure if path provided</span>
         <span class="k">if</span> <span class="s1">&#39;save_path&#39;</span> <span class="ow">in</span> <span class="n">plot_kwargs</span><span class="p">:</span>
@@ -1520,7 +1486,7 @@
 <a class="viewcode-back" href="../../api.html#fastpt.FPTHandler.generate_power_spectra">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">generate_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;classy&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Generate power spectra using the specified method.</span>
+<span class="sd">        Generate power spectra using the specified mode and method.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1528,8 +1494,15 @@
 <span class="sd">            Either &#39;classy&#39; or &#39;camb&#39;</span>
 <span class="sd">        mode : str</span>
 <span class="sd">            &#39;single&#39;, &#39;bulk&#39;, or &#39;diff&#39;</span>
+
+<span class="sd">            - single: generate one power spectra with the given params, which should be passed as floats or bools</span>
+<span class="sd">            - bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.</span>
+<span class="sd">            - diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.</span>
 <span class="sd">        **kwargs</span>
 <span class="sd">            Cosmological parameters to pass to the appropriate method</span>
+<span class="sd">            </span>
+<span class="sd">            - For CLASSY: omega_b, omega_cdm, h, z</span>
+<span class="sd">            - For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">method</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;classy&#39;</span><span class="p">,</span> <span class="s1">&#39;camb&#39;</span><span class="p">):</span>
@@ -1538,6 +1511,19 @@
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;bulk&#39;</span><span class="p">,</span> <span class="s1">&#39;diff&#39;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid mode. Choose &#39;single&#39;, &#39;bulk&#39;, or &#39;diff&#39;.&quot;</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;bulk&#39;</span><span class="p">,</span> <span class="s1">&#39;diff&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid mode. Choose &#39;single&#39;, &#39;bulk&#39;, or &#39;diff&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;classy&#39;</span><span class="p">:</span>
+            <span class="n">camb_specific_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;As&#39;</span><span class="p">,</span> <span class="s1">&#39;ns&#39;</span><span class="p">,</span> <span class="s1">&#39;k_hunit&#39;</span><span class="p">,</span> <span class="s1">&#39;nonlinear&#39;</span><span class="p">,</span> <span class="s1">&#39;H0&#39;</span><span class="p">,</span> <span class="s1">&#39;kmax&#39;</span><span class="p">,</span> 
+                            <span class="s1">&#39;hubble_units&#39;</span><span class="p">,</span> <span class="s1">&#39;extrap_kmax&#39;</span><span class="p">,</span> <span class="s1">&#39;k_per_logint&#39;</span><span class="p">,</span> <span class="s1">&#39;halofit_version&#39;</span><span class="p">}</span>
+            <span class="n">class_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;omega_cdm&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;omega_b&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">}</span>
+            <span class="n">camb_params_used</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">camb_specific_params</span> <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">camb_params_used</span><span class="p">:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CAMB-specific parameters will be ignored when using CLASS: </span><span class="si">{</span><span class="n">camb_params_used</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">class_params</span><span class="p">}</span>
+        
         <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;diff&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;bulk&#39;</span><span class="p">:</span>
@@ -1588,8 +1574,17 @@
                     <span class="n">omega_b</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;omega_b&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                     <span class="n">omega_cdm</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;omega_cdm&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                     <span class="n">h</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
-                    <span class="n">z</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
-                    <span class="c1">#Update to include new params for CAMB</span>
+                    <span class="n">z</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">As</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;As&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">ns</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;ns&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">halofit_version</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;halofit_version&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">k_hunit</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;k_hunit&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">nonlinear</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;nonlinear&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">H0</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;H0&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">kmax</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;kmax&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">hubble_units</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;hubble_units&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">extrap_kmax</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;extrap_kmax&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">k_per_logint</span><span class="o">=</span><span class="n">param_arrays</span><span class="p">[</span><span class="s1">&#39;k_per_logint&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                 <span class="p">))</span>
             
             <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">output</span>
@@ -1756,6 +1751,14 @@
         <span class="k">return</span> <span class="n">PK</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span></div>
 
     
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+    <span class="n">fpt</span> <span class="o">=</span> <span class="n">FASTPT</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">)</span>
+    <span class="n">handler</span><span class="o">.</span><span class="n">generate_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;classy&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="n">omega_cdm</span><span class="o">=</span><span class="mf">0.12</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.67</span><span class="p">,</span> <span class="n">omega_b</span><span class="o">=</span><span class="mf">0.022</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                   <span class="n">As</span><span class="o">=</span><span class="mf">2.1e-9</span><span class="p">,</span> <span class="n">ns</span><span class="o">=</span><span class="mf">0.965</span><span class="p">,</span> <span class="n">halofit_version</span><span class="o">=</span><span class="s1">&#39;mead&#39;</span><span class="p">,</span> <span class="n">hubble_units</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                   <span class="n">k_hunit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">extrap_kmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">k_per_logint</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
 
            </div>
