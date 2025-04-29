@@ -180,17 +180,13 @@ class JAXPT:
             "P_0E0E": {"type": "standard", "X": "X_IA_0E0E"},
             "P_0B0B": {"type": "standard", "X": "X_IA_0B0B"},
             
-            "P_gb2sij": {"type": "standard", "X": "X_IA_gb2_F2", "operation": lambda x: 2 * x},
-            "P_gb2dsij": {"type": "standard", "X": "X_IA_gb2_fe", "operation": lambda x: 2 * x},
-            "P_gb2sij2": {"type": "standard", "X": "X_IA_gb2_he", "operation": lambda x: 2 * x},
-            
-            "P_s2E": {"type": "standard", "X": "X_IA_gb2_S2F2", "operation": lambda x: 2 * x},
-            "P_s20E": {"type": "standard", "X": "X_IA_gb2_S2fe", "operation": lambda x: 2 * x},
             "P_s2E2": {"type": "standard", "X": "X_IA_gb2_S2he", "operation": lambda x: 2 * x},
+            "P_d2E2": {"type": "standard", "X": "X_IA_gb2_he", "operation": lambda x: 2 * x},
             
             "P_d2E": {"type": "standard", "X": "X_IA_gb2_F2", "operation": lambda x: 2 * x},
-            "P_d20E": {"type": "standard", "X": "X_IA_gb2_he", "operation": lambda x: 2 * x},
-            "P_d2E2": {"type": "standard", "X": "X_IA_gb2_fe", "operation": lambda x: 2 * x},
+            "P_d20E": {"type": "standard", "X": "X_IA_gb2_fe", "operation": lambda x: 2 * x},
+            "P_s2E": {"type": "standard", "X": "X_IA_gb2_S2F2", "operation": lambda x: 2 * x},
+            "P_s20E": {"type": "standard", "X": "X_IA_gb2_S2fe", "operation": lambda x: 2 * x},
             
             "P_kP1": {"type": "standard", "X": "X_kP1", "operation": lambda x: x / (80 * jnp.pi ** 2)},
             "P_kP2": {"type": "standard", "X": "X_kP2", "operation": lambda x: x / (160 * jnp.pi ** 2)},
@@ -233,10 +229,9 @@ class JAXPT:
             "IA_mix": ["P_A", "P_Btype2", "P_DEE", "P_DBB"],
             "IA_ta": ["P_deltaE1", "P_deltaE2", "P_0E0E", "P_0B0B"],
             "IA_ct": ["P_0tE", "P_0EtE", "P_E2tE", "P_tEtE"],
-            "IA_ctbias": ["P_d2tE", "P_s2tE"],
-            "IA_gb2": ["P_gb2sij", "P_gb2dsij", "P_gb2sij2"],
-            "IA_d2": ["P_d2E", "P_d20E", "P_d2E2"],
-            "IA_s2": ["P_s2E", "P_s20E", "P_s2E2"],
+            "gI_ct": ["P_d2tE", "P_s2tE"],
+            "gI_ta": ["P_d2E", "P_d20E", "P_s2E", "P_s20E"],
+            "gI_tt": ["P_s2E2", "P_d2E2"],
             "kPol": ["P_kP1", "P_kP2", "P_kP3"],
             "one_loop_dd_bias_b3nl": ["P_1loop", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4", "sig3nl"],
             "one_loop_dd_bias_lpt_NL": ["Pb1L", "Pb1L_2", "Pb1L_b2L", "Pb2L", "Pb2L_2", "sig4"]
@@ -244,13 +239,13 @@ class JAXPT:
 
         #JIT Compile functions
         try:
-            self.J_k_scalar = jit(self.J_k_scalar, static_argnames=["n_pad", "k_size", "EK", "N," "l", 
-                                                                    "id_pad", "k_extrap", "k_final", "low_extrap", "high_extrap"])
+            self.J_k_scalar = jit(self.J_k_scalar, static_argnames=["n_pad", "k_size", "EK",
+                                                                     "N", "l", "id_pad", "k_extrap", "k_final", "low_extrap", "high_extrap"])
         except:
             print("J_k_scalar JIT compilation failed. Using default python implementation.")
         try:
-            self._J_k_tensor_core = jit(self.J_k_tensor, static_argnames=["n_pad", "k_size", "EK", "N," "l", 
-                                                                          "id_pad", "k_extrap", "k_final", "low_extrap", "high_extrap"])
+            self._J_k_tensor_core = jit(self.J_k_tensor, static_argnames=["n_pad", "k_size", "EK",
+                                                                          "N", "l", "id_pad", "k_extrap", "k_final", "low_extrap", "high_extrap"])
         except:
             print("J_k_tensor JIT compilation failed. Using default python implementation.")
         try:
@@ -273,14 +268,14 @@ class JAXPT:
             self.get = jit(self.get, static_argnames=["term"])
         except:
             print("get JIT compilation failed. Using default python implementation.")
-        try:
-            self.process_rows = jit(jax.vmap(
-                lambda i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size: 
-                    self._process_single_row(i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size)
-            ))
-        except Exception as e:
-            self.process_rows = self._process_single_row
-            raise e
+        # try:
+        #     self.process_rows = jit(jax.vmap(
+        #         lambda i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size: 
+        #             self._process_single_row(i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size)
+        #     ))
+        # except Exception as e:
+        #     self.process_rows = self._process_single_row
+        #     raise e
         
         #These cannot be cached properties since they would be accessed twice in one function call (the one loop functions)
         #Therefore producing a side affect as the second access is done via cache and breaking differentiability
@@ -735,17 +730,17 @@ class JAXPT:
     def IA_ct(self, P, C_window=None):
         return tuple(self.get(t, P, C_window) for t in self.term_groups["IA_ct"])
     
-    def IA_ctbias(self, P, C_window=None):
-        return tuple(self.get(t, P, C_window) for t in self.term_groups["IA_ctbias"])
+    def gI_ct(self, P, C_window=None):
+        return tuple(self.get(t, P, C_window) for t in self.term_groups["gI_ct"])
     
     def IA_gb2(self, P, C_window=None):
         return tuple(self.get(t, P, C_window) for t in self.term_groups["IA_gb2"])
     
-    def IA_d2(self, P, C_window=None):
-        return tuple(self.get(t, P, C_window) for t in self.term_groups["IA_d2"])
+    def gI_ta(self, P, C_window=None):
+        return tuple(self.get(t, P, C_window) for t in self.term_groups["gI_ta"])
     
-    def IA_s2(self, P, C_window=None):
-        return tuple(self.get(t, P, C_window) for t in self.term_groups["IA_s2"])
+    def gI_tt(self, P, C_window=None):
+        return tuple(self.get(t, P, C_window) for t in self.term_groups["gI_tt"])
     
     def OV(self, P, C_window=None):
         P, A = self.J_k_tensor(P, self.X_OV, self.k_extrap, self.k_final, self.k_size,
@@ -783,8 +778,26 @@ class JAXPT:
         
         A_out = jnp.zeros((pf.shape[0], k_size))
         
+        def process_single_row(i):
+            C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
+            
+            l_size = l.shape[0]
+            l_midpoint = l_size // 2  # Assuming l is centered around 0
+            
+            c_plus = C_l[l_midpoint:]  # Positive part (including 0)
+            c_minus = C_l[:l_midpoint]  # Negative part
+            
+            # Combine them, dropping the last element of c_plus
+            C_l_combined = jnp.concatenate([c_plus[:-1], c_minus])
+            
+            A_k = ifft(C_l_combined) * C_l_combined.size
+            
+            stride = max(1, A_k.shape[0] // k_size)
+            
+            return jnp.real(A_k[::stride][:k_size]) * pf[i] * k_final ** (-p[i] - 2)
+        
         rows = jnp.arange(pf.shape[0])
-        A_out = jax.vmap(self.process_rows)(rows)
+        A_out = jax.vmap(process_single_row)(rows)
         
         m_midpoint = (m.shape[0] + 1) // 2  # Position of 0 in m
         c_m_positive = c_m[m_midpoint-1:]  # Select m >= 0
@@ -797,24 +810,7 @@ class JAXPT:
         
         return P_out, A_out
 
-    def _process_single_row(self, i, c_m, g_m, g_n, h_l, two_part_l, pf, p, l, k_final, k_size):
-        C_l = self.convolution(c_m, c_m, g_m[i], g_n[i], h_l[i], None if two_part_l is None else two_part_l[i])
-        
-        l_size = l.shape[0]
-        l_midpoint = l_size // 2  # Assuming l is centered around 0
-        
-        c_plus = C_l[l_midpoint:]  # Positive part (including 0)
-        c_minus = C_l[:l_midpoint]  # Negative part
-        
-        # Combine them, dropping the last element of c_plus
-        C_l_combined = jnp.concatenate([c_plus[:-1], c_minus])
-        
-        A_k = ifft(C_l_combined) * C_l_combined.size
-        
-        stride = max(1, A_k.shape[0] // k_size)
-        
-        return jnp.real(A_k[::stride][:k_size]) * pf[i] * k_final ** (-p[i] - 2)
-
+    
     def J_k_tensor(self, P, X, k_extrap, k_final, k_size, n_pad, id_pad, l, m, N, C_window=None, P_window=None, low_extrap=None, high_extrap=None, EK=None):
         
         pf, p, nu1, nu2, g_m, g_n, h_l = X
@@ -909,4 +905,4 @@ if __name__ == "__main__":
     k = d[:, 0]
     jpt = JAXPT(k, P_window=jnp.array([0.2, 0.2]), C_window=0.75, low_extrap=-5, high_extrap=3)
     fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
-   
+    j = jpt.one_loop_dd_bias_b3nl(P)

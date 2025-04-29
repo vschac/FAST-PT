@@ -172,7 +172,7 @@ def test_j_k_tensor(jpt, fpt):
 
 @pytest.mark.parametrize("term",
                          ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                         "P_s2E","P_s20E", "P_s2E2", "P_d2E",
                          "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
                          "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
                          "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
@@ -520,7 +520,7 @@ def test_convolution_differentiability(jpt):
 
 @pytest.mark.parametrize("term",
                          ["P_E", "P_B", "P_A", "P_DEE", "P_DBB", "P_deltaE1", "P_0E0E", "P_0B0B",
-                         "P_gb2sij", "P_gb2dsij", "P_gb2sij2", "P_s2E","P_s20E", "P_s2E2", "P_d2E",
+                         "P_s2E","P_s20E", "P_s2E2", "P_d2E",
                          "P_d20E", "P_d2E2", "P_kP1", "P_kP2", "P_kP3", "P_der", "P_OV", "P_0EtE",
                          "P_E2tE", "P_tEtE", "Pd1d2", "Pd2d2", "Pd1s2", "Pd2s2", "Ps2s2", "sig4",
                          "Pb1L_b2L", "Pb2L", "Pb2L_2", "P_d2tE", "P_s2tE",
@@ -559,8 +559,8 @@ def test_terms_differentiability(jpt, term):
         pytest.fail(f"JAX differentiation for term {term} failed with error: {str(e)}")
 
 @pytest.mark.parametrize("func_name", ["one_loop_dd_bias_b3nl", "one_loop_dd_bias_lpt_NL",
-                                       "IA_tt", "IA_mix", "IA_ta", "IA_ct", "IA_ctbias",
-                                       "IA_gb2", "IA_d2", "IA_s2", "OV", "kPol", "IA_der"])
+                                       "IA_tt", "IA_mix", "IA_ta", "IA_ct", "gI_ct",
+                                       "gI_ta", "gI_tt", "OV", "kPol", "IA_der"])
 def test_funcs_differentiability(jpt, func_name):
     """Test that each function is differentiable with respect to the input power spectrum."""
     try:
