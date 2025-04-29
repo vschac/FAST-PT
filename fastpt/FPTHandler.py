@@ -1387,7 +1387,7 @@ class FPTHandler:
     
     def generate_power_spectra(self, method='classy', mode='single', **kwargs):
         """
-        Generate power spectra using the specified method.
+        Generate power spectra using the specified mode and method.
         
         Parameters
         ----------
@@ -1395,8 +1395,15 @@ class FPTHandler:
             Either 'classy' or 'camb'
         mode : str
             'single', 'bulk', or 'diff'
+
+            - single: generate one power spectra with the given params, which should be passed as floats or bools
+            - bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.
+            - diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.
         **kwargs
             Cosmological parameters to pass to the appropriate method
+            
+            - For CLASSY: omega_b, omega_cdm, h, z
+            - For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint
         """
         method = method.lower()
         if method not in ('classy', 'camb'):
@@ -1405,6 +1412,19 @@ class FPTHandler:
         if mode not in ('single', 'bulk', 'diff'):
             raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
 
+        if mode not in ('single', 'bulk', 'diff'):
+            raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
+
+        if method == 'classy':
+            camb_specific_params = {'As', 'ns', 'k_hunit', 'nonlinear', 'H0', 'kmax', 
+                            'hubble_units', 'extrap_kmax', 'k_per_logint', 'halofit_version'}
+            class_params = {'omega_cdm', 'h', 'omega_b', 'z'}
+            camb_params_used = [param for param in camb_specific_params if param in kwargs]
+            if camb_params_used:
+                import warnings
+                warnings.warn(f"CAMB-specific parameters will be ignored when using CLASS: {camb_params_used}")
+                kwargs = {k: v for k, v in kwargs.items() if k in class_params}
+        
         if mode == 'diff':
             return self._diff_power_spectra(method, **kwargs)
         elif mode == 'bulk':
@@ -1454,8 +1474,17 @@ class FPTHandler:
                     omega_b=param_arrays['omega_b'][i],
                     omega_cdm=param_arrays['omega_cdm'][i],
                     h=param_arrays['h'][i],
-                    z=param_arrays['z'][i]
-                    #Update to include new params for CAMB
+                    z=param_arrays['z'][i],
+                    As=param_arrays['As'][i],
+                    ns=param_arrays['ns'][i],
+                    halofit_version=param_arrays['halofit_version'][i],
+                    k_hunit=param_arrays['k_hunit'][i],
+                    nonlinear=param_arrays['nonlinear'][i],
+                    H0=param_arrays['H0'][i],
+                    kmax=param_arrays['kmax'][i],
+                    hubble_units=param_arrays['hubble_units'][i],
+                    extrap_kmax=param_arrays['extrap_kmax'][i],
+                    k_per_logint=param_arrays['k_per_logint'][i],
                 ))
             
             return output[0] if len(output) == 1 else output
@@ -1624,3 +1653,11 @@ class FPTHandler:
         # 5) Evaluate at stored k
         return PK.P(z, k)
     
+if __name__ == '__main__':
+
+    k = np.logspace(1e-4, 1, 1000)
+    fpt = FASTPT(k)
+    handler = FPTHandler(fpt)
+    handler.generate_power_spectra(method='classy', mode='single', omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0,
+                                   As=2.1e-9, ns=0.965, halofit_version='mead', hubble_units=True,
+                                   k_hunit=True, extrap_kmax=None, k_per_logint=None)
