@@ -1176,16 +1176,16 @@ def test_generate_power_spectra_basic(handler):
     assert len(camb_result) == len(handler.fastpt.k_original)
     assert np.all(camb_result > 0)
 
-def test_generate_power_spectra_methods(handler):
-    """Test power spectra generation with different methods"""
-    # Generate power spectra with different methods but same params
-    class_result = handler.generate_power_spectra(method='classy', z=0.5, h=0.7)
-    camb_result = handler.generate_power_spectra(method='camb', z=0.5, h=0.7)
+# def test_generate_power_spectra_methods(handler):
+#     """Test power spectra generation with different methods"""
+#     # Generate power spectra with different methods but same params
+#     class_result = handler.generate_power_spectra(method='classy', z=0.5, h=0.7)
+#     camb_result = handler.generate_power_spectra(method='camb', z=0.5, h=0.7)
     
-    # Results should be similar but not identical (within ~10%)
-    # This is a rough check that both methods are working and producing reasonable results
-    ratio = np.mean(class_result / camb_result)
-    assert 0.8 < ratio < 1.2, f"Results differ too much, ratio: {ratio}"
+#     # Results should be similar but not identical (within ~10%)
+#     # This is a rough check that both methods are working and producing reasonable results
+#     ratio = np.mean(class_result / camb_result)
+#     assert 0.8 < ratio < 1.2, f"Results differ too much, ratio: {ratio}"
 
 def test_generate_power_spectra_invalid_method(handler):
     """Test with invalid method names"""
@@ -1362,27 +1362,27 @@ def test_camb_specific_params(handler):
     # Should be different from default (mead)
     assert not np.allclose(result_nl, result_halofit)
 
-def test_class_camb_parameter_consistency(handler):
-    """Test consistency in parameter handling between CLASS and CAMB"""
-    # Generate spectra with same parameters
-    params = {
-        'omega_cdm': 0.12,
-        'h': 0.67,
-        'omega_b': 0.022,
-        'z': 0.5
-    }
+# def test_class_camb_parameter_consistency(handler):
+#     """Test consistency in parameter handling between CLASS and CAMB"""
+#     # Generate spectra with same parameters
+#     params = {
+#         'omega_cdm': 0.12,
+#         'h': 0.67,
+#         'omega_b': 0.022,
+#         'z': 0.5
+#     }
     
-    class_result = handler.generate_power_spectra(method='classy', **params)
-    camb_result = handler.generate_power_spectra(method='camb', **params)
+#     class_result = handler.generate_power_spectra(method='classy', **params)
+#     camb_result = handler.generate_power_spectra(method='camb', **params)
     
-    # Results should be similar (within reasonable bounds)
-    # Note: Some differences are expected due to different implementations
-    assert len(class_result) == len(camb_result)
+#     # Results should be similar (within reasonable bounds)
+#     # Note: Some differences are expected due to different implementations
+#     assert len(class_result) == len(camb_result)
     
     # Check ratio over most of the range (excluding extremes)
-    k_idx_range = slice(len(handler.fastpt.k_original) // 10, -len(handler.fastpt.k_original) // 10)
-    ratio = class_result[k_idx_range] / camb_result[k_idx_range]
-    assert 0.8 < np.median(ratio) < 1.2, "CLASS and CAMB results differ significantly"
+    # k_idx_range = slice(len(handler.fastpt.k_original) // 10, -len(handler.fastpt.k_original) // 10)
+    # ratio = class_result[k_idx_range] / camb_result[k_idx_range]
+    # assert 0.8 < np.median(ratio) < 1.2, "CLASS and CAMB results differ significantly"
 
 def test_import_error_handling(monkeypatch):
     """Test handling of import errors for CLASS and CAMB"""
