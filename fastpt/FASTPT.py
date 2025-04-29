@@ -42,13 +42,13 @@ from numpy import exp, log, cos, sin, pi
 from .fastpt_extr import p_window, c_window
 from .matter_power_spt import P_13_reg, Y1_reg_NL, Y2_reg_NL
 from .initialize_params import scalar_stuff, tensor_stuff
-from .IA_tt import IA_tt
-from .IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
-from .IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
-from .IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_he, P_IA_13S2F2
-from .IA_gb2 import IA_gb2_S2F2, IA_gb2_S2fe, IA_gb2_S2he
-from .IA_ct import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, IA_tij_F2G2reg
-from .IA_ctbias import IA_gb2_F2, IA_gb2_G2, IA_gb2_S2F2, IA_gb2_S2G2
+from .IA_utils.IA_tt import IA_tt
+from .IA_utils.IA_ABD import IA_A, IA_DEE, IA_DBB, P_IA_B
+from .IA_utils.IA_ta import IA_deltaE1, P_IA_deltaE2, IA_0E0E, IA_0B0B
+from .IA_utils.IA_gb2 import IA_gb2_F2, IA_gb2_fe, IA_gb2_he, P_IA_13S2F2
+from .IA_utils.IA_gb2 import IA_gb2_S2F2, IA_gb2_S2fe, IA_gb2_S2he
+from .IA_utils.IA_ct import IA_tij_feG2, IA_tij_heG2, IA_tij_F2F2, IA_tij_G2G2, IA_tij_F2G2, P_IA_13G, P_IA_13F, IA_tij_F2G2reg
+from .IA_utils.IA_ctbias import IA_gb2_F2, IA_gb2_G2, IA_gb2_S2F2, IA_gb2_S2G2
 from .OV import OV
 from .kPol import kPol
 from .RSD import RSDA, RSDB

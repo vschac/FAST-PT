@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
-from .J_table import J_table
-from .J_k import J_k
+from ..J_table import J_table
+from ..J_k import J_k
 import sys
 from time import time
 from numpy import log, exp, pi
