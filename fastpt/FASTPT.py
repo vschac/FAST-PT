@@ -59,18 +59,6 @@ from .CacheManager import CacheManager
 from scipy.signal import fftconvolve
 from numpy.fft import ifft, irfft, rfft
 
-log2 = log(2.)
-from time import time
-def timer(func):
-    """Decorator to time function execution"""
-    def wrapper(*args, **kwargs):
-        start_time = time()
-        result = func(*args, **kwargs)
-        end_time = time()
-        print(f"(New) Function {func.__name__} executed in {end_time - start_time:.4f} seconds")
-        return result
-    return wrapper
-
 
 def cached_property(method):
     """Decorator to cache property values"""
@@ -737,6 +725,8 @@ class FASTPT:
         hash_key, P_hash = self._create_hash_key("P_1loop", self.X_spt, P, P_window, C_window)
         result = self.cache.get("P_1loop", hash_key)
         if result is not None: return result
+        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
+        # get the matrix for each J_k component
         Ps, mat = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
         P22_coef = np.array([2*1219/1470., 2*671/1029., 2*32/1715., 2*1/3., 2*62/35., 2*8/35., 1/3.])
         P22_mat = np.multiply(P22_coef, np.transpose(mat))
@@ -780,6 +770,12 @@ class FASTPT:
         result = self.cache.get("sig4", hash_key)
         if result is not None: return result
         Ps, _ = self.J_k_scalar(P, self.X_spt, -2, P_window=P_window, C_window=C_window)
+        # Quadraric bias Legendre components
+        # See eg section B of Baldauf+ 2012 (arxiv: 1201.4827)
+        # Note pre-factor convention is not standardized
+        # Returns relevant correlations (including contraction factors),
+        # but WITHOUT bias values and other pre-factors.
+        # Uses standard "full initialization" of J terms
         sig4 = np.trapz(self.k_extrap ** 3 * Ps ** 2, x=np.log(self.k_extrap)) / (2. * pi ** 2)
         self.cache.set(sig4, "sig4", hash_key, P_hash)
         return sig4
@@ -1488,11 +1484,15 @@ class FASTPT:
             return result
     
         c_m_positive = rfft(P_b)
-        #if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
+        # We always filter the Fourier coefficients, so the last element is zero.
+        # But in case someone does not filter and this is a scalar calculation, divide the end point by two
+        if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
         c_m_negative = np.conjugate(c_m_positive[1:])
         c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
     
         if C_window is not None:
+            # Window the Fourier coefficients.
+            # This will damp the highest frequencies
             if self.verbose:
                 print('windowing the Fourier coefficients')
             c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
@@ -1528,7 +1528,6 @@ class FASTPT:
 
         # Calculate convolution
         C_l = fftconvolve(c1 * g_m, c2 * g_n)
-        #Old comments about C_l
         # C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
         # multiply all l terms together
         # C_l=C_l*self.h_l[i,:]*self.two_part_l[i]
