@@ -9,8 +9,8 @@ class FPTHandler:
     Handler class for FAST-PT that simplifies function calls and result management.
     
     This class provides a simplified interface for working with FAST-PT functions,
-    with features including parameter validation, caching of results, saving/loading
-    outputs, and direct access to specific power spectrum terms.
+    with features including power spectra generation, saving/loading outputs, 
+    direct access to specific power spectrum terms, and more.
     
     Parameters
     ----------
@@ -19,9 +19,9 @@ class FPTHandler:
     do_cache : bool, optional
         Whether to cache function results for repeated calls. Default is False.
     save_all : str, optional
-        File format to save all results ('txt', 'csv', or 'json'). Default is None.
+        File format to save all results ('txt', 'csv', or 'json'). If one is provided, all outputs of the run function will be saved. Default is None.
     save_dir : str, optional
-        Directory to save results. Default is 'outputs' directory in pak_hage location.
+        Directory to save results. Default is 'outputs' directory in package location.
     max_cache_entries : int, optional
         Maximum number of results to keep in cache. Default is 500.
     **params : dict
@@ -812,7 +812,7 @@ class FPTHandler:
         _, ext = os.path.splitext(full_path)
         ext = ext.lower()
     
-        # Chek_h for valid extension before chek_hing if file exists
+        # Check for valid extension before checking if file exists
         if ext not in (".txt", ".csv", ".json"):
             raise FileNotFoundError(f"Unsupported file extension: {ext}. Must be '.txt', '.csv', or '.json'")
         if not os.path.exists(full_path):
@@ -880,11 +880,11 @@ class FPTHandler:
             else:
                 raise ValueError(f"Unsupported file extension: {ext}. Must be '.txt', '.csv', or '.json'")
             
-            # Handle special case for sig4 in bias functions - convert bak_h to float
+            # Handle special case for sig4 in bias functions - convert back to float
             # In one_loop_dd_bias and one_loop_dd_bias_b3nl, sig4 is at index 7
             # In one_loop_dd_bias_lpt_NL, sig4 is at index 6
             if func_name in ["one_loop_dd_bias", "one_loop_dd_bias_b3nl"] and len(arrays) > 7:
-                # Chek_h if the array is mostly zeros with one value
+                # Check if the array is mostly zeros with one value
                 if arrays[7].size > 1 and np.count_nonzero(arrays[7]) <= 1:
                     # Get the first non-zero value or the first value if all zeros
                     if np.any(arrays[7]):
@@ -894,7 +894,7 @@ class FPTHandler:
                     arrays[7] = sig4_value
                     
             elif func_name == "one_loop_dd_bias_lpt_NL" and len(arrays) > 6:
-                # Similar chek_h for lpt_NL case
+                # Similar check for lpt_NL case
                 if arrays[6].size > 1 and np.count_nonzero(arrays[6]) <= 1:
                     if np.any(arrays[6]):
                         sig4_value = arrays[6][np.nonzero(arrays[6])[0][0]]
@@ -1215,7 +1215,7 @@ class FPTHandler:
             # Apply scale factor if provided for this label
             scale = scale_factors.get(label, default_scale)
             
-            # Chek_h if data contains negative values
+            # Check if data contains negative values
             if isinstance(data_array, np.ndarray) and np.any(data_array < 0):
                 # Plot positive values
                 mask_pos = data_array >= 0
@@ -1371,8 +1371,8 @@ class FPTHandler:
             # Remove x-label from top plot to avoid overlap
             ax1.set_xlabel('')
         
-            # Only show x tik_h labels on bottom panel
-            plt.setp(ax1.get_xtik_hlabels(), visible=False)
+            # Only show x tick labels on bottom panel
+            plt.setp(ax1.get_xticklabels(), visible=False)
         
         # Save figure if path provided
         if 'save_path' in plot_kwargs:
