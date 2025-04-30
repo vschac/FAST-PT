@@ -1412,7 +1412,7 @@ if __name__ == "__main__":
     pk = handler.generate_power_spectra(method='classy')
     pk2 = handler.generate_power_spectra(method='camb', nonlinear=False)
     import matplotlib.pyplot as plt
-    plt.plot(fpt.k_original, pk, label='class')
+    plt.plot(fpt.k_original * 0.69, pk / 0.69**3, label='class')
     plt.plot(fpt.k_original, pk2, label='camb')
     plt.plot(fpt.k_original, cosmosis_p, label='cosmosis')
     plt.xscale('log')

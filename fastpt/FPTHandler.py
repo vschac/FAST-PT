@@ -1579,7 +1579,7 @@ class FPTHandler:
         
         return result
 
-    def _class_power_spectra(self, omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0):
+    def _class_power_spectra(self, omega_cdm=0.27, h=0.69, omega_b=0.032, omega_m=0.3, z=0.0):
         try:
             from classy import Class
         except ImportError as e:
@@ -1592,15 +1592,15 @@ class FPTHandler:
             'z_max_pk': z,
             'h': h,
             'omega_b': omega_b,
-            'omega_cdm': omega_cdm,
-            # 'ln10^{10}A_s':  np.log10(2.1e-9*1e10),
-            # 'n_s':           0.965, #Update these two to be passed as kwargs if needed
+            #'omega_cdm': omega_cdm,
+            'omega_m': omega_m,
+            'ln10^{10}A_s':  np.log10(2.1e-9*1e10),
+            'n_s':           0.97, #Update these two to be passed as kwargs if needed
         }
         cosmo = Class()
         cosmo.set(params)
         cosmo.compute()
         output = np.array([cosmo.pk(k, z) for k in k])
-        # output = np.array([cosmo.pk(ki, 0.0) for ki in k]) * h**3
         cosmo.struct_cleanup()
         cosmo.empty()
         return output
@@ -1608,12 +1608,12 @@ class FPTHandler:
     def _camb_power_spectra(self,
                                 z: float = 0.0,
                                 nonlinear: bool = True,
-                                h: float = 0.67,
+                                h: float = 0.69,
                                 H0: float = None,
                                 omega_b: float = 0.022,
                                 omega_cdm: float = 0.122,
                                 As: float = 2.1e-9,
-                                ns: float = 0.965,
+                                ns: float = 0.97,
                                 halofit_version: str = 'mead',
                                 kmax: float = None,
                                 hubble_units: bool = True,
