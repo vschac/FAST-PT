@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from fastpt import FASTPT
-from fastpt.FPTHandler import FPTHandler
+from fastpt.core.FPTHandler import FPTHandler
 import os
 import tempfile
 
@@ -1411,11 +1411,22 @@ if __name__ == "__main__":
     pk = handler.generate_power_spectra(method='classy')
     pk2 = handler.generate_power_spectra(method='camb')
     import matplotlib.pyplot as plt
-    plt.plot(fpt.k_original, pk, label='class')
-    plt.plot(fpt.k_original, pk2, label='camb')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlabel('k')
-    plt.ylabel('P(k)')
-    plt.legend()
-    plt.show()
+
+    relative_diff = np.abs(pk - pk2) / pk
+    print(max(relative_diff))
+    # plt.plot(fpt.k_original, relative_diff)
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.xlabel('k')
+    # plt.ylabel('Relative difference')
+    # plt.title('Relative difference between CLASS and CAMB')
+    # plt.show()
+
+    # plt.plot(fpt.k_original, pk, label='class')
+    # plt.plot(fpt.k_original, pk2, label='camb')
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.xlabel('k')
+    # plt.ylabel('P(k)')
+    # plt.legend()
+    # plt.show()
