@@ -1579,35 +1579,53 @@ class FPTHandler:
         
         return result
 
-    def _class_power_spectra(self, omega_cdm=0.27, h=0.69, omega_b=0.032, omega_m=0.3, z=0.0):
+    def _class_power_spectra(self, z=0.0, h=0.69, omega_b=0.022, omega_cdm=0.122, 
+                            As=2.1e-9, ns=0.97):
         try:
             from classy import Class
         except ImportError as e:
             raise ImportError("Classy is not installed. Please install it to use this function.") from e
-        k = self.fastpt.k_original
-        k_max = max(k)
+        
+        # Get k values (assuming they're in h/Mpc as in CAMB)
+        k_hMpc = self.fastpt.k_original
+        k_max = max(k_hMpc)
+        
+        # Set up CLASS parameters to match CAMB
+        # Note: CLASS uses physical densities (ωb, ωcdm) not density parameters (Ωb, Ωcdm)
         params = {
             'output': 'mPk',
-            'P_k_max_1/Mpc': k_max * 1.1,
+            'P_k_max_h/Mpc': k_max * 1.1,  # Specify in h/Mpc units
             'z_max_pk': z,
             'h': h,
-            'omega_b': omega_b,
-            #'omega_cdm': omega_cdm,
-            'omega_m': omega_m,
-            'ln10^{10}A_s':  np.log10(2.1e-9*1e10),
-            'n_s':           0.97, #Update these two to be passed as kwargs if needed
+            'omega_b': omega_b,  
+            'omega_cdm': omega_cdm,
+            'A_s': As,
+            'n_s': ns,
         }
+        
         cosmo = Class()
         cosmo.set(params)
         cosmo.compute()
-        output = np.array([cosmo.pk(k, z) for k in k])
+        
+        # Get power spectrum for each k, converting units appropriately
+        # CLASS uses 1/Mpc units internally, so we need to convert
+        power = np.zeros(len(k_hMpc))
+        for i, k in enumerate(k_hMpc):
+            # Convert k from h/Mpc to 1/Mpc for CLASS
+            k_invMpc = k * h
+            # Get P(k) in (Mpc)^3 units
+            pk_invMpc = cosmo.pk(k_invMpc, z)
+            # Convert to (Mpc/h)^3 units to match CAMB
+            power[i] = pk_invMpc * h**3
+        
         cosmo.struct_cleanup()
         cosmo.empty()
-        return output
+        
+        return power
 
     def _camb_power_spectra(self,
                                 z: float = 0.0,
-                                nonlinear: bool = True,
+                                nonlinear: bool = False,
                                 h: float = 0.69,
                                 H0: float = None,
                                 omega_b: float = 0.022,
@@ -1637,7 +1655,7 @@ class FPTHandler:
         kmax = kmax or float(np.max(k))
         pars.set_matter_power(redshifts=[z], kmax=kmax, k_per_logint=k_per_logint)
 
-        # 3) Choose HALOFIT version (no 'nonlinear' flag here)
+        # 3) Choose HALOFIT version
         pars.NonLinearModel.set_params(halofit_version=halofit_version)
 
         # 4) Build interpolator, passing the nonlinear flag here
