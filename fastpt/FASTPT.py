@@ -150,7 +150,7 @@ class FASTPT:
         if (k is None or len(k) == 0):
             raise ValueError('You must provide an input k array.')
         
-        if nu: print("Warning: nu is no longer needed for FAST-PT initialization.")
+        if nu: print("Warning: nu is no longer needed for FAST-PT initialization. It will default to -2, if another value is needed it will be calculated internally.")
         
 
         # if no to_do list is given, default to fastpt_simple SPT case
@@ -575,7 +575,6 @@ class FASTPT:
 
     def _validate_params(self, **params):
         """" Same function as before """
-        #Would need to add checks for every possible parameter (f, nu, X, etc)
         valid_params = ('P', 'P_window', 'C_window', 'f', 'X', 'nu', 'mu_n', 'L', 'h', 'rsdrag')
         for key in params.keys():
             if key not in valid_params:
@@ -960,34 +959,6 @@ class FASTPT:
         Pb2L_2 = self._apply_extrapolation(Pb2L_2)
         self.cache.set(Pb2L_2, "Pb2L_2", hash_key, P_hash)
         return Pb2L_2
-    
-    def cleft_Q_R(self, P, P_window=None, C_window=None):
-        self._validate_params(P=P, P_window=P_window, C_window=C_window)
-
-
-        nu_arr = -2
-        # get the roundtrip Fourier power spectrum, i.e. P=IFFT[FFT[P]]
-        # get the matrix for each J_k component
-        Ps, mat = self.J_k_scalar(P, self.X_cleft, nu_arr, P_window=P_window, C_window=C_window)
-
-        [j000, j002, j004, j1n11, j1n13, jn111, jn113] = [mat[0, :], mat[1, :], mat[2, :], mat[3, :], mat[4, :],
-                                                          mat[5, :], mat[6, :]]
-
-        FQ1 = (8./15.)*j000 - (16./21.)*j002 + (8./35.)*j004
-        FQ2 = (4./5.)*j000 - (4./7.)*j002 - (8./35.)*j004 + (2./5.)*j1n11 - (2./5.)*j1n13 + (2./5.)*jn111 - (2./5.)*jn113
-        FQ5 = (2./3.)*j000 - (2./3.)*j002 + (2./5.)*jn111 - (2./5.)*jn113
-        FQ8 = (2./3.)*j000 - (2./3.)*j002
-        FQs2 = (-4./15.)*j000 + (20./21.)*j002 - (24./35.)*j004
-
-
-        FR1 = cleft_Z1(self.k_extrap, Ps)
-        FR2 = cleft_Z2(self.k_extrap, Ps)
-
-        # ipdb.set_trace()
-
-        Ps_ep, FQ1_ep, FQ2_ep, FQ5_ep, FQ8_ep, FQs2_ep, FR1_ep, FR2_ep = self._apply_extrapolation(Ps, FQ1, FQ2, FQ5, FQ8, FQs2, FR1, FR2)
-
-        return FQ1_ep,FQ2_ep,FQ5_ep,FQ8_ep,FQs2_ep,FR1_ep,FR2_ep,self.k_extrap,FR1,FR2
 
     def IA_tt(self, P, P_window=None, C_window=None):
         """

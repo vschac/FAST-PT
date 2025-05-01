@@ -1405,24 +1405,17 @@ def test_import_error_handling(monkeypatch):
         handler.generate_power_spectra(method='camb')
 
 if __name__ == "__main__":
-    k = np.loadtxt('k_h.txt')
-    # k = np.logspace(-3, 1, 1000)
+    k = np.logspace(-3, 1, 1000)
     fpt = FASTPT(k)
     handler = FPTHandler(fpt)
-    cosmosis_p = np.loadtxt('cosmosis_p.txt')
     pk = handler.generate_power_spectra(method='classy')
-    # pk = pk * 0.67 ** 3
-    pk2 = handler.generate_power_spectra(method='camb', nonlinear=False)
+    pk2 = handler.generate_power_spectra(method='camb')
     import matplotlib.pyplot as plt
     plt.plot(fpt.k_original, pk, label='class')
     plt.plot(fpt.k_original, pk2, label='camb')
-    plt.plot(fpt.k_original*0.67, cosmosis_p, label='cosmosis')
-    # plt.plot(fpt.k_original, relational_diff, label='diff')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlabel('k')
     plt.ylabel('P(k)')
     plt.legend()
     plt.show()
-
-    

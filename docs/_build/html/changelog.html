@@ -52,7 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#major-changes">Major Changes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#minor-changes">Minor Changes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-improvements">Performance Improvements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#scientific-updates">Scientific Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#additional-notes">Additional Notes</a></li>
 </ul>
 </li>
 </ul>
@@ -84,6 +84,8 @@
   <section id="changelog-migration-guide">
 <span id="changelog"></span><h1>Changelog / Migration Guide<a class="headerlink" href="#changelog-migration-guide" title="Link to this heading"></a></h1>
 <p>This document details the changes between the original FAST-PT implementation and the current version.</p>
+<p>For previous versions’ changes, see the <a class="reference download internal" download="" href="_downloads/1abe55494b10c89f9d07e5e5009d7c70/usr_manual.pdf"><code class="xref download docutils literal notranslate"><span class="pre">complete</span> <span class="pre">changelog</span> <span class="pre">history</span></code></a>.</p>
+<p>NOTE: FAST-PT 4.0 is completely backwards compatible with FAST-PT 3.0. However, adjustments to your code may be required to take advantage of the new features and performance improvements.</p>
 <section id="major-changes">
 <h2>Major Changes<a class="headerlink" href="#major-changes" title="Link to this heading"></a></h2>
 <ul class="simple">
@@ -100,7 +102,9 @@
 <li><p>Gamma functions cache: A seperate (and simpler) caching system has been implemented to cache gamma functions and save time on the calculation of the X terms, previously stored in the to_do list.</p></li>
 <li><p>Parameter validtion: The parameters P, P_window, and C_window are now validated at every function call to ensure that they have the proper traits needed for the calculation. This is done to prevent errors from propagating through the code and causing issues later on.</p></li>
 <li><p>N_pad default: If no n_pad is provided during initialization, the default value is now set to 0.5 * len(k). This is done to prevent errors from propagating through the code and causing issues later on.</p></li>
-<li><p>Nu deprecation: The nu parameter is now deprecated as it is no longer needed for initialization. It will always be set to -2.</p></li>
+<li><p>Nu deprecation: The nu parameter is now deprecated as it is no longer needed for initialization. It will default to -2 unless a different nu value is needed in which case it will be calculated internally.</p></li>
+<li><p>One_loop_dd return: One_loop_dd will only return P_1loop, Ps. Previously returned the dd_bias terms as well however this was contingent on the to_do list which is being deprecated.</p></li>
+<li><p>Cleft_QR: The Cleft_QR function has been removed due to missing internal functions.</p></li>
 </ul>
 </section>
 <section id="performance-improvements">
@@ -110,10 +114,10 @@ FAST-PT also now calculates terms in a modular format. This means that the user 
 This is done by using the FPTHandler class and the get method, or by calling compute_term with the necessary parameters for each term.
 This will greatly improve the performance of each FAST-PT function if your use case only requires a select few terms.</p>
 </section>
-<section id="scientific-updates">
-<h2>Scientific Updates<a class="headerlink" href="#scientific-updates" title="Link to this heading"></a></h2>
+<section id="additional-notes">
+<h2>Additional Notes<a class="headerlink" href="#additional-notes" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Description of any changes to the underlying science/algorithms</p></li>
+<li><p>The 1loop term currently does not pass np.allclose with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the magnitude of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This bug is currently being investigated and will be fixed in a future release.</p></li>
 </ul>
 </section>
 </section>

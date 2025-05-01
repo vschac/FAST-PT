@@ -1367,7 +1367,7 @@ class FPTHandler:
         **kwargs
             Cosmological parameters to pass to the appropriate method
             
-            - For CLASSY: omega_b, omega_cdm, h, z
+            - For CLASSY: omega_b, omega_cdm, h, z, As, ns
             - For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint
         """
         method = method.lower()
@@ -1427,7 +1427,9 @@ class FPTHandler:
                     omega_b=param_arrays['omega_b'][i],
                     omega_cdm=param_arrays['omega_cdm'][i],
                     h=param_arrays['h'][i],
-                    z=param_arrays['z'][i]
+                    z=param_arrays['z'][i],
+                    As=param_arrays['As'][i],
+                    ns=param_arrays['ns'][i],
                 ))
             
             return output[0] if len(output) == 1 else output
@@ -1476,7 +1478,7 @@ class FPTHandler:
         
         camb_params = {
             'As': kwargs.get('As', 2.1e-9),
-            'ns': kwargs.get('ns', 0.96),
+            'ns': kwargs.get('ns', 0.97),
             'k_hunit': kwargs.get('k_hunit', True),
             'nonlinear': kwargs.get('nonlinear', False),
             'H0': kwargs.get('H0', None),
@@ -1531,7 +1533,9 @@ class FPTHandler:
                         omega_cdm=omega_cdm,
                         h=h,
                         omega_b=omega_b,
-                        z=z
+                        z=z,
+                        As=camb_params['As'],
+                        ns=camb_params['ns'],
                     )
                 else: 
                     result[key] = compute_func(
@@ -1635,12 +1639,3 @@ class FPTHandler:
 
         # 5) Evaluate at stored k
         return PK.P(z, k)
-    
-if __name__ == '__main__':
-
-    k = np.logspace(1e-4, 1, 1000)
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt)
-    handler.generate_power_spectra(method='classy', mode='single', omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0,
-                                   As=2.1e-9, ns=0.965, halofit_version='mead', hubble_units=True,
-                                   k_hunit=True, extrap_kmax=None, k_per_logint=None)

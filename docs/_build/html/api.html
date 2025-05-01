@@ -61,7 +61,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.RSD_ABsum_mu"><code class="docutils literal notranslate"><span class="pre">FASTPT.RSD_ABsum_mu()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.RSD_components"><code class="docutils literal notranslate"><span class="pre">FASTPT.RSD_components()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.__init__"><code class="docutils literal notranslate"><span class="pre">FASTPT.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.cleft_Q_R"><code class="docutils literal notranslate"><span class="pre">FASTPT.cleft_Q_R()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.compute_term"><code class="docutils literal notranslate"><span class="pre">FASTPT.compute_term()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.gI_ct"><code class="docutils literal notranslate"><span class="pre">FASTPT.gI_ct()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fastpt.FASTPT.gI_ta"><code class="docutils literal notranslate"><span class="pre">FASTPT.gI_ta()</span></code></a></li>
@@ -394,11 +393,6 @@ alignment and tidal torque.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="fastpt.FASTPT.cleft_Q_R">
-<span class="sig-name descname"><span class="pre">cleft_Q_R</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FASTPT.html#FASTPT.cleft_Q_R"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FASTPT.cleft_Q_R" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FASTPT.compute_term">
 <span class="sig-name descname"><span class="pre">compute_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/FASTPT.html#FASTPT.compute_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FASTPT.compute_term" title="Link to this definition"></a></dt>
 <dd><p>Computes a Fast-PT term with caching support.</p>
@@ -708,7 +702,7 @@ in subsequent function calls.</p>
 </p></li>
 <li><p><strong>**kwargs</strong> – <p>Cosmological parameters to pass to the appropriate method</p>
 <ul>
-<li><p>For CLASSY: omega_b, omega_cdm, h, z</p></li>
+<li><p>For CLASSY: omega_b, omega_cdm, h, z, As, ns</p></li>
 <li><p>For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint</p></li>
 </ul>
 </p></li>
