@@ -1515,28 +1515,55 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid mode. Choose &#39;single&#39;, &#39;bulk&#39;, or &#39;diff&#39;.&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;classy&#39;</span><span class="p">:</span>
-            <span class="n">camb_specific_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;As&#39;</span><span class="p">,</span> <span class="s1">&#39;ns&#39;</span><span class="p">,</span> <span class="s1">&#39;k_hunit&#39;</span><span class="p">,</span> <span class="s1">&#39;nonlinear&#39;</span><span class="p">,</span> <span class="s1">&#39;H0&#39;</span><span class="p">,</span> <span class="s1">&#39;kmax&#39;</span><span class="p">,</span> 
+            <span class="n">default_params</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;omega_b&#39;</span><span class="p">:</span> <span class="mf">0.022</span><span class="p">,</span>
+                <span class="s1">&#39;omega_cdm&#39;</span><span class="p">:</span> <span class="mf">0.122</span><span class="p">,</span> 
+                <span class="s1">&#39;h&#39;</span><span class="p">:</span> <span class="mf">0.69</span><span class="p">,</span>
+                <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s1">&#39;As&#39;</span><span class="p">:</span> <span class="mf">2.1e-9</span><span class="p">,</span>
+                <span class="s1">&#39;ns&#39;</span><span class="p">:</span> <span class="mf">0.97</span>
+            <span class="p">}</span>
+            
+            <span class="n">camb_specific_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;k_hunit&#39;</span><span class="p">,</span> <span class="s1">&#39;nonlinear&#39;</span><span class="p">,</span> <span class="s1">&#39;H0&#39;</span><span class="p">,</span> <span class="s1">&#39;kmax&#39;</span><span class="p">,</span> 
                             <span class="s1">&#39;hubble_units&#39;</span><span class="p">,</span> <span class="s1">&#39;extrap_kmax&#39;</span><span class="p">,</span> <span class="s1">&#39;k_per_logint&#39;</span><span class="p">,</span> <span class="s1">&#39;halofit_version&#39;</span><span class="p">}</span>
-            <span class="n">class_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;omega_cdm&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;omega_b&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">}</span>
+            
             <span class="n">camb_params_used</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">camb_specific_params</span> <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">camb_params_used</span><span class="p">:</span>
                 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CAMB-specific parameters will be ignored when using CLASS: </span><span class="si">{</span><span class="n">camb_params_used</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">class_params</span><span class="p">}</span>
-        
-        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;diff&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;bulk&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bulk_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">camb_specific_params</span><span class="p">}</span>
         <span class="k">else</span><span class="p">:</span> 
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">default_params</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;omega_b&#39;</span><span class="p">:</span> <span class="mf">0.022</span><span class="p">,</span>
+                <span class="s1">&#39;omega_cdm&#39;</span><span class="p">:</span> <span class="mf">0.122</span><span class="p">,</span>
+                <span class="s1">&#39;h&#39;</span><span class="p">:</span> <span class="mf">0.69</span><span class="p">,</span>
+                <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> 
+                <span class="s1">&#39;As&#39;</span><span class="p">:</span> <span class="mf">2.1e-9</span><span class="p">,</span>
+                <span class="s1">&#39;ns&#39;</span><span class="p">:</span> <span class="mf">0.965</span><span class="p">,</span>
+                <span class="s1">&#39;nonlinear&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;H0&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;kmax&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;hubble_units&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> 
+                <span class="s1">&#39;k_hunit&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s1">&#39;extrap_kmax&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;k_per_logint&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;halofit_version&#39;</span><span class="p">:</span> <span class="s1">&#39;mead&#39;</span>
+            <span class="p">}</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
+ 
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;diff&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;bulk&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bulk_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameter &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; must be a single value for single mode.&quot;</span><span class="p">)</span>
                     
             <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;classy&#39;</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_class_power_spectra</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_class_power_spectra</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span> 
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_camb_power_spectra</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_camb_power_spectra</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span></div>
 
     
     <span class="k">def</span><span class="w"> </span><span class="nf">_bulk_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
