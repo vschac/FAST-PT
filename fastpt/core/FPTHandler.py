@@ -1381,28 +1381,55 @@ class FPTHandler:
             raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
 
         if method == 'classy':
-            camb_specific_params = {'As', 'ns', 'k_hunit', 'nonlinear', 'H0', 'kmax', 
+            default_params = {
+                'omega_b': 0.022,
+                'omega_cdm': 0.122, 
+                'h': 0.69,
+                'z': 0.0,
+                'As': 2.1e-9,
+                'ns': 0.97
+            }
+            
+            camb_specific_params = {'k_hunit', 'nonlinear', 'H0', 'kmax', 
                             'hubble_units', 'extrap_kmax', 'k_per_logint', 'halofit_version'}
-            class_params = {'omega_cdm', 'h', 'omega_b', 'z'}
+            
             camb_params_used = [param for param in camb_specific_params if param in kwargs]
             if camb_params_used:
                 import warnings
                 warnings.warn(f"CAMB-specific parameters will be ignored when using CLASS: {camb_params_used}")
-                kwargs = {k: v for k, v in kwargs.items() if k in class_params}
-        
-        if mode == 'diff':
-            return self._diff_power_spectra(method, **kwargs)
-        elif mode == 'bulk':
-            return self._bulk_power_spectra(method, **kwargs)
+                kwargs = {k: v for k, v in kwargs.items() if k not in camb_specific_params}
         else: 
-            for key, val in kwargs.items():
+            default_params = {
+                'omega_b': 0.022,
+                'omega_cdm': 0.122,
+                'h': 0.69,
+                'z': 0.0, 
+                'As': 2.1e-9,
+                'ns': 0.965,
+                'nonlinear': False,
+                'H0': None,
+                'kmax': None,
+                'hubble_units': True, 
+                'k_hunit': True,
+                'extrap_kmax': None,
+                'k_per_logint': None,
+                'halofit_version': 'mead'
+            }
+        params = {**default_params, **kwargs}
+ 
+        if mode == 'diff':
+            return self._diff_power_spectra(method, **params)
+        elif mode == 'bulk':
+            return self._bulk_power_spectra(method, **params)
+        else: 
+            for key, val in params.items():
                 if isinstance(val, (list, np.ndarray)):
                     raise ValueError(f"Parameter '{key}' must be a single value for single mode.")
                     
             if method == 'classy':
-                return self._class_power_spectra(**kwargs)
+                return self._class_power_spectra(**params)
             else: 
-                return self._camb_power_spectra(**kwargs)
+                return self._camb_power_spectra(**params)
     
     def _bulk_power_spectra(self, method, **params):
         max_len = 1

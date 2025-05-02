@@ -32,11 +32,13 @@ fastpt/rg/RG_ani.py
 fastpt/rg/__init__.py
 fastpt/rsd/RSD.py
 fastpt/rsd/RSD_ItypeII.py
+fastpt/rsd/__init__.py
 fastpt/utils/J_k.py
 fastpt/utils/J_table.py
 fastpt/utils/OV.py
 fastpt/utils/P_extend.py
 fastpt/utils/Wigner_symbols.py
+fastpt/utils/__init__.py
 fastpt/utils/fastpt_extr.py
 fastpt/utils/filter_Pk.py
 fastpt/utils/gamma_funcs.py

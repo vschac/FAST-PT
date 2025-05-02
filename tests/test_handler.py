@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from fastpt import FASTPT
-from fastpt.core.FPTHandler import FPTHandler
+from fastpt import FPTHandler
 import os
 import tempfile
 
