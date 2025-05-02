@@ -1382,7 +1382,7 @@ def test_class_camb_parameter_consistency(handler):
     # Check ratio over most of the range (excluding extremes)
     k_idx_range = slice(len(handler.fastpt.k_original) // 10, -len(handler.fastpt.k_original) // 10)
     ratio = class_result[k_idx_range] / camb_result[k_idx_range]
-    assert 0.8 < np.median(ratio) < 1.2, "CLASS and CAMB results differ significantly"
+    assert 0.998 < np.median(ratio) < 1.002, "CLASS and CAMB results differ significantly"
 
 def test_import_error_handling(monkeypatch):
     """Test handling of import errors for CLASS and CAMB"""
@@ -1405,17 +1405,19 @@ def test_import_error_handling(monkeypatch):
         handler.generate_power_spectra(method='camb')
 
 if __name__ == "__main__":
-    k = np.loadtxt('k_h.txt')
-    # k = np.logspace(-3, 1, 1000)
+    # k = np.loadtxt('k_h.txt')
+    k = np.logspace(-3, 1, 1000)
     fpt = FASTPT(k)
     handler = FPTHandler(fpt)
-    cosmosis_p = np.loadtxt('cosmosis_p.txt')
+    # cosmosis_p = np.loadtxt('cosmosis_p.txt')
     pk = handler.generate_power_spectra(method='classy')
-    pk2 = handler.generate_power_spectra(method='camb', nonlinear=False)
+    pk2 = handler.generate_power_spectra(method='camb')
+    rel_diff = np.abs(pk - pk2) / pk
+    print(max(rel_diff))
     import matplotlib.pyplot as plt
     plt.plot(fpt.k_original, pk, label='class')
     plt.plot(fpt.k_original, pk2, label='camb')
-    plt.plot(fpt.k_original, cosmosis_p, label='cosmosis')
+    # plt.plot(fpt.k_original, cosmosis_p, label='cosmosis')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlabel('k')

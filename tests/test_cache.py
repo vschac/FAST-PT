@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import sys
-from fastpt.CacheManager import CacheManager
+from fastpt import CacheManager
 
 @pytest.fixture
 def cache_manager():
