@@ -1,7 +1,7 @@
 import numpy as np
 import inspect
 from fastpt import FASTPT
-from numpy import pi, log
+from numpy import pi
 import os
 
 class FPTHandler:
@@ -98,10 +98,6 @@ class FPTHandler:
             "P_deltaE2": ("IA_ta", None),
             "P_0E0E": ("IA_ta", "X_IA_0E0E", None),
             "P_0B0B": ("IA_ta", "X_IA_0B0B", None),
-        
-            # "P_gb2sij": ("IA_gb2", "X_IA_gb2_F2", lambda x: 2 * x),
-            # "P_gb2dsij": ("IA_gb2", "X_IA_gb2_fe", lambda x: 2 * x),
-            # "P_gb2sij2": ("IA_gb2", "X_IA_gb2_he", lambda x: 2 * x),
 
             "P_der": ("IA_der", None),
 
@@ -127,25 +123,6 @@ class FPTHandler:
             "P_kP2": ("kPol", "X_kP2", lambda x: x / (160 * pi ** 2)),
             "P_kP3": ("kPol", "X_kP3",lambda x: x / (80 * pi ** 2)),
         
-            # "A1": ("RSD_components", 0),
-            # "A3": ("RSD_components", 1),
-            # "A5": ("RSD_components", 2),
-            # "B0": ("RSD_components", 3),
-            # "B2": ("RSD_components", 4),
-            # "B4": ("RSD_components", 5),
-            # "B6": ("RSD_components", 6),
-            # "P_Ap1": ("RSD_components", 7),
-            # "P_Ap3": ("RSD_components", 8),
-            # "P_Ap5": ("RSD_components", 9),
-        
-            # "ABsum_mu2": ("RSD_ABsum_components", 0),
-            # "ABsum_mu4": ("RSD_ABsum_components", 1),
-            # "ABsum_mu6": ("RSD_ABsum_components", 2),
-            # "ABsum_mu8": ("RSD_ABsum_components", 3),
-        
-            # "ABsum": ("RSD_ABsum_components", 0),
-
-            # "P_IRres": ("IRres", 0),
         }
  
     @property
@@ -237,7 +214,7 @@ class FPTHandler:
         save_type : str, optional
             File format to save results ('txt', 'csv', or 'json')
         save_dir : str, optional
-            Directory to save results. Defaults to the class's output_dir.
+            Directory to save results. Defaults to the class's save_dir (self.output_dir).
         **override_kwargs : dict
             Additional parameters to pass to the FAST-PT function
             
@@ -412,27 +389,15 @@ class FPTHandler:
             else:
                 func_name = self.term_sources[term][0]
                 func = getattr(self.fastpt, func_name)
-                passing_params, params_info = self._prepare_function_params(func, override_kwargs)
+                passing_params, _ = self._prepare_function_params(func, override_kwargs)
 
                 compute_func = getattr(self.fastpt, "compute_term")
 
                 X_source = self.term_sources[term][1]
                 operation = self.term_sources[term][2]
 
-                # Handle case where we need multiple X terms (like for ctbias)
-                if isinstance(X_source, tuple):
-                    X_names = X_source
-                    X_terms = []
-                    for name in X_names:
-                        if name in dir(self.fastpt):
-                            X_terms.append(getattr(self.fastpt, name))
-                        else:
-                            raise AttributeError(f"'{name}' not found in FASTPT")
-                    result = compute_func(term, tuple(X_terms), operation=operation, **passing_params)
-                else:
-                    # Standard case with a single X tracer
-                    X_term = getattr(self.fastpt, X_source)
-                    result = compute_func(term, X_term, operation=operation, **passing_params)                
+                X_term = getattr(self.fastpt, X_source)
+                result = compute_func(term, X_term, operation=operation, **passing_params)                
                 
             output[term] = result
 
@@ -1402,7 +1367,7 @@ class FPTHandler:
         **kwargs
             Cosmological parameters to pass to the appropriate method
             
-            - For CLASSY: omega_b, omega_cdm, h, z
+            - For CLASSY: omega_b, omega_cdm, h, z, As, ns
             - For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint
         """
         method = method.lower()
@@ -1416,28 +1381,55 @@ class FPTHandler:
             raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
 
         if method == 'classy':
-            camb_specific_params = {'As', 'ns', 'k_hunit', 'nonlinear', 'H0', 'kmax', 
+            default_params = {
+                'omega_b': 0.022,
+                'omega_cdm': 0.122, 
+                'h': 0.69,
+                'z': 0.0,
+                'As': 2.1e-9,
+                'ns': 0.97
+            }
+            
+            camb_specific_params = {'k_hunit', 'nonlinear', 'H0', 'kmax', 
                             'hubble_units', 'extrap_kmax', 'k_per_logint', 'halofit_version'}
-            class_params = {'omega_cdm', 'h', 'omega_b', 'z'}
+            
             camb_params_used = [param for param in camb_specific_params if param in kwargs]
             if camb_params_used:
                 import warnings
                 warnings.warn(f"CAMB-specific parameters will be ignored when using CLASS: {camb_params_used}")
-                kwargs = {k: v for k, v in kwargs.items() if k in class_params}
-        
-        if mode == 'diff':
-            return self._diff_power_spectra(method, **kwargs)
-        elif mode == 'bulk':
-            return self._bulk_power_spectra(method, **kwargs)
+                kwargs = {k: v for k, v in kwargs.items() if k not in camb_specific_params}
         else: 
-            for key, val in kwargs.items():
+            default_params = {
+                'omega_b': 0.022,
+                'omega_cdm': 0.122,
+                'h': 0.69,
+                'z': 0.0, 
+                'As': 2.1e-9,
+                'ns': 0.965,
+                'nonlinear': False,
+                'H0': None,
+                'kmax': None,
+                'hubble_units': True, 
+                'k_hunit': True,
+                'extrap_kmax': None,
+                'k_per_logint': None,
+                'halofit_version': 'mead'
+            }
+        params = {**default_params, **kwargs}
+ 
+        if mode == 'diff':
+            return self._diff_power_spectra(method, **params)
+        elif mode == 'bulk':
+            return self._bulk_power_spectra(method, **params)
+        else: 
+            for key, val in params.items():
                 if isinstance(val, (list, np.ndarray)):
                     raise ValueError(f"Parameter '{key}' must be a single value for single mode.")
                     
             if method == 'classy':
-                return self._class_power_spectra(**kwargs)
+                return self._class_power_spectra(**params)
             else: 
-                return self._camb_power_spectra(**kwargs)
+                return self._camb_power_spectra(**params)
     
     def _bulk_power_spectra(self, method, **params):
         max_len = 1
@@ -1462,7 +1454,9 @@ class FPTHandler:
                     omega_b=param_arrays['omega_b'][i],
                     omega_cdm=param_arrays['omega_cdm'][i],
                     h=param_arrays['h'][i],
-                    z=param_arrays['z'][i]
+                    z=param_arrays['z'][i],
+                    As=param_arrays['As'][i],
+                    ns=param_arrays['ns'][i],
                 ))
             
             return output[0] if len(output) == 1 else output
@@ -1511,7 +1505,7 @@ class FPTHandler:
         
         camb_params = {
             'As': kwargs.get('As', 2.1e-9),
-            'ns': kwargs.get('ns', 0.96),
+            'ns': kwargs.get('ns', 0.965),
             'k_hunit': kwargs.get('k_hunit', True),
             'nonlinear': kwargs.get('nonlinear', False),
             'H0': kwargs.get('H0', None),
@@ -1566,7 +1560,9 @@ class FPTHandler:
                         omega_cdm=omega_cdm,
                         h=h,
                         omega_b=omega_b,
-                        z=z
+                        z=z,
+                        As=camb_params['As'],
+                        ns=camb_params['ns'],
                     )
                 else: 
                     result[key] = compute_func(
@@ -1580,7 +1576,7 @@ class FPTHandler:
         return result
 
     def _class_power_spectra(self, z=0.0, h=0.69, omega_b=0.022, omega_cdm=0.122, 
-                            As=2.1e-9, ns=0.97):
+                            As=2.1e-9, ns=0.965):
         try:
             from classy import Class
         except ImportError as e:
@@ -1594,13 +1590,19 @@ class FPTHandler:
         # Note: CLASS uses physical densities (ωb, ωcdm) not density parameters (Ωb, Ωcdm)
         params = {
             'output': 'mPk',
-            'P_k_max_h/Mpc': k_max * 1.1,  # Specify in h/Mpc units
+            'P_k_max_h/Mpc': k_max * 1.1,
             'z_max_pk': z,
             'h': h,
             'omega_b': omega_b,  
             'omega_cdm': omega_cdm,
             'A_s': As,
             'n_s': ns,
+            'N_ncdm': 0,  # Explicitly set to 0 to match your CAMB setting
+            'k_per_decade_for_pk': 50,
+            'Omega_Lambda': 1 - (omega_b + omega_cdm)/(h**2),
+            'w0_fld': -1.0,  # Ensure same w as CAMB
+            'T_cmb': 2.7255,
+            'k_pivot': 0.05,
         }
         
         cosmo = Class()
@@ -1631,7 +1633,7 @@ class FPTHandler:
                                 omega_b: float = 0.022,
                                 omega_cdm: float = 0.122,
                                 As: float = 2.1e-9,
-                                ns: float = 0.97,
+                                ns: float = 0.965,
                                 halofit_version: str = 'mead',
                                 kmax: float = None,
                                 hubble_units: bool = True,
@@ -1648,8 +1650,11 @@ class FPTHandler:
         if H0 is None: H0 = h * 100
          # 1) Set up CAMB parameters
         pars = camb.CAMBparams()
-        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm)                 # standard cosmology
-        pars.InitPower.set_params(As=As, ns=ns)                            # primordial spectrum
+        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, mnu=0, 
+                           num_massive_neutrinos=0, TCMB=2.7255)    
+        pars.set_for_lmax(4000, max_eta_k=12000, lens_potential_accuracy=4);           
+        pars.InitPower.set_params(As=As, ns=ns, pivot_scalar=0.05)  
+        pars.set_dark_energy(w=-1.0)
 
         # 2) Matter power settings
         kmax = kmax or float(np.max(k))
@@ -1670,12 +1675,3 @@ class FPTHandler:
 
         # 5) Evaluate at stored k
         return PK.P(z, k)
-    
-if __name__ == '__main__':
-
-    k = np.logspace(1e-4, 1, 1000)
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt)
-    handler.generate_power_spectra(method='classy', mode='single', omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.0,
-                                   As=2.1e-9, ns=0.965, halofit_version='mead', hubble_units=True,
-                                   k_hunit=True, extrap_kmax=None, k_per_logint=None)
