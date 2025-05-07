@@ -1576,7 +1576,7 @@ class FPTHandler:
         return result
 
     def _class_power_spectra(self, z=0.0, h=0.69, omega_b=0.022, omega_cdm=0.122, 
-                            As=2.1e-9, ns=0.97):
+                            As=2.1e-9, ns=0.965):
         try:
             from classy import Class
         except ImportError as e:
@@ -1590,13 +1590,19 @@ class FPTHandler:
         # Note: CLASS uses physical densities (ωb, ωcdm) not density parameters (Ωb, Ωcdm)
         params = {
             'output': 'mPk',
-            'P_k_max_h/Mpc': k_max * 1.1,  # Specify in h/Mpc units
+            'P_k_max_h/Mpc': k_max * 1.1,
             'z_max_pk': z,
             'h': h,
             'omega_b': omega_b,  
             'omega_cdm': omega_cdm,
             'A_s': As,
             'n_s': ns,
+            'N_ncdm': 0,  # Explicitly set to 0 to match your CAMB setting
+            'k_per_decade_for_pk': 50,
+            'Omega_Lambda': 1 - (omega_b + omega_cdm)/(h**2),
+            'w0_fld': -1.0,  # Ensure same w as CAMB
+            'T_cmb': 2.7255,
+            'k_pivot': 0.05,
         }
         
         cosmo = Class()
@@ -1644,8 +1650,11 @@ class FPTHandler:
         if H0 is None: H0 = h * 100
          # 1) Set up CAMB parameters
         pars = camb.CAMBparams()
-        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm)                 # standard cosmology
-        pars.InitPower.set_params(As=As, ns=ns)                            # primordial spectrum
+        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, mnu=0, 
+                           num_massive_neutrinos=0, TCMB=2.7255)    
+        pars.set_for_lmax(4000, max_eta_k=12000, lens_potential_accuracy=4);           
+        pars.InitPower.set_params(As=As, ns=ns, pivot_scalar=0.05)  
+        pars.set_dark_energy(w=-1.0)
 
         # 2) Matter power settings
         kmax = kmax or float(np.max(k))

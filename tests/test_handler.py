@@ -1185,7 +1185,7 @@ def test_generate_power_spectra_methods(handler):
     # Results should be similar but not identical (within ~10%)
     # This is a rough check that both methods are working and producing reasonable results
     ratio = np.mean(class_result / camb_result)
-    assert 0.8 < ratio < 1.2, f"Results differ too much, ratio: {ratio}"
+    assert 0.998 < ratio < 1.002, f"Results differ too much, ratio: {ratio}"
 
 def test_generate_power_spectra_invalid_method(handler):
     """Test with invalid method names"""
@@ -1382,7 +1382,7 @@ def test_class_camb_parameter_consistency(handler):
     # Check ratio over most of the range (excluding extremes)
     k_idx_range = slice(len(handler.fastpt.k_original) // 10, -len(handler.fastpt.k_original) // 10)
     ratio = class_result[k_idx_range] / camb_result[k_idx_range]
-    assert 0.8 < np.median(ratio) < 1.2, "CLASS and CAMB results differ significantly"
+    assert 0.998 < np.median(ratio) < 1.002, "CLASS and CAMB results differ significantly"
 
 def test_import_error_handling(monkeypatch):
     """Test handling of import errors for CLASS and CAMB"""
@@ -1414,19 +1414,19 @@ if __name__ == "__main__":
 
     relative_diff = np.abs(pk - pk2) / pk
     print(max(relative_diff))
-    # plt.plot(fpt.k_original, relative_diff)
-    # plt.xscale('log')
-    # plt.yscale('log')
-    # plt.xlabel('k')
-    # plt.ylabel('Relative difference')
-    # plt.title('Relative difference between CLASS and CAMB')
-    # plt.show()
+    plt.plot(fpt.k_original, relative_diff)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('k')
+    plt.ylabel('Relative difference')
+    plt.title('Relative difference between CLASS and CAMB')
+    plt.show()
 
-    # plt.plot(fpt.k_original, pk, label='class')
-    # plt.plot(fpt.k_original, pk2, label='camb')
-    # plt.xscale('log')
-    # plt.yscale('log')
-    # plt.xlabel('k')
-    # plt.ylabel('P(k)')
-    # plt.legend()
-    # plt.show()
+    plt.plot(fpt.k_original, pk, label='class')
+    plt.plot(fpt.k_original, pk2, label='camb')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('k')
+    plt.ylabel('P(k)')
+    plt.legend()
+    plt.show()
