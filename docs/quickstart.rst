@@ -19,16 +19,19 @@ Using FAST-PT is straightforward. Here's a simple example to get started:
    handler = FPTHandler(fpt)
 
    # Use the handler to generate a power spectrum
-   P = handler.get_power_spectrum()
-   
-   # Calculate one-loop corrections
-   P_1loop, P_components = fpt.one_loop_dd(P, C_window=0.75)
+   P = handler.generate_power_spectra()
+
+   # Calculate an individual term using the handler
+   P_1loop = handler.get("P_1loop", P=P)
+
+   # Store default parameters
+   handler.update_default_params(P=P, P_window=np.array([0.2, 0.2]), C_window=0.75)
+
+   # Use the stored parameters in a calculation
+   tt_result = handler.run("IA_tt")
+
+   # Or get the result directly
+   tt_direct = fpt.IA_tt(P=P, P_window=np.array([0.2, 0.2]), C_window=0.75)
 
    # Plot the results
-   plt.figure(figsize=(10, 7))
-   plt.loglog(k, P, label='Linear P(k)')
-   plt.loglog(k, P_1loop, label='One-loop P(k)')
-   plt.xlabel('k [h/Mpc]')
-   plt.ylabel('P(k) [(Mpc/h)³]')
-   plt.legend()
-   plt.show()
+   handler.plot(data=tt_result)
