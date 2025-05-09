@@ -1404,8 +1404,8 @@ class FPTHandler:
                 'omega_cdm': 0.122,
                 'h': 0.69,
                 'z': 0.0, 
-                'As': 2.1e-9,
-                'ns': 0.965,
+                'As': 2.19e-9,
+                'ns': 0.97,
                 'nonlinear': False,
                 'H0': None,
                 'kmax': None,
@@ -1650,8 +1650,8 @@ class FPTHandler:
         if H0 is None: H0 = h * 100
          # 1) Set up CAMB parameters
         pars = camb.CAMBparams()
-        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, mnu=0, 
-                           num_massive_neutrinos=0, TCMB=2.7255)    
+        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, mnu=0.0733, 
+                           num_massive_neutrinos=3, nnu=3.046,TCMB=2.7255)    
         pars.set_for_lmax(4000, max_eta_k=12000, lens_potential_accuracy=4);           
         pars.InitPower.set_params(As=As, ns=ns, pivot_scalar=0.05)  
         pars.set_dark_energy(w=-1.0)
