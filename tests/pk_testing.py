@@ -111,7 +111,7 @@ do_nonlinear = {1 if nonlinear else 0}
 #Main cosmological parameters
 ombh2          = {self.ombh2}
 omch2          = {self.omch2}
-omnuh2         = {self.omnuh2}
+omnuh2         = 0.0008308030984886885 #{self.omnuh2}
 omk            = {self.omega_k}
 hubble         = {self.H0}
 mnu            = {self.mnu}
@@ -119,8 +119,8 @@ mnu            = {self.mnu}
 #effective equation of state parameter for dark energy
 w              = {self.w}
 
-# temp_cmb           = 2.7255
-# helium_fraction    = 0.24
+temp_cmb           = 2.7255
+# helium_fraction    = 0.24608761688646366
 
 massless_neutrinos = {self.nnu - self.num_massive_neutrinos}
 nu_mass_eigenstates = 1
@@ -140,6 +140,8 @@ reionization         = T
 re_use_optical_depth = T
 re_optical_depth     = {self.tau}
 
+do_late_rad_truncation = T
+
 #Which version of Halofit approximation to use
 halofit_version = 4
 # 1: Smith et al. (2003)
@@ -158,9 +160,7 @@ transfer_kmax           = {kmax}
 transfer_k_per_logint   = {k_per_logint}
 transfer_num_redshifts  = 1
 transfer_interp_matterpower = T
-transfer_redshift    = {z}
 transfer_redshift(1) = {z}
-transer_power_var = 8
 transfer_filename(1)    = transfer_z{z:.1f}.dat
 transfer_matterpower(1) = matterpower_z{z:.1f}.dat
 
@@ -182,7 +182,7 @@ l_sample_boost         = 1.5
             raise ValueError("CAMB executable not found. Cannot use INI file approach.")
         
         # Get the maximum k value from the user's array to ensure full coverage
-        kmax = np.max(k_array) * 1.2  # Add 20% margin for safety
+        kmax = np.max(k_array)# * 1.2  # Add 20% margin for safety
         
         # Create a temporary directory for CAMB files
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -282,13 +282,14 @@ l_sample_boost         = 1.5
         pars.num_massive_neutrinos = self.num_massive_neutrinos
         pars.num_nu_massless       = self.nnu - self.num_massive_neutrinos
         pars.nu_mass_fractions     = [1.0]
+        # pars.omnuh2                = self.omnuh2 <<< Setting this parameter explicity screws everything up
         
         if nonlinear:
             # Explicitly set NonLinear_both to make sure both power and transfer functions are nonlinear
             pars.NonLinear = model.NonLinear_both
             pars.NonLinearModel.set_params(halofit_version='takahashi')
             
-        
+        print(pars)
         return pars
     
     def generate_power_via_interpolator(self, k_array, z=0.0, nonlinear=False):
@@ -305,7 +306,7 @@ l_sample_boost         = 1.5
             Whether to use nonlinear corrections
         """
         # Get the maximum k value from the user's array to ensure full coverage
-        kmax = np.max(k_array) * 1.2  # Add 20% margin for safety
+        kmax = np.max(k_array)# * 1.2  # Add 20% margin for safety
         
         pars = self._setup_camb_params(z=z, nonlinear=nonlinear, kmax=kmax)
         
@@ -313,11 +314,12 @@ l_sample_boost         = 1.5
             # Set to NonLinear_both to ensure both power spectrum and transfer functions are nonlinear
             pars.NonLinear = model.NonLinear_both
         
-        # Get interpolator - CRITICAL: pass nonlinear flag here
+        
         PK = camb.get_matter_power_interpolator(pars, 
                                                 zmin=z, zmax=z, nz_step=1, 
                                                 kmax=kmax,
-                                                nonlinear=nonlinear)
+                                                nonlinear=nonlinear,
+                                                var1=8, var2=8)
         
         # Evaluate at requested k values
         pk = PK.P(z, k_array)
@@ -633,7 +635,7 @@ if __name__ == "__main__":
     print(f"Looking for CAMB executable in: {script_dir}")
     
     # # Create generator with default cosmology
-    # generator = CAMBPowerSpectra()
+    generator = CAMBPowerSpectra()
     
     # if generator.camb_executable:
     #     print(f"Found CAMB executable: {generator.camb_executable}")
@@ -647,9 +649,9 @@ if __name__ == "__main__":
     # print("\nComparing all methods for linear power spectrum...")
     # generator.compare_all_methods(k_array, z=0.0, nonlinear=False)
     
-    # # Compare all methods for nonlinear power spectrum
-    # print("\nComparing all methods for nonlinear power spectrum...")
-    # generator.compare_all_methods(k_array, z=0.0, nonlinear=True)
+    # Compare all methods for nonlinear power spectrum
+    print("\nComparing all methods for nonlinear power spectrum...")
+    generator.compare_methods(k_array, z=0.0, nonlinear=True)
     
     # Custom cosmology example
     print("\nUsing custom cosmology...")

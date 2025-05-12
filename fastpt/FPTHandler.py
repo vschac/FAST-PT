@@ -1504,16 +1504,16 @@ class FPTHandler:
             raise ValueError("At least one parameter must have length 3 to use diff mode.")
         
         camb_params = {
-            'As': kwargs.get('As', 2.1e-9),
-            'ns': kwargs.get('ns', 0.965),
+            'As': kwargs.get('As', 2.19e-9),
+            'ns': kwargs.get('ns', 0.97),
             'k_hunit': kwargs.get('k_hunit', True),
             'nonlinear': kwargs.get('nonlinear', False),
             'H0': kwargs.get('H0', None),
-            'kmax': kwargs.get('kmax', None),
+            'kmax': kwargs.get('kmax', max(self.fastpt.k_original)),
             'hubble_units': kwargs.get('hubble_units', True),
             'extrap_kmax': kwargs.get('extrap_kmax', None),
-            'k_per_logint': kwargs.get('k_per_logint', None),
-            'halofit_version': kwargs.get('halofit_version', 'mead')
+            'k_per_logint': kwargs.get('k_per_logint', 50),
+            'halofit_version': kwargs.get('halofit_version', 'takahashi'),
         }
         
         for key, value in diff_params.items():
@@ -1624,54 +1624,462 @@ class FPTHandler:
         cosmo.empty()
         
         return power
+    
+    def _ini_class(self,
+                    z: float = 0.0,
+                    h: float = 0.69,
+                    omega_b: float = 0.022,
+                    omega_cdm: float = 0.122,
+                    As: float = 2.1e-9,
+                    ns: float = 0.965,
+                    N_ncdm: int = 0,
+                    m_ncdm: float = 0.06,
+                    T_cmb: float = 2.7255,
+                    k_per_decade_for_pk: int = 50,
+                    output_root: str = "class_output",
+                    **kwargs):
+        """
+        Generate a matter power spectrum using CLASS via ini file.
+        
+        Parameters
+        ----------
+        z : float, optional
+            Redshift at which to compute the power spectrum
+        h : float, optional
+            Dimensionless Hubble parameter
+        omega_b : float, optional
+            Physical baryon density parameter
+        omega_cdm : float, optional
+            Physical cold dark matter density parameter
+        As : float, optional
+            Primordial scalar amplitude
+        ns : float, optional
+            Primordial spectral index
+        N_ncdm : int, optional
+            Number of non-cold dark matter species
+        m_ncdm : float, optional
+            Mass of non-cold dark matter species in eV
+        T_cmb : float, optional
+            CMB temperature in K
+        k_per_decade_for_pk : int, optional
+            Number of k values per decade for power spectrum calculation
+        output_root : str, optional
+            Root filename for output files
+        **kwargs : dict
+            Additional CLASS parameters
+            
+        Returns
+        -------
+        array_like
+            Matter power spectrum at the specified redshift
+        """
+        # Get k values
+        k_array = self.fastpt.k_original
+        k_max = np.max(k_array) * 1.1  # Add 10% margin
+        
+        # Create ini file content
+        ini_content = f"""# CLASS ini file for matter power spectrum
+    output = mPk
+    root = {output_root}
+    P_k_max_h/Mpc = {k_max}
+    z_pk = {z}
+    h = {h}
+    omega_b = {omega_b}
+    omega_cdm = {omega_cdm}
+    A_s = {As}
+    n_s = {ns}
+    T_cmb = {T_cmb}
+    k_per_decade_for_pk = {k_per_decade_for_pk}
+    """
+        
+        if N_ncdm > 0:
+            ini_content += f"N_ncdm = {N_ncdm}\n"
+            ini_content += f"m_ncdm = {m_ncdm}\n"
+        
+        # Add optional parameters
+        for key, value in kwargs.items():
+            ini_content += f"{key} = {value}\n"
+        
+        # Find CLASS executable
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        executable_path = os.path.join(script_dir, '..', 'tests', 'class')
+        
+        import tempfile
+        import subprocess
+        from scipy.interpolate import interp1d
+        
+        # Create a temporary directory for CLASS files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create INI file
+            ini_path = os.path.join(temp_dir, 'params.ini')
+            with open(ini_path, 'w') as f:
+                f.write(ini_content)
+            
+            # Run CLASS with error handling
+            try:
+                result = subprocess.run([executable_path, ini_path], 
+                                    cwd=temp_dir, 
+                                    check=False,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+                
+                # Check if CLASS ran successfully
+                if result.returncode != 0:
+                    print("\nCLASS Error Output:")
+                    print(result.stderr)
+                    print("\nCLASS Standard Output:")
+                    print(result.stdout)
+                    result.check_returncode()
+            
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"CLASS execution failed: {str(e)}") from e
+            
+            # Find power spectrum file
+            ps_file = os.path.join(temp_dir, f"{output_root}_pk.dat")
+            if not os.path.exists(ps_file):
+                # Try to find any power spectrum file
+                ps_files = [f for f in os.listdir(temp_dir) if f.endswith('_pk.dat')]
+                if ps_files:
+                    ps_file = os.path.join(temp_dir, ps_files[0])
+                else:
+                    raise FileNotFoundError(f"CLASS did not generate power spectrum file. Files found: {os.listdir(temp_dir)}")
+            
+            # Read the power spectrum file (assuming CLASS default format)
+            try:
+                data = np.loadtxt(ps_file, comments='#')
+                
+                # Check if the file has multiple redshifts or single redshift
+                with open(ps_file, 'r') as f:
+                    header = [line for line in f if line.startswith('#')][-1]
+                
+                # Determine column structure
+                if len(data.shape) > 1 and data.shape[1] > 2:
+                    # Multi-redshift format: first col is k, rest are P(k) at different z
+                    # Find which column corresponds to our redshift
+                    z_values = []
+                    for line in header.split():
+                        if "z=" in line:
+                            z_values.append(float(line.split("=")[1]))
+                    
+                    if z_values:
+                        # Find closest redshift
+                        z_idx = np.argmin(np.abs(np.array(z_values) - z))
+                        k_class = data[:, 0]
+                        pk_class = data[:, z_idx + 1]
+                    else:
+                        # Assume second column if z index not found
+                        k_class = data[:, 0]
+                        pk_class = data[:, 1]
+                else:
+                    # Simple 2-column format
+                    k_class = data[:, 0]
+                    pk_class = data[:, 1]
+                
+                # Check if we need to convert units based on header
+                k_unit_conversion = 1.0  # Default: k is already in h/Mpc
+                pk_unit_conversion = 1.0  # Default: P(k) is already in (Mpc/h)^3
+                
+                if any("k (1/Mpc)" in line for line in header.split('\n')):
+                    k_unit_conversion = h  # Convert from 1/Mpc to h/Mpc
+                
+                if any("P (Mpc)^3" in line for line in header.split('\n')):
+                    pk_unit_conversion = h**3  # Convert from (Mpc)^3 to (Mpc/h)^3
+                
+                # Apply unit conversions
+                k_class *= k_unit_conversion
+                pk_class *= pk_unit_conversion
+            
+            except Exception as e:
+                raise RuntimeError(f"Failed to parse CLASS output: {str(e)}")
+            
+            # Interpolate to requested k values
+            log_interp = interp1d(np.log(k_class), np.log(pk_class), 
+                                bounds_error=False, fill_value='extrapolate')
+            log_pk = log_interp(np.log(k_array))
+            
+            return np.exp(log_pk)
 
     def _camb_power_spectra(self,
                                 z: float = 0.0,
                                 nonlinear: bool = False,
                                 h: float = 0.69,
                                 H0: float = None,
-                                omega_b: float = 0.022,
-                                omega_cdm: float = 0.122,
+                                omega_b: float = 0.048,
+                                omega_cdm: float = None,
+                                omega_m: float = 0.3,
+                                omega_k: float = 0.0,
                                 As: float = 2.1e-9,
-                                ns: float = 0.965,
-                                halofit_version: str = 'mead',
+                                ns: float = 0.97,
+                                halofit_version: str = 'takahashi',
                                 kmax: float = None,
                                 hubble_units: bool = True,
                                 k_hunit: bool = True,
                                 extrap_kmax: float = None,
-                                k_per_logint: int = None
+                                k_per_logint: int = 50,
+                                transfer_power_var: int = 8,
+                                mnu: float = 0.0773,
+                                num_massive_neutrinos: int = 3,
+                                nnu: int = 3.046,
+                                tau: float = 0.0697186,
+                                w: float = -1.0,
                                ):
         try:
             import camb
+            from camb import model
         except ImportError as e:
             raise ImportError("CAMB is not installed. Please install it to use this function.") from e
         k = self.fastpt.k_original
 
+        omnuh2 = mnu * num_massive_neutrinos / 93.14
+        if omega_cdm is None:
+            # Neutrino density parameter
+            omega_nu = omnuh2 / (h**2)
+            # Cold dark matter from total matter density
+            omega_cdm = omega_m - omega_b - omega_nu
+        else:
+            omega_cdm = omega_cdm
+        
+        ombh2 = omega_b * (h**2)
+        omch2 = omega_cdm * (h**2)
         if H0 is None: H0 = h * 100
          # 1) Set up CAMB parameters
         pars = camb.CAMBparams()
-        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, mnu=0.0733, 
-                           num_massive_neutrinos=3, nnu=3.046,TCMB=2.7255)    
-        pars.set_for_lmax(4000, max_eta_k=12000, lens_potential_accuracy=4);           
+        pars.set_cosmology(H0=H0, 
+                          ombh2=ombh2, 
+                          omch2=omch2, 
+                          omk=omega_k,
+                          mnu=mnu, 
+                          num_massive_neutrinos=num_massive_neutrinos, 
+                          nnu=nnu)
+        # pars.set_for_lmax(4000, max_eta_k=12000, lens_potential_accuracy=4);           
         pars.InitPower.set_params(As=As, ns=ns, pivot_scalar=0.05)  
-        pars.set_dark_energy(w=-1.0)
+        
+        pars.Reion.set_tau(tau)
+        
+        pars.set_dark_energy(w)
+
+        pars.set_accuracy(AccuracyBoost=1.5, lSampleBoost=1.5, lAccuracyBoost=1.5)
 
         # 2) Matter power settings
         kmax = kmax or float(np.max(k))
         pars.set_matter_power(redshifts=[z], kmax=kmax, k_per_logint=k_per_logint)
 
-        # 3) Choose HALOFIT version
-        pars.NonLinearModel.set_params(halofit_version=halofit_version)
+        # Transfer settings
+        pars.WantTransfer = True
+        pars.Transfer.transfer_high_precision     = True
+        pars.Transfer.transfer_kmax               = kmax
+        pars.Transfer.transfer_k_per_logint       = k_per_logint
+        pars.Transfer.transfer_interp_matterpower = True
+        pars.Transfer.transfer_num_redshifts      = 1
+        pars.Transfer.transfer_redshifts          = [z]
+        pars.Transfer.transfer_power_var          = transfer_power_var
+
+        # Neutrinos
+        pars.share_delta_neff      = True
+        pars.nu_mass_eigenstates   = 1
+        pars.num_massive_neutrinos = num_massive_neutrinos
+        pars.num_nu_massless       = nnu - num_massive_neutrinos
+        pars.nu_mass_fractions     = [1.0]
+        # pars.omnuh2                = 0.0008308030984886885
+
+        if nonlinear:
+            # Explicitly set NonLinear_both to make sure both power and transfer functions are nonlinear
+            pars.NonLinear = model.NonLinear_both
+            pars.NonLinearModel.set_params(halofit_version=halofit_version)
 
         # 4) Build interpolator, passing the nonlinear flag here
-        PK = camb.get_matter_power_interpolator(pars,
-                                                zmin=z, zmax=z, nz_step=1, zs=[z],
-                                                kmax=kmax,
-                                                nonlinear=nonlinear,
-                                                hubble_units=hubble_units,
-                                                k_hunit=k_hunit,
-                                                extrap_kmax=extrap_kmax,
-                                                k_per_logint=k_per_logint)
+        # PK = camb.get_matter_power_interpolator(pars,
+        #                                         zmin=z, zmax=z, nz_step=1, zs=[z],
+        #                                         kmax=kmax,
+        #                                         nonlinear=nonlinear,
+        #                                         var1=8,var2=8,
+        #                                         hubble_units=hubble_units,
+        #                                         k_hunit=k_hunit,
+        #                                         extrap_kmax=extrap_kmax,
+        #                                         k_per_logint=k_per_logint)
+
+        #Exact copy over
+        PK = camb.get_matter_power_interpolator(pars, 
+                                        zmin=z, zmax=z, nz_step=1, 
+                                        kmax=kmax,
+                                        nonlinear=nonlinear,
+                                        var1=transfer_power_var, var2=transfer_power_var)
+
 
         # 5) Evaluate at stored k
         return PK.P(z, k)
+    
+
+    def _ini_camb(self,
+                    z: float = 0.0,
+                    nonlinear: bool = False,
+                    h: float = 0.69,
+                    H0: float = 69.0,
+                    omega_b: float = 0.048,
+                    omega_cdm: float = None,
+                    omega_m: float = 0.3,
+                    omega_k: float = 0.0,
+                    As: float = 2.1e-9,
+                    ns: float = 0.97,
+                    halofit_version: str = 'takahashi',
+                    kmax: float = None,
+                    hubble_units: bool = True,
+                    k_hunit: bool = True,
+                    extrap_kmax: float = None,
+                    k_per_logint: int = 50,
+                    transfer_power_var: int = 8,
+                    mnu: float = 0.0773,
+                    num_massive_neutrinos: int = 3,
+                    nnu: int = 3.046,
+                    tau: float = 0.0697186,
+                    w: float = -1.0,):
+        
+        omnuh2 = mnu * num_massive_neutrinos / 93.14
+        if omega_cdm is None:
+            # Neutrino density parameter
+            omega_nu = omnuh2 / (h**2)
+            # Cold dark matter from total matter density
+            omega_cdm = omega_m - omega_b - omega_nu
+        else:
+            omega_cdm = omega_cdm
+
+        ombh2 = omega_b * (h**2)
+        omch2 = omega_cdm * (h**2)
+        kmax = kmax or float(np.max(self.fastpt.k_original))
+        ini_content = f"""#Parameters for CAMB power spectrum
+
+#output_root is prefixed to output file names
+output_root = camb_ps
+
+#What to do
+get_scalar_cls = F
+get_vector_cls = F
+get_tensor_cls = F
+get_transfer   = T
+
+# 0: linear, 1: non-linear matter power (HALOFIT)
+do_nonlinear = {1 if nonlinear else 0}
+
+#Main cosmological parameters
+ombh2          = {ombh2}
+omch2          = {omch2}
+omnuh2         = 0.0008308030984886885
+omk            = 0.0
+hubble         = {H0}
+mnu            = {mnu}
+
+#effective equation of state parameter for dark energy
+w              = {w}
+
+temp_cmb           = 2.7255
+# helium_fraction    = 0.24608761688646366
+
+massless_neutrinos = {nnu - num_massive_neutrinos}
+nu_mass_eigenstates = 1
+massive_neutrinos  = {num_massive_neutrinos}
+share_delta_neff = T
+nu_mass_fractions = 1
+
+#Initial power spectrum, amplitude, spectral index and running. Pivot k in Mpc^{{-1}}.
+initial_power_num         = 1
+pivot_scalar              = 0.05
+scalar_amp(1)             = {As}
+scalar_spectral_index(1)  = {ns}
+scalar_nrun(1)            = 0
+
+#Reionization
+reionization         = T
+re_use_optical_depth = T
+re_optical_depth     = {tau}
+
+do_late_rad_truncation = T
+
+#Which version of Halofit approximation to use
+halofit_version = 4
+# 1: Smith et al. (2003)
+# 2: Bird et al. (2012)
+# 3: Original + Cosmology correction
+# 4: Takahashi (2012)
+# 5: HMcode (2016)
+# 6: standard halo model
+# 7: PKequal (2016)
+# 8: HMcode (2015)
+# 9: HMcode (2020) - may not be available in older CAMB versions
+
+#Transfer function settings
+transfer_high_precision = T
+transfer_kmax           = {kmax}
+transfer_k_per_logint   = {k_per_logint}
+transfer_num_redshifts  = 1
+transfer_interp_matterpower = T
+transfer_redshift(1) = {z}
+transfer_filename(1)    = transfer_z{z:.1f}.dat
+transfer_matterpower(1) = matterpower_z{z:.1f}.dat
+
+#which variable to use for matter power spectrum - 8 is CDM+baryon
+transfer_power_var = 8
+
+#Computation parameters
+accuracy_boost          = 1.5
+l_accuracy_boost        = 1.5
+l_sample_boost         = 1.5
+"""
+        
+        # Get the maximum k value from the user's array to ensure full coverage
+        k_array = self.fastpt.k_original
+        kmax = np.max(k_array)# * 1.2  # Add 20% margin for safety
+        
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        executable_path = os.path.join(script_dir, '..', 'tests', 'camb')
+
+
+
+        import tempfile
+        import subprocess
+        from scipy.interpolate import interp1d
+        # Create a temporary directory for CAMB files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create INI file
+            ini_path = os.path.join(temp_dir, 'params.ini')
+            
+            with open(ini_path, 'w') as f:
+                f.write(ini_content)
+        
+            
+            # Run CAMB with better error handling
+            try:
+                result = subprocess.run([executable_path, ini_path], 
+                                      cwd=temp_dir, 
+                                      check=False,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      text=True)
+                
+                # Check if CAMB ran successfully
+                if result.returncode != 0:
+                    print("\nCAMB Error Output:")
+                    print(result.stderr)
+                    print("\nCAMB Standard Output:")
+                    print(result.stdout)
+                    
+                    
+                    # Now raise the exception
+                    result.check_returncode()
+            
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"CAMB execution failed: {str(e)}") from e
+            
+            # Read the power spectrum file
+            ps_file = os.path.join(temp_dir, f'camb_ps_matterpower_z{z:.1f}.dat')
+            if not os.path.exists(ps_file):
+                raise FileNotFoundError(f"CAMB did not generate power spectrum file: {ps_file}")
+            
+            camb_k, camb_pk = np.loadtxt(ps_file, unpack=True)
+            
+            # Always interpolate to the user-provided k values
+            log_interp = interp1d(np.log(camb_k), np.log(camb_pk), 
+                                 bounds_error=False, fill_value='extrapolate')
+            log_pk = log_interp(np.log(k_array))
+            
+            return np.exp(log_pk)

@@ -1405,24 +1405,23 @@ def test_import_error_handling(monkeypatch):
         handler.generate_power_spectra(method='camb')
 
 if __name__ == "__main__":
-    k_cosmosis = np.loadtxt('k_h.txt')
-    k_camb = np.loadtxt('k_h_camb.txt') #<<< Camb and cosmosis k's are equal
-    fpt = FASTPT(k_camb)
+    # k_cosmosis = np.loadtxt('k_h.txt')
+    # k_camb = np.loadtxt('k_h_camb.txt') #<<< Camb and cosmosis k's are equal
+    k_array = np.logspace(-4, 1, 500)
+    fpt = FASTPT(k_array)
     handler = FPTHandler(fpt)
-    cosmosis_p = np.loadtxt('cosmosis_p.txt')
-    camb_p = np.loadtxt('camb_p.txt')
-    # pk_class = handler.generate_power_spectra(method='classy')
-    pk_camb = handler.generate_power_spectra(method='camb')
+    # cosmosis_p = np.loadtxt('cosmosis_p.txt')
+    # camb_p = np.loadtxt('camb_p.txt')
+    pk_class = handler._class_power_spectra()
+    class_p = handler._ini_class()
+    # pk_camb = handler._camb_power_spectra()
+    # camb_p = handler._ini_camb()
 
-    camb_rd = np.abs(camb_p - pk_camb)/camb_p
-    print(max(camb_rd))
+    rd = np.abs(pk_class - class_p)/pk_class
+    print(max(rd))
     import matplotlib.pyplot as plt
-
-    # print(np.max(np.abs(cosmosis_p - pk_camb)/cosmosis_p))
     # plt.plot(fpt.k_original, pk_class, label='class')
     # plt.plot(fpt.k_original, pk_camb, label='camb')
-    # plt.plot(fpt.k_original, cosmosis_p, label='cosmosis')
-    # plt.plot(fpt.k_original, np.abs(cosmosis_p - pk_camb)/cosmosis_p, label='relative difference')
     # plt.xscale('log')
     # plt.yscale('log')
     # plt.xlabel('k')
