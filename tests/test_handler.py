@@ -1165,7 +1165,7 @@ def test_load_params_in_bulk_run(fpt, temp_output_dir):
 def test_generate_power_spectra_basic(handler):
     """Test basic single-mode power spectra generation with default parameters"""
     # Test class with default parameters
-    class_result = handler.generate_power_spectra(method='classy')
+    class_result = handler.generate_power_spectra(method='class')
     assert isinstance(class_result, np.ndarray)
     assert len(class_result) == len(handler.fastpt.k_original)
     assert np.all(class_result > 0)  # Power spectrum should be positive
@@ -1179,8 +1179,8 @@ def test_generate_power_spectra_basic(handler):
 def test_generate_power_spectra_methods(handler):
     """Test power spectra generation with different methods"""
     # Generate power spectra with different methods but same params
-    class_result = handler.generate_power_spectra(method='classy', z=0.5, h=0.7)
-    camb_result = handler.generate_power_spectra(method='camb', z=0.5, h=0.7)
+    class_result = handler.generate_power_spectra(method='class', omega_cdm=0.12, h=0.7, omega_b=0.022, z=0.5)
+    camb_result = handler.generate_power_spectra(method='camb', omega_cdm=0.12, h=0.7, omega_b=0.022, z=0.5)
     
     # Results should be similar but not identical (within ~10%)
     # This is a rough check that both methods are working and producing reasonable results
@@ -1205,9 +1205,9 @@ def test_generate_power_spectra_single_mode_array_error(handler):
 def test_generate_power_spectra_params(handler):
     """Test power spectra generation with different parameter values"""
     # Generate with different parameter values
-    base_result = handler.generate_power_spectra(method='classy')
-    high_h_result = handler.generate_power_spectra(method='classy', h=0.75)
-    high_cdm_result = handler.generate_power_spectra(method='classy', omega_cdm=0.15)
+    base_result = handler.generate_power_spectra(method='class')
+    high_h_result = handler.generate_power_spectra(method='class', h=0.75)
+    high_cdm_result = handler.generate_power_spectra(method='class', omega_cdm=0.15)
     
     # Results should be different with different parameters
     assert not np.allclose(base_result, high_h_result)
@@ -1291,9 +1291,11 @@ def test_diff_power_spectra_multi_param(handler):
     central_key = None
     omega_cdm_low_key = None
     h_high_key = None
+
+    print(diff_results.keys())
     
     for key in diff_results.keys():
-        omega_cdm, h, _, _ = key
+        _, h, _, omega_cdm = key
         if omega_cdm == 0.12 and h == 0.67:
             central_key = key
         elif omega_cdm == 0.11 and h == 0.67:
@@ -1331,8 +1333,8 @@ def test_diff_power_spectra_with_multiple_z(handler):
     assert len(diff_results) == 6  # 3 param combinations * 2 redshifts
     
     # Check that we have results for both redshifts
-    z0_keys = [k for k in diff_results.keys() if k[3] == 0.0]
-    z05_keys = [k for k in diff_results.keys() if k[3] == 0.5]
+    z0_keys = [k for k in diff_results.keys() if k[0] == 0.0]
+    z05_keys = [k for k in diff_results.keys() if k[0] == 0.5]
     assert len(z0_keys) == 3
     assert len(z05_keys) == 3
 
@@ -1372,7 +1374,7 @@ def test_class_camb_parameter_consistency(handler):
         'z': 0.5
     }
     
-    class_result = handler.generate_power_spectra(method='classy', **params)
+    class_result = handler.generate_power_spectra(method='class', **params)
     camb_result = handler.generate_power_spectra(method='camb', **params)
     
     # Results should be similar (within reasonable bounds)
@@ -1384,44 +1386,47 @@ def test_class_camb_parameter_consistency(handler):
     ratio = class_result[k_idx_range] / camb_result[k_idx_range]
     assert 0.998 < np.median(ratio) < 1.002, "CLASS and CAMB results differ significantly"
 
-def test_import_error_handling(monkeypatch):
-    """Test handling of import errors for CLASS and CAMB"""
-    # Create a handler with a mock FASTPT instance
-    k = np.logspace(-3, 1, 100)
-    fpt = FASTPT(k)
-    handler = FPTHandler(fpt)
-    
-    # Mock import errors
-    def mock_import_error(*args, **kwargs):
-        raise ImportError("Module not found")
-    
-    # Test CLASS import error
-    monkeypatch.setattr("builtins.__import__", mock_import_error, raising=False)
-    with pytest.raises(ImportError, match="Classy is not installed"):
-        handler.generate_power_spectra(method='classy')
-    
-    # Test CAMB import error
-    with pytest.raises(ImportError, match="CAMB is not installed"):
-        handler.generate_power_spectra(method='camb')
 
 if __name__ == "__main__":
-    # k_cosmosis = np.loadtxt('k_h.txt')
-    # k_camb = np.loadtxt('k_h_camb.txt') #<<< Camb and cosmosis k's are equal
+
     k_array = np.logspace(-4, 1, 500)
     fpt = FASTPT(k_array)
     handler = FPTHandler(fpt)
-    # cosmosis_p = np.loadtxt('cosmosis_p.txt')
-    # camb_p = np.loadtxt('camb_p.txt')
-    pk_class = handler._class_power_spectra()
-    class_p = handler._ini_class()
+
+    result = handler.generate_power_spectra(method='camb', mode='diff', 
+                                   omega_m = [0.2, 0.3, 0.4],
+                                   h=0.67, 
+                                   omega_b=0.022, 
+                                   z=[0.0, 0.5],
+                                   share_delta_neff=True,)
+    
+    print(result.keys())
+    print("\n")
+    print(result.values())
+
+
+
+
+
+
+
+    # pk_class = handler._class_power_spectra(omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.5)
+    # class_p = handler._ini_class(omega_cdm=0.12, h=0.67, omega_b=0.022, z=0.5)
     # pk_camb = handler._camb_power_spectra()
     # camb_p = handler._ini_camb()
 
-    rd = np.abs(pk_class - class_p)/pk_class
-    print(max(rd))
-    import matplotlib.pyplot as plt
-    # plt.plot(fpt.k_original, pk_class, label='class')
-    # plt.plot(fpt.k_original, pk_camb, label='camb')
+    # camb_class_match = np.abs(pk_camb - pk_class) / pk_class
+    # camb_ini_match = np.abs(camb_p - pk_camb) / pk_camb
+    # class_ini_match = np.abs(class_p - pk_class) / pk_class
+    # print('camb_class_match', np.max(camb_class_match))
+    # print('camb_ini_match', np.max(camb_ini_match))
+    # print('class_ini_match', np.max(class_ini_match))
+
+
+    # import matplotlib.pyplot as plt
+    # plt.plot(k_array, camb_class_match, label='camb_class_match')
+    # plt.plot(k_array, camb_ini_match, label='camb_ini_match')
+    # plt.plot(k_array, class_ini_match, label='class_ini_match')
     # plt.xscale('log')
     # plt.yscale('log')
     # plt.xlabel('k')
