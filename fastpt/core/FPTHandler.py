@@ -1350,14 +1350,14 @@ class FPTHandler:
         
         return fig
     
-    def generate_power_spectra(self, method='classy', mode='single', **kwargs):
+    def generate_power_spectra(self, method='class', mode='single', **kwargs):
         """
         Generate power spectra using the specified mode and method.
         
         Parameters
         ----------
         method : str
-            Either 'classy' or 'camb'
+            Either 'class' or 'camb'
         mode : str
             'single', 'bulk', or 'diff'
 
@@ -1366,77 +1366,74 @@ class FPTHandler:
             - diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.
         **kwargs
             Cosmological parameters to pass to the appropriate method
-            
-            - For CLASSY: omega_b, omega_cdm, h, z, As, ns
-            - For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint
+        
+        Returns
+        -------
+        numpy.ndarray or dict
+            Power spectrum or collection of power spectra based on the mode
+        
+        Raises
+        ------
+        ValueError
+            If invalid method or mode is specified, or if parameters are incompatible with the selected method
         """
         method = method.lower()
-        if method not in ('classy', 'camb'):
-            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+        if method not in ('class', 'camb'):
+            raise ValueError("Invalid method. Choose either 'class' or 'camb'.")
             
         if mode not in ('single', 'bulk', 'diff'):
             raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
 
-        if mode not in ('single', 'bulk', 'diff'):
-            raise ValueError("Invalid mode. Choose 'single', 'bulk', or 'diff'.")
-
-        if method == 'classy':
-            default_params = {
-                'omega_b': 0.022,
-                'omega_cdm': 0.122, 
-                'h': 0.69,
-                'z': 0.0,
-                'As': 2.1e-9,
-                'ns': 0.97
-            }
-            
-            camb_specific_params = {'k_hunit', 'nonlinear', 'H0', 'kmax', 
-                            'hubble_units', 'extrap_kmax', 'k_per_logint', 'halofit_version'}
-            
-            camb_params_used = [param for param in camb_specific_params if param in kwargs]
+        # Get parameter information for both methods using inspect
+        class_params = self._get_function_params(self._class_power_spectra)
+        camb_params = self._get_function_params(self._camb_power_spectra)
+        
+        # Determine which parameters are specific to each method
+        class_specific = set(class_params['all']) - set(camb_params['all'])
+        camb_specific = set(camb_params['all']) - set(class_params['all'])
+        
+        # Check if any method-specific parameters are used with the wrong method
+        if method == 'class':
+            camb_params_used = [param for param in camb_specific if param in kwargs]
             if camb_params_used:
-                import warnings
-                warnings.warn(f"CAMB-specific parameters will be ignored when using CLASS: {camb_params_used}")
-                kwargs = {k: v for k, v in kwargs.items() if k not in camb_specific_params}
-        else: 
-            default_params = {
-                'omega_b': 0.022,
-                'omega_cdm': 0.122,
-                'h': 0.69,
-                'z': 0.0, 
-                'As': 2.1e-9,
-                'ns': 0.965,
-                'nonlinear': False,
-                'H0': None,
-                'kmax': None,
-                'hubble_units': True, 
-                'k_hunit': True,
-                'extrap_kmax': None,
-                'k_per_logint': None,
-                'halofit_version': 'mead'
-            }
-        params = {**default_params, **kwargs}
- 
+                raise ValueError(f"CAMB-specific parameters cannot be used with CLASS method: {camb_params_used}")
+        else:  # method == 'camb'
+            class_params_used = [param for param in class_specific if param in kwargs]
+            if class_params_used:
+                raise ValueError(f"CLASS-specific parameters cannot be used with CAMB method: {class_params_used}")
+        
+        # For bulk and diff modes, we need parameter defaults, but for single mode the function's
+        # built-in defaults will work automatically
         if mode == 'diff':
-            return self._diff_power_spectra(method, **params)
+            return self._diff_power_spectra(method, **kwargs)
         elif mode == 'bulk':
-            return self._bulk_power_spectra(method, **params)
-        else: 
-            for key, val in params.items():
+            return self._bulk_power_spectra(method, **kwargs)
+        else:  # mode == 'single' 
+            for key, val in kwargs.items():
                 if isinstance(val, (list, np.ndarray)):
                     raise ValueError(f"Parameter '{key}' must be a single value for single mode.")
                     
-            if method == 'classy':
-                return self._class_power_spectra(**params)
+            if method == 'class':
+                return self._class_power_spectra(**kwargs)
             else: 
-                return self._camb_power_spectra(**params)
+                return self._camb_power_spectra(**kwargs)
     
     def _bulk_power_spectra(self, method, **params):
+        if method.lower() == 'class':
+            function_params = self._get_function_params(self._class_power_spectra)
+            compute_func = self._class_power_spectra
+        elif method.lower() == 'camb':
+            function_params = self._get_function_params(self._camb_power_spectra)
+            compute_func = self._camb_power_spectra
+        else:
+            raise ValueError("Invalid method. Choose either 'class' or 'camb'.")
+        
         max_len = 1
         for param_name, value in params.items():
             if isinstance(value, (list, np.ndarray)):
                 max_len = max(max_len, len(value))
         
+        # Create parameter arrays, padding shorter arrays if needed
         param_arrays = {}
         for param_name, value in params.items():
             if isinstance(value, (list, np.ndarray)):
@@ -1445,56 +1442,44 @@ class FPTHandler:
                 else:
                     param_arrays[param_name] = np.array(value)
             else:
+                # For scalar values, create an array of the same value
                 param_arrays[param_name] = np.full(max_len, value)
+        
+        output = []
+        for i in range(max_len):
+            iteration_params = {}
+            for param_name in param_arrays:
+                if param_name in function_params['all']:
+                    iteration_params[param_name] = param_arrays[param_name][i]
             
-        if method.lower() == 'classy':
-            output = []
-            for i in range(max_len):
-                output.append(self._class_power_spectra(
-                    omega_b=param_arrays['omega_b'][i],
-                    omega_cdm=param_arrays['omega_cdm'][i],
-                    h=param_arrays['h'][i],
-                    z=param_arrays['z'][i],
-                    As=param_arrays['As'][i],
-                    ns=param_arrays['ns'][i],
-                ))
-            
-            return output[0] if len(output) == 1 else output
-            
-        elif method.lower() == 'camb':
-            output = []
-            for i in range(max_len):
-                output.append(self._camb_power_spectra(
-                    omega_b=param_arrays['omega_b'][i],
-                    omega_cdm=param_arrays['omega_cdm'][i],
-                    h=param_arrays['h'][i],
-                    z=param_arrays['z'][i],
-                    As=param_arrays['As'][i],
-                    ns=param_arrays['ns'][i],
-                    halofit_version=param_arrays['halofit_version'][i],
-                    k_hunit=param_arrays['k_hunit'][i],
-                    nonlinear=param_arrays['nonlinear'][i],
-                    H0=param_arrays['H0'][i],
-                    kmax=param_arrays['kmax'][i],
-                    hubble_units=param_arrays['hubble_units'][i],
-                    extrap_kmax=param_arrays['extrap_kmax'][i],
-                    k_per_logint=param_arrays['k_per_logint'][i],
-                ))
-            
-            return output[0] if len(output) == 1 else output
-        else:
-            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
+            output.append(compute_func(**iteration_params))
+        
+        return output[0] if len(output) == 1 else output
 
     def _diff_power_spectra(self, method, **kwargs):
-        if method not in ('classy', 'camb'):
-            raise ValueError("Invalid method. Choose either 'classy' or 'camb'.")
-        
-        diff_params = {
-            'omega_cdm': kwargs.get('omega_cdm', [0.12]),
-            'h': kwargs.get('h', [0.67]),
-            'omega_b': kwargs.get('omega_b', [0.022]),
-            'z': kwargs.get('z', [0.0]),
-        }
+
+        camb_params, class_params = {}, {}
+        if method == 'class':
+            diff_params = {
+                'omega_cdm': kwargs.get('omega_cdm', [0.12]),
+                'h': kwargs.get('h', [0.69]),
+                'omega_b': kwargs.get('omega_b', [0.022]),
+                'z': kwargs.get('z', [0.0]),
+            }
+            class_params = self._get_function_params(self._class_power_spectra)
+        elif method == 'camb':
+            if kwargs.get('omega_m') is not None and kwargs.get('omega_cdm') is not None:
+                raise ValueError("omega_m and omega_cdm cannot be used together. Please pick one.")
+            diff_params = {
+                'omega_b': kwargs.get('omega_b', [0.048]),
+                'omega_cdm': kwargs.get('omega_cdm', [None]),
+                'omega_m': kwargs.get('omega_m', [0.3]),
+                'h': kwargs.get('h', [0.69]),
+                'z': kwargs.get('z', [0.0]),
+            }
+            camb_params = self._get_function_params(self._camb_power_spectra)
+        else:
+            raise ValueError("Invalid method. Choose either 'class' or 'camb'.")
         
         has_param_with_length_3 = any(
             isinstance(value, (list, np.ndarray)) and len(value) == 3
@@ -1503,18 +1488,6 @@ class FPTHandler:
         if not has_param_with_length_3:
             raise ValueError("At least one parameter must have length 3 to use diff mode.")
         
-        camb_params = {
-            'As': kwargs.get('As', 2.1e-9),
-            'ns': kwargs.get('ns', 0.97),
-            'k_hunit': kwargs.get('k_hunit', True),
-            'nonlinear': kwargs.get('nonlinear', False),
-            'H0': kwargs.get('H0', None),
-            'kmax': kwargs.get('kmax', None),
-            'hubble_units': kwargs.get('hubble_units', True),
-            'extrap_kmax': kwargs.get('extrap_kmax', None),
-            'k_per_logint': kwargs.get('k_per_logint', None),
-            'halofit_version': kwargs.get('halofit_version', 'mead')
-        }
         
         for key, value in diff_params.items():
             if key == 'z':
@@ -1530,17 +1503,16 @@ class FPTHandler:
             if len(diff_params[key]) == 1:
                 diff_params[key] = [diff_params[key][0]] * 3
         
+        compute_func = self._class_power_spectra if method == 'class' else self._camb_power_spectra
         result = {}
-        
-        compute_func = self._class_power_spectra if method == 'classy' else self._camb_power_spectra
         
         for z in diff_params['z']:
             param_combinations = []
-            
-            center_values = [diff_params[p][1] for p in ['omega_cdm', 'h', 'omega_b']]
+            params_to_use = ['h', 'omega_b', 'omega_cdm'] if method == 'class' else ['h', 'omega_b', 'omega_cdm', 'omega_m']
+            center_values = [diff_params[p][1] for p in params_to_use]
             param_combinations.append(center_values)
             
-            for param_idx, param in enumerate(['omega_cdm', 'h', 'omega_b']):
+            for param_idx, param in enumerate(params_to_use):
                 param_values = diff_params[param]
                 
                 if param_values[0] == param_values[1] == param_values[2]:
@@ -1552,35 +1524,71 @@ class FPTHandler:
                     param_combinations.append(values)
 
             for combo in param_combinations:
-                omega_cdm, h, omega_b = combo
-                key = (omega_cdm, h, omega_b, z)
-                
-                if method == 'classy':
-                    result[key] = compute_func(
-                        omega_cdm=omega_cdm,
-                        h=h,
-                        omega_b=omega_b,
-                        z=z,
-                        As=camb_params['As'],
-                        ns=camb_params['ns'],
-                    )
-                else: 
-                    result[key] = compute_func(
-                        omega_cdm=omega_cdm,
-                        h=h,
-                        omega_b=omega_b,
-                        z=z,
-                        **camb_params
-                    )
+                if method == 'class':
+                    h, omega_b, omega_cdm = combo
+                    key = (z, h, omega_b, omega_cdm)
+                    
+                    # Start with param values from the current combination
+                    iteration_params = {
+                        'omega_cdm': omega_cdm,
+                        'h': h,
+                        'omega_b': omega_b,
+                        'z': z
+                    }
+                    
+                    # Add any other parameters provided in kwargs that are valid for this function
+                    for param_name, value in kwargs.items():
+                        if param_name not in iteration_params and param_name in class_params['all']:
+                            if not isinstance(value, (list, np.ndarray)):
+                                iteration_params[param_name] = value
+                            elif len(value) == 1:
+                                iteration_params[param_name] = value[0]
+                            elif len(value) >= 3:
+                                # Use middle value for parameters with ranges
+                                iteration_params[param_name] = value[1]
+                    
+                    result[key] = compute_func(**iteration_params)
+                else:  # method == 'camb'
+                    if 'omega_m' in diff_params:
+                        h, omega_b, omega_cdm, omega_m = combo
+                        key = (z, h, omega_b, omega_cdm, omega_m)
+                    else:
+                        h, omega_b, omega_cdm = combo  
+                        key = (z, h, omega_b, omega_cdm)
+                        
+                    # Start with param values from the current combination
+                    iteration_params = {
+                        'omega_b': omega_b,
+                        'h': h,
+                        'z': z
+                    }
+                    
+                    if omega_cdm is not None:
+                        iteration_params['omega_cdm'] = omega_cdm
+                    else:
+                        iteration_params['omega_m'] = omega_m
+                        
+                    # Add any other parameters provided in kwargs that are valid for this function
+                    for param_name, value in kwargs.items():
+                        if param_name not in iteration_params and param_name in camb_params['all']:
+                            if not isinstance(value, (list, np.ndarray)):
+                                iteration_params[param_name] = value
+                            elif len(value) == 1:
+                                iteration_params[param_name] = value[0]
+                            elif len(value) >= 3:
+                                # Use middle value for parameters with ranges
+                                iteration_params[param_name] = value[1]
+
+                    result[key] = compute_func(**iteration_params)
         
         return result
 
     def _class_power_spectra(self, z=0.0, h=0.69, omega_b=0.022, omega_cdm=0.122, 
-                            As=2.1e-9, ns=0.965):
+                            As=2.1e-9, ns=0.97):
         try:
             from classy import Class
         except ImportError as e:
-            raise ImportError("Classy is not installed. Please install it to use this function.") from e
+            raise ImportError("class is not installed. Please install it to use this function.") from e
         
         # Get k values (assuming they're in h/Mpc as in CAMB)
         k_hMpc = self.fastpt.k_original
@@ -1590,21 +1598,22 @@ class FPTHandler:
         # Note: CLASS uses physical densities (ωb, ωcdm) not density parameters (Ωb, Ωcdm)
         params = {
             'output': 'mPk',
-            'P_k_max_h/Mpc': k_max * 1.1,
+            'P_k_max_h/Mpc': k_max,
             'z_max_pk': z,
             'h': h,
-            'omega_b': omega_b,  
-            'omega_cdm': omega_cdm,
+            'Omega_b': omega_b,  
+            'Omega_cdm': omega_cdm,
             'A_s': As,
             'n_s': ns,
-            'N_ncdm': 0,  # Explicitly set to 0 to match your CAMB setting
+            'N_ncdm': 0, 
+            'YHe': 0.246, 
             'k_per_decade_for_pk': 50,
             'Omega_Lambda': 1 - (omega_b + omega_cdm)/(h**2),
-            'w0_fld': -1.0,  # Ensure same w as CAMB
+            'w0_fld': -1.0,  
             'T_cmb': 2.7255,
             'k_pivot': 0.05,
         }
-        
+
         cosmo = Class()
         cosmo.set(params)
         cosmo.compute()
@@ -1630,48 +1639,106 @@ class FPTHandler:
                                 nonlinear: bool = False,
                                 h: float = 0.69,
                                 H0: float = None,
-                                omega_b: float = 0.022,
-                                omega_cdm: float = 0.122,
+                                omega_b: float = 0.048,
+                                omega_cdm: float = None,
+                                omega_m: float = 0.3,
+                                omega_k: float = 0.0,
                                 As: float = 2.1e-9,
-                                ns: float = 0.965,
-                                halofit_version: str = 'mead',
+                                ns: float = 0.97,
+                                halofit_version: str = 'takahashi',
                                 kmax: float = None,
-                                hubble_units: bool = True,
-                                k_hunit: bool = True,
-                                extrap_kmax: float = None,
-                                k_per_logint: int = None
+                                k_per_logint: int = 50,
+                                transfer_power_var: int = "delta_nonu",
+                                mnu: float = 0.0,
+                                num_massive_neutrinos: int = 0,
+                                nnu: int = 3.046,
+                                tau: float = 0.0697186,
+                                w: float = -1.0,
+                                WantTransfer: bool = True,
+                                transfer_interp_matterpower: bool = True,
+                                transfer_num_redshifts: int = 1,
+                                share_delta_neff: bool = True,
+                                nu_mass_fractions: list = [1.0],
                                ):
         try:
             import camb
+            from camb import model
         except ImportError as e:
             raise ImportError("CAMB is not installed. Please install it to use this function.") from e
         k = self.fastpt.k_original
 
+        # This code calculates the neutrino physical density parameter (omnuh2) and handles cold dark matter density.
+        # The division by 93.14 is a cosmological conversion factor that relates neutrino mass to energy density
+        # through the equation: Ω_ν h² = Σm_ν / 93.14 eV
+        # The conditional block ensures matter conservation - either:
+        # 1. Using specified omega_cdm directly, or
+        # 2. Calculating omega_cdm based on total matter density by subtracting baryons and neutrinos
+        # This ensures consistency in the matter budget across different cosmological models
+        omnuh2 = mnu * num_massive_neutrinos / 93.14
+        if omega_cdm is None:
+            # Neutrino density parameter
+            omega_nu = omnuh2 / (h**2)
+            # Cold dark matter from total matter density
+            omega_cdm = omega_m - omega_b - omega_nu
+        else:
+            omega_cdm = omega_cdm
+        
+        ombh2 = omega_b * (h**2)
+        omch2 = omega_cdm * (h**2)
         if H0 is None: H0 = h * 100
-         # 1) Set up CAMB parameters
+        
         pars = camb.CAMBparams()
-        pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, mnu=0, 
-                           num_massive_neutrinos=0, TCMB=2.7255)    
-        pars.set_for_lmax(4000, max_eta_k=12000, lens_potential_accuracy=4);           
+        pars.set_cosmology(H0=H0, 
+                          ombh2=ombh2, 
+                          omch2=omch2, 
+                          omk=omega_k,
+                          mnu=mnu, 
+                          num_massive_neutrinos=num_massive_neutrinos, 
+                          nnu=nnu)
+        
         pars.InitPower.set_params(As=As, ns=ns, pivot_scalar=0.05)  
-        pars.set_dark_energy(w=-1.0)
+        
+        pars.Reion.set_tau(tau)
+        
+        pars.set_dark_energy(w)
 
-        # 2) Matter power settings
+        pars.set_accuracy(AccuracyBoost=1.5, lSampleBoost=1.5, lAccuracyBoost=1.5)
+
         kmax = kmax or float(np.max(k))
         pars.set_matter_power(redshifts=[z], kmax=kmax, k_per_logint=k_per_logint)
 
-        # 3) Choose HALOFIT version
-        pars.NonLinearModel.set_params(halofit_version=halofit_version)
+        # Transfer settings
+        pars.WantTransfer = WantTransfer
+        pars.Transfer.transfer_high_precision     = True
+        pars.Transfer.transfer_kmax               = kmax
+        pars.Transfer.transfer_k_per_logint       = k_per_logint
+        pars.Transfer.transfer_interp_matterpower = transfer_interp_matterpower
+        pars.Transfer.transfer_num_redshifts      = transfer_num_redshifts
+        pars.Transfer.transfer_redshifts          = [z]
+        pars.Transfer.transfer_power_var          = transfer_power_var
 
-        # 4) Build interpolator, passing the nonlinear flag here
-        PK = camb.get_matter_power_interpolator(pars,
-                                                zmin=z, zmax=z, nz_step=1, zs=[z],
-                                                kmax=kmax,
-                                                nonlinear=nonlinear,
-                                                hubble_units=hubble_units,
-                                                k_hunit=k_hunit,
-                                                extrap_kmax=extrap_kmax,
-                                                k_per_logint=k_per_logint)
+        # Neutrinos
+        pars.share_delta_neff      = share_delta_neff
+        pars.nu_mass_eigenstates   = 1 if num_massive_neutrinos > 0 else 0
+        pars.num_massive_neutrinos = num_massive_neutrinos
+        pars.num_nu_massless       = nnu - num_massive_neutrinos if num_massive_neutrinos > 0 else nnu
+        # Sets neutrino mass distribution among eigenstates
+        # [1.0] means all mass is in a single eigenstate (or equally distributed)
+        # Affects matter power spectrum by changing neutrino free-streaming effects
+        if num_massive_neutrinos > 0:
+            pars.nu_mass_fractions = nu_mass_fractions
 
-        # 5) Evaluate at stored k
+        if nonlinear:
+            # Explicitly set NonLinear_both to make sure both power and transfer functions are nonlinear
+            pars.NonLinear = model.NonLinear_both
+            pars.NonLinearModel.set_params(halofit_version=halofit_version)
+
+        PK = camb.get_matter_power_interpolator(pars, 
+                                        zmin=z, zmax=z, nz_step=1, 
+                                        kmax=kmax,
+                                        nonlinear=nonlinear,
+                                        var1=transfer_power_var, var2=transfer_power_var)
+
+
+        # Evaluate at stored k
         return PK.P(z, k)
