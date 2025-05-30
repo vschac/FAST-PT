@@ -1,5 +1,7 @@
 # FAST-PT
 
+[![Documentation Status](https://readthedocs.org/projects/fast-pt/badge/?version=latest)](https://fast-pt.readthedocs.io/en/latest/?badge=latest)
+
 FAST-PT is a code to calculate quantities in cosmological perturbation theory
 at 1-loop (including, e.g., corrections to the matter power spectrum). The code
 utilizes Fourier methods combined with analytic expressions to reduce the
@@ -24,10 +26,6 @@ Full installation with examples:
 * install the repo: `python -m pip install .`
 * run the example: `cd examples && python fastpt_example.py`
 * hopefully you get a plot!
-
-See the [user manual](docs/usr_manual.pdf) for more details.
-
-[![Documentation Status](https://readthedocs.org/projects/fast-pt/badge/?version=latest)](https://fast-pt.readthedocs.io/en/latest/?badge=latest)
 
 Our papers (JCAP 2016, 9, 15; arXiv:1603.04826) and (JCAP 2017, 2, 30; arXiv:1609.05978)
 describe the FAST-PT algorithm and implementation. Please cite these papers
