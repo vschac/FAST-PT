@@ -27,6 +27,7 @@ Full installation with examples:
 
 See the [user manual](docs/usr_manual.pdf) for more details.
 
+[![Documentation Status](https://readthedocs.org/projects/fast-pt/badge/?version=latest)](https://fast-pt.readthedocs.io/en/latest/?badge=latest)
 
 Our papers (JCAP 2016, 9, 15; arXiv:1603.04826) and (JCAP 2017, 2, 30; arXiv:1609.05978)
 describe the FAST-PT algorithm and implementation. Please cite these papers
