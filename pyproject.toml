@@ -14,7 +14,9 @@ authors = [
     { name = "Joseph E. McEwen" }, 
     { name = "Xiao Fang" }, 
     { name = "Jonathan Blazek" },
-    { email = "blazek@berkeley.edu" }
+    { email = "blazek@berkeley.edu" },
+    { name = "Vincent Schacknies" },
+    { email = "vincent.schacknies@icloud.com" }
     ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',

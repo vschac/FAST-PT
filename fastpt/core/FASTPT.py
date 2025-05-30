@@ -261,7 +261,7 @@ class FASTPT:
         }
 
         if to_do: 
-            print("Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed.")
+            print("Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed. It may still be used to pre-compute matrices for faster initial runs.")
         
             for entry in to_do:
                 if entry in {'all', 'everything'}:
@@ -288,8 +288,6 @@ class FASTPT:
             self.X_lpt
             self.X_sptG
 
-        if self.todo_dict['one_loop_cleft_dd']:
-            self.X_cleft
         if self.todo_dict['IA_tt']: 
             self.X_IA_E 
             self.X_IA_B
@@ -369,14 +367,6 @@ class FASTPT:
                         [1, -1, 1, 0], [1, -1, 3, 0], [2, -2, 0, 1]])
         result = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
         self.X_registry[id(result)] = 'X_sptG'
-        return result
-    @cached_property
-    def X_cleft(self):
-        nu = -2
-        p_mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 4, 0], [1, -1, 1, 0], [1, -1, 3, 0], [-1, 1, 1, 0],
-                        [-1, 1, 3, 0]])
-        result = scalar_stuff(p_mat, nu, self.N, self.m, self.eta_m, self.l, self.tau_l)
-        self.X_registry[id(result)] = 'X_cleft'
         return result
     @cached_property
     def X_IA_E(self):
