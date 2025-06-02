@@ -3,3 +3,4 @@ examples/*.npy
 *.pyc
 build/
 plot_test_outputs/
+fastpt/core/outputs/

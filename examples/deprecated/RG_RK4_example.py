@@ -1,31 +1,25 @@
 '''
-    Example script to run the STS method for RG results.
+    Example script to run the RK4 method for RG results.
     We compare these results to the same resulst from the Cotper code.
 '''
 
 import numpy as np
-from fastpt.RG_STS import RG_STS
+from fastpt.rg.RG_RK4 import RG_RK4
 
 # load the Copter data
-d=np.loadtxt('RGcopter_10_1000.dat')
+d=np.loadtxt('RGcopter_1_500.dat')
 k=d[:,0]; P=d[:,1]; copter=d[:,2]
 
 # set the STS parameters here
 # this combo seems to work well for k_max=10, 2000 grid points
 # if you encounter instabilities you may want to fiddle with these values.
-stage=10
-mu=.1
-# this is \Delta \lambda_{CFL}
-dlambda_CFL=1e-3
-
-STS_params=[stage, mu, dlambda_CFL]
 
 P_window=np.array([.2,.2])
 C_window=.75
-step=.01
+step=.1
 max=1
 n_pad=500
-P_rg=RG_STS(STS_params,'test_STS',k,P,step,max,n_pad,P_window,C_window)
+P_rg=RG_RK4('test_RK4',k,P,step,max,n_pad,P_window,C_window)
 
 import matplotlib.pyplot as plt
 

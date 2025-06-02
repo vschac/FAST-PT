@@ -6,7 +6,6 @@
 import numpy as np
 from numpy import exp, pi, log, sqrt
 from scipy.special import gamma
-from .get_nu1_nu2 import nu1_nu2
 import sys
 import functools
 
@@ -133,6 +132,12 @@ def scalar_stuff(p_mat,nu,N,m,eta_m,l, tau_l):
 		h_l[i,:]=gamsn(p[i]+1-1j*tau_l)
 
 	return pf,p, g_m, g_n, two_part_l, h_l
+
+def nu1_nu2(alpha,beta):
+    
+    nu1= -2-alpha
+    nu2= -2-beta
+    return nu1,nu2 
 
 def tensor_stuff(p_mat,N,m,eta_m,l, tau_l):
 

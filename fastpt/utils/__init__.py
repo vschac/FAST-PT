@@ -1,7 +1,6 @@
 from .fastpt_extr import *
 from .filter_Pk import *
 from .gamma_funcs import *
-from .get_nu1_nu2 import *
 from .initialize_params import *
 from .J_k import *
 from .J_table import *

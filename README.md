@@ -28,7 +28,8 @@ Full installation with examples:
 * Make sure you have current version of numpy, scipy, and matplotlib
 * download the latest FAST-PT release (or clone the repo)
 * install the repo: `python -m pip install .`
-* run the example: `cd examples && python fastpt_example.py`
+* run the most recent example: `cd examples && python3 v4_example.py`
+* for old examples run: `cd examples && python3 fastpt_example.py`
 * hopefully you get a plot!
 
 Our papers (JCAP 2016, 9, 15; arXiv:1603.04826) and (JCAP 2017, 2, 30; arXiv:1609.05978)
@@ -39,4 +40,4 @@ implementation, cite arXiv:1708.09247.
 FAST-PT is under continued development and should be considered research in
 progress. FAST-PT is open source and distributed with the
 [MIT license](https://opensource.org/licenses/mit). If you have comments,
-questions, or feedback, please file an [issue](https://github.com/JoeMcEwen/FAST-PT/issues).
+questions, or feedback, please file an [issue](https://github.com/jablazek/FAST-PT/issues).

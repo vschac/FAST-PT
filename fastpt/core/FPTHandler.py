@@ -468,7 +468,7 @@ class FPTHandler:
             #^^ also needs Pd1d1, Pak2 has a weird if chek_h
             "pim": ("a00e", "c00e", "a0e2", "b0e2", "tijsij", "Pak2"),
             #^^ also needs Pd1d1, Pak2 has a weird if chek_h
-            "pmm": ("P_1loop")
+            "pmm": ("P_1loop",)  # Note: Added comma to make it a tuple
         }
 
         if tracer_name not in tracer_map.keys():
@@ -478,16 +478,20 @@ class FPTHandler:
         for term in tracer_map[tracer_name]:
             try:
                 calc_term = self.get(term, **override_kwargs)
+                result[term] = calc_term
             except ValueError as e:
                 error_msg = str(e)
                 if "not found in FASTPT" in error_msg:
                     if term in aliases:
                         calc_term = self.get(aliases[term], **override_kwargs)
+                        result[term] = calc_term
                     else:
-                        raise e
+                        print(f"Warning: Term '{term}' not found and no alias available. Skipping.")
+                        continue
                 else:
-                    raise e
-            result[term] = calc_term
+                    print(f"Warning: Error calculating term '{term}': {error_msg}. Skipping.")
+                    continue
+                    
         return result
 
 
@@ -1246,108 +1250,71 @@ class FPTHandler:
     def plot_comparison(self, results_dict, k=None, ratio=False, ratio_baseline=None,
                     fig_size=(12, 8), **plot_kwargs):
         """
-        Create comparison plots for multiple results, optionally with ratio panel.
-    
+        Create comparison plots with optional ratio panel.
+        
         Parameters
         ----------
         results_dict : dict
             Dictionary mapping labels to data arrays
-        k : array-like, optional
-            k values for x-axis. If None, uses handler's FASTPT k values
+        k : array_like, optional
+            k values for x-axis. If None, uses FASTPT k values
         ratio : bool, optional
             Whether to include a ratio panel
         ratio_baseline : str, optional
-            Key in results_dict to use as baseline for ratio.
-            If None, uses the first key in results_dict
+            Which dataset to use as baseline for ratios
         fig_size : tuple, optional
-            Figure size (width, height) in inches
+            Figure size
         **plot_kwargs : dict
-            Additional keyword arguments passed to the plot method
-        
+            Additional arguments passed to plot method
+            
         Returns
         -------
-        fig : matplotlib.figure.Figure
+        matplotlib.figure.Figure
             The created figure
-
-        Examples
-        --------
-        >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
-        >>> P_1loop_result = handler.run('one_loop_dd')
-        >>> ia_result = handler.run('IA_tt')
-        >>> handler.plot_comparison({'1-loop': P_1loop_result, 'IA': ia_result})
         """
         import matplotlib.pyplot as plt
-    
+        
         if k is None:
             k = self.fastpt.k_original
         
-        if not results_dict:
-            raise ValueError("results_dict cannot be empty")
-        
-        if ratio_baseline is None:
-            # Use first key as baseline if not specified
-            ratio_baseline = list(results_dict.keys())[0]
-        
-        if ratio and ratio_baseline not in results_dict:
-            raise ValueError(f"Ratio baseline '{ratio_baseline}' not found in results")
-        
-        # Create figure and axes
         if ratio:
-            fig = plt.figure(figsize=fig_size)
-            gs = fig.add_gridspec(nrows=2, ncols=1, height_ratios=(3, 1), hspace=0)
-            ax1 = fig.add_subplot(gs[0])
-            ax2 = fig.add_subplot(gs[1], sharex=ax1)
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=fig_size, 
+                                        gridspec_kw={'height_ratios': [3, 1], 'hspace': 0})
         else:
-            fig, ax1 = plt.subplots(figsize=fig_size)
+            fig, ax1 = plt.subplots(1, 1, figsize=fig_size)
             ax2 = None
         
-        # Plot main data
-        # Remove parameters we're handling explicitly to avoid conflicts
-        plot_kwargs_filtered = {k: v for k, v in plot_kwargs.items() if k not in ('show', 'save_path', 'k', 'ax')}
+        # Filter out conflicting parameters before passing to plot
+        plot_kwargs_filtered = plot_kwargs.copy()
+        plot_kwargs_filtered.pop('return_fig', None)  # Remove return_fig to avoid conflict
+        plot_kwargs_filtered.pop('show', None)        # Remove show to avoid conflict
+        
+        # Main plot
         self.plot(data=results_dict, k=k, ax=ax1, show=False, return_fig=False, **plot_kwargs_filtered)
-    
-        # Plot ratio panel if requested
-        if ratio:
-            baseline_data = results_dict[ratio_baseline]
-            ratio_data = {}
         
-            for label, data in results_dict.items():
-                if np.array_equal(data, baseline_data):
-                    continue
-                
-                # Calculate ratio, handling potential zeros or NaNs
-                with np.errstate(divide='ignore', invalid='ignore'):
-                    ratio_array = data / baseline_data
-                    # Replace inf/NaN with zeros for plotting
-                    ratio_array = np.nan_to_num(ratio_array, nan=0, posinf=0, neginf=0)
-                
-                ratio_data[f"{label}/{ratio_baseline}"] = ratio_array
+        # Ratio plot
+        if ratio and ax2 is not None:
+            if ratio_baseline is None:
+                ratio_baseline = list(results_dict.keys())[0]
             
-            # Plot the ratios
-            self.plot(data=ratio_data, k=k, ax=ax2, log_scale=(True, False), 
-                    show=False, return_fig=False)
-        
-            # Add horizontal line at y=1.0
-            ax2.axhline(y=1.0, color='k', linestyle='-', alpha=0.3)
-        
-            # Set y-label for ratio panel
-            ax2.set_ylabel('Ratio', fontsize=12)
-        
-            # Remove x-label from top plot to avoid overlap
+            baseline_data = results_dict[ratio_baseline]
+            
+            for label, data in results_dict.items():
+                if label != ratio_baseline:
+                    ratio_values = data / baseline_data
+                    ax2.semilogx(k, ratio_values, label=f'{label}/{ratio_baseline}')
+            
+            ax2.axhline(y=1, color='black', linestyle='--', alpha=0.5)
+            ax2.set_xlabel('k [h/Mpc]')
+            ax2.set_ylabel('Ratio')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+            
+            # Remove x-axis labels from top plot
             ax1.set_xlabel('')
+            ax1.tick_params(labelbottom=False)
         
-            # Only show x tick labels on bottom panel
-            plt.setp(ax1.get_xticklabels(), visible=False)
-        
-        # Save figure if path provided
-        if 'save_path' in plot_kwargs:
-            fig.savefig(plot_kwargs['save_path'], dpi=plot_kwargs.get('dpi', 300), bbox_inches='tight')
-            print(f"Figure saved to: {plot_kwargs['save_path']}")
-        
-        # Show plot
-        if plot_kwargs.get('show', True):
-            plt.show()
-        
+        plt.tight_layout()
         return fig
     
     def generate_power_spectra(self, method='class', mode='single', **kwargs):
