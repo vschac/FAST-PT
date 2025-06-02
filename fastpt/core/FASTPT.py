@@ -1614,8 +1614,3 @@ class FASTPT:
 
         self.cache.set((P_fin, A_out), "J_k_tensor", hash_key, P_hash)
         return P_fin, A_out
-
-
-
-
-#removed the original example, retrieve it from history if needed

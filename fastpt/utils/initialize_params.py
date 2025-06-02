@@ -15,18 +15,35 @@ def array_cache_key(array):
         return None
     return hash(array.tobytes())
 
+def create_grid_aware_cache_key(args, N, eta_m, tau_l):
+    """Create cache key that includes grid parameters"""
+    base_key = tuple(array_cache_key(arg) if isinstance(arg, np.ndarray) else arg for arg in args)
+    grid_key = (N, array_cache_key(eta_m), array_cache_key(tau_l))
+    return base_key + grid_key
+
 def memoize_gamma(func):
-	"""Decorator to cache gamma function results"""
-	cache = {}
+    """Decorator to cache gamma function results with grid awareness"""
+    cache = {}
     
-	@functools.wraps(func)
-	def wrapper(*args):
-		key = tuple(array_cache_key(arg) if isinstance(arg, np.ndarray) else arg for arg in args)
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # Extract grid parameters from kwargs or use defaults
+        N = kwargs.pop('_cache_N', None)
+        eta_m = kwargs.pop('_cache_eta_m', None) 
+        tau_l = kwargs.pop('_cache_tau_l', None)
         
-		if key not in cache:
-			cache[key] = func(*args)
-		return cache[key]
-	return wrapper
+        if N is not None and eta_m is not None and tau_l is not None:
+            # Use grid-aware caching
+            key = create_grid_aware_cache_key(args, N, eta_m, tau_l)
+        else:
+            # Fallback to simple argument-based caching
+            key = tuple(array_cache_key(arg) if isinstance(arg, np.ndarray) else arg for arg in args)
+        
+        if key not in cache:
+            cache[key] = func(*args, **kwargs)
+        return cache[key]
+    
+    return wrapper
 
 
 
