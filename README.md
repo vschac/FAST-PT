@@ -35,7 +35,7 @@ Full installation with examples:
 Our papers (JCAP 2016, 9, 15; arXiv:1603.04826) and (JCAP 2017, 2, 30; arXiv:1609.05978)
 describe the FAST-PT algorithm and implementation. Please cite these papers
 when using FAST-PT in your research. For the intrinsic alignment
-implementation, cite arXiv:1708.09247.
+implementation, cite PRD 100, 103506 (arXiv:1708.09247).
 
 FAST-PT is under continued development and should be considered research in
 progress. FAST-PT is open source and distributed with the
