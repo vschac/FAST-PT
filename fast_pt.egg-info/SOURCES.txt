@@ -42,7 +42,6 @@ fastpt/utils/__init__.py
 fastpt/utils/fastpt_extr.py
 fastpt/utils/filter_Pk.py
 fastpt/utils/gamma_funcs.py
-fastpt/utils/get_nu1_nu2.py
 fastpt/utils/initialize_params.py
 fastpt/utils/kPol.py
 fastpt/utils/matter_power_spt.py

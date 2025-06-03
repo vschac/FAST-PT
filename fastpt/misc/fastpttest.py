@@ -7,7 +7,7 @@ import os
     # Version check
 
     # load the data file
-data_path = os.path.join(os.path.dirname(__file__), '..', 'examples', 'Pk_test.dat')
+data_path = os.path.join(os.path.dirname(__file__), '..', '..', 'examples', 'Pk_test.dat')
 d = np.loadtxt(data_path)
     # declare k and the power spectrum
 k = d[:, 0]

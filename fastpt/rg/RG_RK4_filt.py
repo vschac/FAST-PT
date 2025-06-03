@@ -10,11 +10,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..utils.fastpt_extr import p_window
+from fastpt.utils.fastpt_extr import p_window
 from scipy.signal import butter, lfilter
 import time
 import sys
-from ..core.FASTPT import FASTPT
+from fastpt.core.FASTPT import FASTPT
 
 
 def RG_RK4_filt(name,k,P,d_lambda,max,n_pad,P_window,C_window):
@@ -39,7 +39,7 @@ def RG_RK4_filt(name,k,P,d_lambda,max,n_pad,P_window,C_window):
 	P_0=P*W
 
 	nu=-2
-	fastpt=FASTPT.FASTPT(k,nu=nu,n_pad=n_pad)
+	fastpt=FASTPT(k,nu=nu,n_pad=n_pad, simple=True)
 	P_spt=fastpt.one_loop(P_0,C_window=C_window)
 	P_spt=P_0+P_spt
 

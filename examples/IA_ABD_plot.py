@@ -1,17 +1,17 @@
 from __future__ import division
 import numpy as np 
-from matter_power_spt import one_loop
-import FASTPT
+from fastpt.utils.matter_power_spt import one_loop
+from fastpt import FASTPT
 from time import time 
 
 # load the input power spectrum data 
-d=np.genfromtxt('inputs/P_IA.dat',skip_header=1)
+d=np.genfromtxt('../paper/inputs/P_IA.dat',skip_header=1)
 ## note: for non-trimmed data, genfromtxt is required to deal with NaN values.
 
 k=d[:,0]
 P=d[:,1]
 
-d_extend=np.genfromtxt('inputs/P_lin.dat',skip_header=1)
+d_extend=np.genfromtxt('../paper/inputs/P_lin.dat',skip_header=1)
 k=d_extend[:-1,0]
 P=d_extend[:-1,1]
 
@@ -27,7 +27,7 @@ P_window=np.array([.2,.2])
 C_window=.65	
 n_pad=1000
 # initialize the FASTPT class		
-fastpt=FASTPT.FASTPT(k,to_do=['IA_mix'],low_extrap=-6,high_extrap=4,n_pad=n_pad) 
+fastpt=FASTPT(k,to_do=['IA_mix'],low_extrap=-6,high_extrap=4,n_pad=n_pad) 
 	
 	
 t1=time()	
