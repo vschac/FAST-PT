@@ -1185,10 +1185,11 @@ class FASTPT:
         Returns
         -------
         tuple
-            (P_d2E, P_d20E, P_d2E2) where:
+            (P_d2E, P_d20E, P_s2E, P_s20E) where:
         P_d2E : 2nd-order density-E-mode correlation
         P_d20E : 2nd-order density-density-E-mode correlation
-        P_d2E2 : 2nd-order density-E-mode squared correlation
+	P_s2E : 2nd-order tidal-E-mode correlation
+        P_s20E : 2nd-order tidal-density-E-mode correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_d2E = self.compute_term("P_d2E", self.X_IA_gb2_F2, operation=lambda x: 2 * x,
@@ -1208,10 +1209,9 @@ class FASTPT:
         Returns
         -------
         tuple
-            (P_s2E, P_s20E, P_s2E2) where:
-        P_s2E : 2nd-order tidal-E-mode correlation
-        P_s20E : 2nd-order tidal-density-E-mode correlation
+            (P_s2E2, P_d2E2) where:
         P_s2E2 : 2nd-order tidal-E-mode squared correlation
+	P_d2E2 : 2nd-order density-E-mode squared correlation
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         P_s2E2 = self.compute_term("P_s2E2", self.X_IA_gb2_S2he, operation=lambda x: 2 * x,
