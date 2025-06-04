@@ -119,164 +119,162 @@ print(f'  → IA_ta with empty cache: {t2-t1:.4f} seconds (no cache)')
 # ===============================================================================
 # 4. DIRECT TERM ACCESS - Get specific components easily
 # ===============================================================================
-# print('\n4. === DIRECT TERM ACCESS ===')
+print('\n4. === DIRECT TERM ACCESS ===')
 
-# print('Getting specific power spectrum terms directly:')
+print('Getting specific power spectrum terms directly:')
 
-# # Get individual 1-loop terms
-# P_1loop = handler.get('P_1loop')
-# print('✓ Retrieved P_1loop directly')
+# Get individual 1-loop terms
+P_1loop = handler.get('P_1loop')
+print('✓ Retrieved P_1loop directly')
 
-# # Get multiple IA terms at once
-# ia_terms = handler.get('P_E', 'P_B', 'P_A')
-# print('✓ Retrieved multiple IA terms: P_E, P_B, P_A')
+# Get multiple IA terms at once
+ia_terms = handler.get('P_E', 'P_B', 'P_A')
+print('✓ Retrieved multiple IA terms: P_E, P_B, P_A')
 
-# # Get bias terms
-# bias_terms = handler.get('Pd1d2', 'Pd2d2', 'Ps2s2')
-# print('✓ Retrieved bias terms: Pd1d2, Pd2d2, Ps2s2')
+# Show how to access specific terms
+print('Accessing specific terms:')
+P_E = ia_terms['P_E']
+P_B = ia_terms['P_B']
+print(f'  → P_E: {P_E[:5]} (first 5 values)')
+print(f'  → P_B: {P_B[:5]} (first 5 values)')
 
-# # ===============================================================================
-# # 5. MULTIPLE POWER SPECTRA GENERATION
-# # ===============================================================================
-# print('\n5. === MULTIPLE POWER SPECTRA GENERATION ===')
+# Get bias terms
+bias_terms = handler.get('Pd1d2', 'Pd2d2', 'Ps2s2')
+print('✓ Retrieved bias terms: Pd1d2, Pd2d2, Ps2s2')
 
-# try:
-#     # Generate multiple cosmologies using 'diff' mode
-#     print('Generating power spectra for different cosmologies...')
-#     cosmo_spectra = handler.generate_power_spectra(
-#         method='camb',
-#         mode='diff',
-#         h=[0.65, 0.67, 0.70],        # Different Hubble parameters
-#         omega_m=[0.28, 0.30, 0.32],   # Different matter densities
-#         z=0.0
-#     )
-#     print(f'✓ Generated {len(cosmo_spectra)} different cosmological power spectra')
+# ===============================================================================
+# 5. MULTIPLE POWER SPECTRA GENERATION
+# ===============================================================================
+print('\n5. === MULTIPLE POWER SPECTRA GENERATION ===')
+
+try:
+    # Generate multiple cosmologies using 'diff' mode
+    print('Generating power spectra for different cosmologies...')
+    cosmo_spectra = handler.generate_power_spectra(
+        method='camb',
+        mode='diff',
+        h=[0.65, 0.67, 0.70],        # Different Hubble parameters
+        omega_m=[0.28, 0.30, 0.32],   # Different matter densities
+        z=0.0
+    )
+    print(f'✓ Generated {len(cosmo_spectra)} different cosmological power spectra')
     
-#     # Use one for calculations
-#     sample_key = list(cosmo_spectra.keys())[0]
-#     P_alt = cosmo_spectra[sample_key]
+    # Use one for calculations
+    P_alt = cosmo_spectra[(0.0, 0.65, 0.048, None, 0.30)]  # Example key, any default values used are printed by the method
+    # Or alternatively, access by index:
+    # sample_key = list(cosmo_spectra.keys())[0]
+    # P_alt = cosmo_spectra[sample_key]
     
-# except ImportError:
-#     # Fallback: create different power spectra manually
-#     print('Creating multiple power spectra manually...')
-#     P_alt = 800 * k**(-1.3) * np.exp(-k/8)  # Different normalization and slope
-#     print('✓ Created alternative power spectrum')
+except ImportError:
+    # Fallback: create different power spectra manually
+    print('Creating multiple power spectra manually...')
+    P_alt = 800 * k**(-1.3) * np.exp(-k/8)  # Different normalization and slope
+    print('✓ Created alternative power spectrum')
 
-# # ===============================================================================
-# # 6. PLOTTING CAPABILITIES
-# # ===============================================================================
-# print('\n6. === PLOTTING DEMONSTRATION ===')
+# ===============================================================================
+# 6. PLOTTING CAPABILITIES
+# ===============================================================================
+print('\n6. === PLOTTING DEMONSTRATION ===')
 
-# # Plot 1: Compare linear and 1-loop power spectra
-# print('Creating plots...')
+# Plot 1: Compare linear and 1-loop power spectra
+print('Creating plots...')
 
-# # Basic plot of linear vs 1-loop
-# fig1 = handler.plot(
-#     data={'Linear P(k)': P_linear, '1-loop P(k)': P_linear + P_1loop},
-#     title='Linear vs 1-loop Power Spectra',
-#     colors=['blue', 'red'],
-#     style=[{'linestyle': '-'}, {'linestyle': '--'}],
-#     return_fig=True,
-#     show=False
-# )
+# Basic plot of linear vs 1-loop
+fig1 = handler.plot(
+    data={'Linear P(k)': P_linear, '1-loop P(k)': P_linear + P_1loop},
+    title='Linear vs 1-loop Power Spectra',
+    colors=['blue', 'red'],
+    style=[{'linestyle': '-'}, {'linestyle': '--'}],
+    return_fig=True,
+    show=False
+)
 
-# # Plot 2: IA terms comparison
-# fig2 = handler.plot(
-#     terms=['P_E', 'P_B'],
-#     title='Intrinsic Alignment: E and B modes',
-#     colors=['green', 'orange'], 
-#     return_fig=True,
-#     show=False
-# )
+# Plot 2: IA terms comparison
+fig2 = handler.plot(
+    terms=['P_E', 'P_B'],
+    title='Intrinsic Alignment: E and B modes',
+    colors=['green', 'orange'], 
+    return_fig=True,
+    show=False
+)
 
-# # Plot 3: Bias terms
-# fig3 = handler.plot(
-#     data=bias_terms,
-#     title='Galaxy Bias Terms',
-#     log_scale=True,
-#     return_fig=True,
-#     show=False
-# )
+# Plot 3: Bias terms
+fig3 = handler.plot(
+    data=bias_terms,
+    title='Galaxy Bias Terms',
+    log_scale=True,
+    return_fig=True,
+    show=False
+)
 
-# print('✓ Created multiple demonstration plots')
+print('✓ Created multiple demonstration plots')
 
-# # ===============================================================================
-# # 7. SAVE/LOAD FUNCTIONALITY
-# # ===============================================================================
-# print('\n7. === SAVE/LOAD DEMONSTRATION ===')
+# ===============================================================================
+# 7. SAVE/LOAD FUNCTIONALITY
+# ===============================================================================
+print('\n7. === SAVE/LOAD DEMONSTRATION ===')
+handler.output_dir = 'output'  # Set output directory
 
-# # Save some results
-# handler.save_output(P_1loop_result, 'one_loop_example', type='csv')
-# handler.save_params('example_params', P=P_linear, C_window=0.75, h=0.67)
+# Save some results
+handler.save_output(P_1loop_result, 'one_loop_example', type='csv')
+handler.save_params('example_params', P=P_linear, C_window=0.75)
 
-# # Load them back
-# loaded_result = handler.load('one_loop_example_output.csv')
-# loaded_params = handler.load_params('example_params')
+# Load them back
+loaded_result = handler.load('one_loop_example_output.csv')
+loaded_params = handler.load_params('example_params')
 
-# # TODO: use those loaded params
+# And to use the loaded parameters:
+handler.run('one_loop_dd', **loaded_params)
+# or using Fast-PT directly:
+fpt.one_loop_dd(**loaded_params)
 
-# print('✓ Saved and loaded results and parameters')
-# print(f'  → Loaded parameters: {list(loaded_params.keys())}')
+print('✓ Saved and loaded results and parameters')
+print(f'  → Loaded parameters: {list(loaded_params.keys())}')
 
-# # ===============================================================================
-# # 8. TRACER-SPECIFIC CALCULATIONS
-# # ===============================================================================
-# print('\n8. === TRACER-SPECIFIC CALCULATIONS ===')
+# ===============================================================================
+# 8. CACHE INFORMATION
+# ===============================================================================
+print('\n8. === CACHE INFORMATION ===')
+print('Current cache status:')
+print(fpt.cache)
 
-# # Get all terms relevant for matter-matter power spectrum
-# try:
-#     matter_terms = handler.get_tracer('pmm', P=P_linear)
-#     print('✓ Retrieved all terms for matter-matter power spectrum')
-# except Exception as e:
-#     print(f'Note: Some tracer terms require additional implementation: {e}')
-#     raise e
+# ===============================================================================
+# 9. SHOW ALL PLOTS
+# ===============================================================================
+print('\n9. === DISPLAYING PLOTS ===')
+print('Showing all generated plots...')
 
-# #TODO: and this is how you would use it 
+# Show all created figures
+created_count = 0
+for fig_var, description in [('fig1', 'Linear vs 1-loop comparison'),
+                            ('fig2', 'IA terms'), 
+                            ('fig3', 'Bias terms')]:
+    if fig_var in locals() and locals()[fig_var] is not None:
+        created_count += 1
+        print(f'✓ {description} plot created')
 
-# # ===============================================================================
-# # 9. CACHE INFORMATION
-# # ===============================================================================
-# print('\n9. === CACHE INFORMATION ===')
-# print('Current cache status:')
-# print(fpt.cache)
+if created_count > 0:
+    print(f'\nDisplaying all {created_count} plots...')
+    plt.show()  # Show all figures at once
+else:
+    print('No plots were successfully created to display.')
 
-# # ===============================================================================
-# # 10. SHOW ALL PLOTS
-# # ===============================================================================
-# print('\n10. === DISPLAYING PLOTS ===')
-# print('Showing all generated plots...')
+# ===============================================================================
+# SUMMARY
+# ===============================================================================
+print('\n' + '='*60)
+print('SUMMARY OF NEW FEATURES DEMONSTRATED:')
+print('='*60)
+print('✓ Simplified initialization - no to_do list required')
+print('✓ Automatic caching system with significant speedup')
+print('✓ FPTHandler for streamlined calculations')
+print('✓ Built-in power spectrum generation (CAMB/CLASS)')
+print('✓ Direct access to specific power spectrum terms')
+print('✓ Comprehensive plotting capabilities')
+print('✓ Save/load functionality for results and parameters')
+print('✓ Multiple cosmology handling')
+print('✓ Tracer-specific term collections')
+print('='*60)
 
-# # Show all created figures
-# created_count = 0
-# for fig_var, description in [('fig1', 'Linear vs 1-loop comparison'),
-#                             ('fig2', 'IA terms'), 
-#                             ('fig3', 'Bias terms')]:
-#     if fig_var in locals() and locals()[fig_var] is not None:
-#         created_count += 1
-#         print(f'✓ {description} plot created')
-
-# if created_count > 0:
-#     print(f'\nDisplaying all {created_count} plots...')
-#     plt.show()  # Show all figures at once
-# else:
-#     print('No plots were successfully created to display.')
-
-# # ===============================================================================
-# # SUMMARY
-# # ===============================================================================
-# print('\n' + '='*60)
-# print('SUMMARY OF NEW FEATURES DEMONSTRATED:')
-# print('='*60)
-# print('✓ Simplified initialization - no to_do list required')
-# print('✓ Automatic caching system with significant speedup')
-# print('✓ FPTHandler for streamlined calculations')
-# print('✓ Built-in power spectrum generation (CAMB/CLASS)')
-# print('✓ Direct access to specific power spectrum terms')
-# print('✓ Comprehensive plotting capabilities')
-# print('✓ Save/load functionality for results and parameters')
-# print('✓ Multiple cosmology handling')
-# print('✓ Tracer-specific term collections')
-# print('='*60)
-
-# print('\nExample completed successfully!')
-# print('Check the generated plots and saved files in the outputs directory.')
+print('\nExample completed successfully!')
+print('Check the generated plots and saved files in the outputs directory.')

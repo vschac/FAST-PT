@@ -37,7 +37,7 @@ ax.plot(x,y, '--', lw=3,color='black')
 
 t=np.arange(-3,0.1,0.1)
 upper_bound=-3-t
-ax.fill_between(t, -3, upper_bound, facecolor='grey', alpha='0.5')
+ax.fill_between(t, -3, upper_bound, facecolor='grey', alpha=0.5)
 
 plt.show()
 fig.savefig('bias_choice.pdf')

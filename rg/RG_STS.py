@@ -15,8 +15,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from ..utils.fastpt_extr import p_window
-from ..core.FASTPT import FASTPT
+from fastpt.utils.fastpt_extr import p_window
+from fastpt.core.FASTPT import FASTPT
 import time, sys
 
 
