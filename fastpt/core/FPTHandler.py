@@ -1434,6 +1434,22 @@ class FPTHandler:
                 'z': kwargs.get('z', [0.0]),
             }
             class_params = self._get_function_params(self._class_power_spectra)
+
+            # Check for default values and issue warnings for CLASS
+            defaults_used = []
+            if 'omega_cdm' not in kwargs:
+                defaults_used.append('omega_cdm=0.12')
+            if 'h' not in kwargs:
+                defaults_used.append('h=0.69')
+            if 'omega_b' not in kwargs:
+                defaults_used.append('omega_b=0.022')
+            if 'z' not in kwargs:
+                defaults_used.append('z=0.0')
+                
+            if defaults_used:
+                print(f"Default values were used for CLASS: {', '.join(defaults_used)}")
+                print("Please include them in your key for the output. Param order is z, h, omega_b, omega_cdm")
+
         elif method == 'camb':
             if kwargs.get('omega_m') is not None and kwargs.get('omega_cdm') is not None:
                 raise ValueError("omega_m and omega_cdm cannot be used together. Please pick one.")
@@ -1445,6 +1461,25 @@ class FPTHandler:
                 'z': kwargs.get('z', [0.0]),
             }
             camb_params = self._get_function_params(self._camb_power_spectra)
+
+            # Check for default values and issue warnings for CAMB
+            defaults_used = []
+            if 'omega_b' not in kwargs:
+                defaults_used.append('omega_b=0.048')
+            if 'omega_cdm' not in kwargs and 'omega_m' not in kwargs:
+                defaults_used.append('omega_m=0.3')
+            elif 'omega_cdm' not in kwargs and 'omega_m' in kwargs:
+                defaults_used.append('omega_cdm=None (using omega_m)')
+            elif 'omega_m' not in kwargs and 'omega_cdm' in kwargs:
+                defaults_used.append('omega_m=0.3 (using omega_cdm)')
+            if 'h' not in kwargs:
+                defaults_used.append('h=0.69')
+            if 'z' not in kwargs:
+                defaults_used.append('z=0.0')
+                
+            if defaults_used:
+                print(f"Warning: Using default values for CAMB method: {', '.join(defaults_used)}")
+                print("Please include them in your key for the output. Param order is z, h, omega_b, omega_cdm, omega_m")
         else:
             raise ValueError("Invalid method. Choose either 'class' or 'camb'.")
         
@@ -1516,12 +1551,8 @@ class FPTHandler:
                     
                     result[key] = compute_func(**iteration_params)
                 else:  # method == 'camb'
-                    if 'omega_m' in diff_params:
-                        h, omega_b, omega_cdm, omega_m = combo
-                        key = (z, h, omega_b, omega_cdm, omega_m)
-                    else:
-                        h, omega_b, omega_cdm = combo  
-                        key = (z, h, omega_b, omega_cdm)
+                    h, omega_b, omega_cdm, omega_m = combo
+                    key = (z, h, omega_b, omega_cdm, omega_m)
                         
                     # Start with param values from the current combination
                     iteration_params = {
