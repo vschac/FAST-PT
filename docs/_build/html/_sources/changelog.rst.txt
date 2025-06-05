@@ -41,4 +41,4 @@ This will greatly improve the performance of each FAST-PT function if your use c
 Additional Notes
 ------------------
 
-* The 1loop term currently does not pass np.allclose with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the magnitude of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This bug is currently being investigated and will be fixed in a future release.
+* The 1loop term (one_loop_dd[0]) currently does not pass np.allclose with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the order of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This bug is currently being investigated and will be fixed in a future release.

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Changelog / Migration Guide &mdash; FAST-PT 4.0.0b0 documentation</title>
+  <title>Changelog / Migration Guide &mdash; FAST-PT 4.0.0b1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=fcf9cf13"></script>
+      <script src="_static/documentation_options.js?v=58814b0a"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -117,7 +117,7 @@ This will greatly improve the performance of each FAST-PT function if your use c
 <section id="additional-notes">
 <h2>Additional Notes<a class="headerlink" href="#additional-notes" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>The 1loop term currently does not pass np.allclose with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the magnitude of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This bug is currently being investigated and will be fixed in a future release.</p></li>
+<li><p>The 1loop term (one_loop_dd[0]) currently does not pass np.allclose with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the order of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This bug is currently being investigated and will be fixed in a future release.</p></li>
 </ul>
 </section>
 </section>

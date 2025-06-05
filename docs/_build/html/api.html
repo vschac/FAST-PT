@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; FAST-PT 4.0.0b0 documentation</title>
+  <title>API Reference &mdash; FAST-PT 4.0.0b1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=fcf9cf13"></script>
+      <script src="_static/documentation_options.js?v=58814b0a"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -687,12 +687,12 @@ in subsequent function calls.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.generate_power_spectra">
-<span class="sig-name descname"><span class="pre">generate_power_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'classy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'single'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FPTHandler.html#FPTHandler.generate_power_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.generate_power_spectra" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">generate_power_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'class'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'single'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FPTHandler.html#FPTHandler.generate_power_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.generate_power_spectra" title="Link to this definition"></a></dt>
 <dd><p>Generate power spectra using the specified mode and method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Either ‘classy’ or ‘camb’</p></li>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Either ‘class’ or ‘camb’</p></li>
 <li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – <p>‘single’, ‘bulk’, or ‘diff’</p>
 <ul>
 <li><p>single: generate one power spectra with the given params, which should be passed as floats or bools</p></li>
@@ -700,13 +700,17 @@ in subsequent function calls.</p>
 <li><p>diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.</p></li>
 </ul>
 </p></li>
-<li><p><strong>**kwargs</strong> – <p>Cosmological parameters to pass to the appropriate method</p>
-<ul>
-<li><p>For CLASSY: omega_b, omega_cdm, h, z, As, ns</p></li>
-<li><p>For CAMB: omega_b, omega_cdm, h, z, As, ns, halofit_version, k_hunit, nonlinear, H0, kmax, hubble_units, extrap_kmax, k_per_logint</p></li>
+<li><p><strong>**kwargs</strong> – Cosmological parameters to pass to the appropriate method</p></li>
 </ul>
-</p></li>
-</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Power spectrum or collection of power spectra based on the mode</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If invalid method or mode is specified, or if parameters are incompatible with the selected method</p>
 </dd>
 </dl>
 </dd></dl>
@@ -879,7 +883,7 @@ scalar metadata that was created during saving.</p>
 - None (requires ‘terms’ parameter to get data)</p></li>
 <li><p><strong>terms</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, </em><em>optional</em>) – Term name(s) to plot if data is not provided</p></li>
 <li><p><strong>k</strong> (<em>array-like</em><em>, </em><em>optional</em>) – k values for x-axis. If None, uses handler’s FASTPT k values</p></li>
-<li><p><strong>ax</strong> (<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes" title="(in Matplotlib v3.10.1)"><em>matplotlib.axes.Axes</em></a><em>, </em><em>optional</em>) – Axes to plot on. If None, creates a new figure</p></li>
+<li><p><strong>ax</strong> (<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes" title="(in Matplotlib v3.10.3)"><em>matplotlib.axes.Axes</em></a><em>, </em><em>optional</em>) – Axes to plot on. If None, creates a new figure</p></li>
 <li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Plot title</p></li>
 <li><p><strong>log_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – Whether to use log scale. If True, both axes are log.
 Can provide (x_log, y_log) tuple to specify each axis</p></li>
@@ -905,7 +909,7 @@ line properties (color, linestyle, marker, alpha, etc.)</p></li>
 <dd class="field-even"><p><strong>fig</strong> – Figure object if return_fig is True</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.10.1)">matplotlib.figure.Figure</a>, optional</p>
+<dd class="field-odd"><p><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.10.3)">matplotlib.figure.Figure</a>, optional</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
@@ -926,33 +930,25 @@ line properties (color, linestyle, marker, alpha, etc.)</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.plot_comparison">
 <span class="sig-name descname"><span class="pre">plot_comparison</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio_baseline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(12,</span> <span class="pre">8)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">plot_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FPTHandler.html#FPTHandler.plot_comparison"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.plot_comparison" title="Link to this definition"></a></dt>
-<dd><p>Create comparison plots for multiple results, optionally with ratio panel.</p>
+<dd><p>Create comparison plots with optional ratio panel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>results_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Dictionary mapping labels to data arrays</p></li>
-<li><p><strong>k</strong> (<em>array-like</em><em>, </em><em>optional</em>) – k values for x-axis. If None, uses handler’s FASTPT k values</p></li>
+<li><p><strong>k</strong> (<em>array_like</em><em>, </em><em>optional</em>) – k values for x-axis. If None, uses FASTPT k values</p></li>
 <li><p><strong>ratio</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include a ratio panel</p></li>
-<li><p><strong>ratio_baseline</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Key in results_dict to use as baseline for ratio.
-If None, uses the first key in results_dict</p></li>
-<li><p><strong>fig_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – Figure size (width, height) in inches</p></li>
-<li><p><strong>**plot_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional keyword arguments passed to the plot method</p></li>
+<li><p><strong>ratio_baseline</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Which dataset to use as baseline for ratios</p></li>
+<li><p><strong>fig_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – Figure size</p></li>
+<li><p><strong>**plot_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional arguments passed to plot method</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>fig</strong> – The created figure</p>
+<dd class="field-even"><p>The created figure</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.10.1)">matplotlib.figure.Figure</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.10.3)">matplotlib.figure.Figure</a></p>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop_result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ia_result</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;IA_tt&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">plot_comparison</span><span class="p">({</span><span class="s1">&#39;1-loop&#39;</span><span class="p">:</span> <span class="n">P_1loop_result</span><span class="p">,</span> <span class="s1">&#39;IA&#39;</span><span class="p">:</span> <span class="n">ia_result</span><span class="p">})</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py method">

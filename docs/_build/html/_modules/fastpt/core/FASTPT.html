@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>fastpt.core.FASTPT &mdash; FAST-PT 4.0.0b0 documentation</title>
+  <title>fastpt.core.FASTPT &mdash; FAST-PT 4.0.0b1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=fcf9cf13"></script>
+      <script src="../../../_static/documentation_options.js?v=58814b0a"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -341,7 +341,7 @@
         <span class="p">}</span>
 
         <span class="k">if</span> <span class="n">to_do</span><span class="p">:</span> 
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: to_do list is no longer needed for FAST-PT initialization. Terms will now be calculated as needed. It may still be used to pre-compute matrices for faster initial runs.&quot;</span><span class="p">)</span>
         
             <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">to_do</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">entry</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;everything&#39;</span><span class="p">}:</span>
@@ -368,8 +368,6 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">X_lpt</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">X_sptG</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">todo_dict</span><span class="p">[</span><span class="s1">&#39;one_loop_cleft_dd&#39;</span><span class="p">]:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">X_cleft</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">todo_dict</span><span class="p">[</span><span class="s1">&#39;IA_tt&#39;</span><span class="p">]:</span> 
             <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_E</span> 
             <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_B</span>
@@ -450,14 +448,6 @@
                         <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">scalar_stuff</span><span class="p">(</span><span class="n">p_mat</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_l</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">X_registry</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">result</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;X_sptG&#39;</span>
-        <span class="k">return</span> <span class="n">result</span>
-    <span class="nd">@cached_property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">X_cleft</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">nu</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span>
-        <span class="n">p_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-                        <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">scalar_stuff</span><span class="p">(</span><span class="n">p_mat</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_l</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">X_registry</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">result</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;X_cleft&#39;</span>
         <span class="k">return</span> <span class="n">result</span>
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">X_IA_E</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1768,11 +1758,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">((</span><span class="n">P_fin</span><span class="p">,</span> <span class="n">A_out</span><span class="p">),</span> <span class="s2">&quot;J_k_tensor&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">P_fin</span><span class="p">,</span> <span class="n">A_out</span></div>
 
-
-
-
-
-<span class="c1">#removed the original example, retrieve it from history if needed</span>
 </pre></div>
 
            </div>
