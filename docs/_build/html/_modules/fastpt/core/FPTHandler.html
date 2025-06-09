@@ -84,7 +84,7 @@
 <a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FPTHandler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Handler class for FAST-PT that simplifies function calls and result management.</span>
+<span class="sd">    Handler class for FAST-PT that simplifies function calls and provides various convenience features relevant to FAST-PT calculations.</span>
 <span class="sd">    </span>
 <span class="sd">    This class provides a simplified interface for working with FAST-PT functions,</span>
 <span class="sd">    with features including power spectra generation, saving/loading outputs, </span>
@@ -316,7 +316,7 @@
     
 <div class="viewcode-block" id="FPTHandler.bulk_run">
 <a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.bulk_run">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">bulk_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">power_spectra</span><span class="p">,</span> <span class="n">flip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bulk_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">power_spectra</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run multiple functions with multiple power spectra.</span>
 <span class="sd">        </span>
@@ -329,9 +329,6 @@
 <span class="sd">            List of FAST-PT function names to call</span>
 <span class="sd">        power_spectra : list of array_like</span>
 <span class="sd">            List of power spectra to use for each function call</span>
-<span class="sd">        flip : bool, optional</span>
-<span class="sd">            Whether to run each function at every power spectrum or every power spectrum at each function</span>
-<span class="sd">            (Default is False, which runs each function at every power spectrum)</span>
 <span class="sd">        verbose : bool, optional</span>
 <span class="sd">            Whether to print progress messages</span>
 <span class="sd">        **override_kwargs : dict</span>
@@ -345,25 +342,18 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
-<span class="sd">        &gt;&gt;&gt; P1 = k**(-1.5)  # Example power spectrum 1</span>
-<span class="sd">        &gt;&gt;&gt; P2 = k**(-1.0)  # Example power spectrum 2</span>
 <span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, C_window=0.75)</span>
+<span class="sd">        &gt;&gt;&gt; P1 = handler.generate_power_spectra(method=&#39;class&#39;)  # Example power spectrum 1</span>
+<span class="sd">        &gt;&gt;&gt; P2 = handler.generate_power_spectra(method=&#39;camb&#39;)  # Example power spectrum 2</span>
 <span class="sd">        &gt;&gt;&gt; results = handler.bulk_run([&#39;one_loop_dd&#39;, &#39;IA_tt&#39;], [P1, P2])</span>
 <span class="sd">        &gt;&gt;&gt; one_loop_P1 = results[(&#39;one_loop_dd&#39;, 0)]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="n">flip</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">power_spectra</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
-                    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
-                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                    <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">func_name</span> <span class="ow">in</span> <span class="n">func_names</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">power_spectra</span><span class="p">):</span>
-                    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
-                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                    <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="n">P</span><span class="p">}</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2"> with power spectrum </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">results</span><span class="p">[(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">results</span></div>
 
        
@@ -625,7 +615,7 @@
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
 <span class="sd">        &gt;&gt;&gt; handler.clear_default_params()</span>
-<span class="sd">        &gt;&gt;&gt; # Now P must be provided in each function call</span>
+<span class="sd">        &gt;&gt;&gt; # Now P must be provided in each subsequent function call</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default parameters cleared.&quot;</span><span class="p">)</span></div>

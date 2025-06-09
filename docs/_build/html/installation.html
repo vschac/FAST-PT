@@ -44,7 +44,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-methods">Installation Methods</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
@@ -78,6 +82,23 @@
              
   <section id="installation">
 <span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h2>
+<p>FAST-PT requires the following Python packages:</p>
+<ul class="simple">
+<li><p>numpy &gt;= 1.17</p></li>
+<li><p>scipy &gt;= 1.2</p></li>
+<li><p>matplotlib &gt;= 3.0</p></li>
+</ul>
+<p>Optional dependencies for generating power spectra:</p>
+<ul class="simple">
+<li><p>CAMB</p></li>
+<li><p>classy (pyhton wrapper for CLASS)</p></li>
+</ul>
+<p>These optional dependencies are required to use the power spectrum generation features but are not needed for the core FAST-PT functionality. Required dependencies will be installed automatically when you install FAST-PT.</p>
+</section>
+<section id="installation-methods">
+<h2>Installation Methods<a class="headerlink" href="#installation-methods" title="Link to this heading"></a></h2>
 <p>FAST-PT can be installed using pip:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>fast-pt
 </pre></div>
@@ -86,12 +107,13 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>fast-pt
 </pre></div>
 </div>
-<p>For development installation:</p>
+<p>For developer installation:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/jablazek/FAST-PT.git
 <span class="nb">cd</span><span class="w"> </span>FAST-PT
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
+</section>
 </section>
 
 

@@ -73,10 +73,9 @@ def cached_property(method):
 
 class FASTPT:
     """
-    FASTPT is a numerical algorithm to calculate
-	1-loop contributions to the matter power spectrum
-	and other integrals of a similar type.
-	The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978
+
+    FASTPT is a numerical algorithm to calculate 1-loop contributions to the matter power spectrum
+	and other integrals of a similar type. The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978
 	Please cite these papers if you are using FASTPT in your research.
 
     Parameters
@@ -123,25 +122,7 @@ class FASTPT:
         
         Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is 
         recommended to reduce numerical artifacts from the FFT-based algorithm.
-        
-        Examples
-        --------
-        Basic initialization for 1-loop calculations:
-        
-        >>> import numpy as np
-        >>> from fastpt import FASTPT
-        >>> k = np.logspace(-3, 1, 200)
-        >>> P_linear = k**(-1.5) * 1000  # Example power spectrum
-        >>> fpt = FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=100)
-        >>> P_1loop = fpt.one_loop_dd(P_linear)[0]
-        
-        With multiple components:
-        
-        >>> fpt = FASTPT(k, to_do=['one_loop_dd', 'IA_tt', 'RSD'], 
-        ...              low_extrap=-5, high_extrap=3, n_pad=100)
-        >>> P_1loop = fpt.one_loop_dd(P_linear)[0]
-        >>> P_IA_E, P_IA_B = fpt.IA_tt(P_linear)
-        >>> A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = fpt.RSD_components(P_linear, f=0.55)
+
     """
 
     def __init__(self, k, nu=None, to_do=None, param_mat=None, low_extrap=None, high_extrap=None, n_pad=None,
@@ -743,7 +724,7 @@ class FASTPT:
         Pd1s2 : First order density-second order tidal correlation
         Pd2s2 : Second order density-second order tidal correlation
         Ps2s2 : Second order tidal auto-correlation
-        sig4 : σ^4 integral for stochastic bias
+        sig4 : σ^4 integral for nonlinear bias
         """
         P_1loop, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)
         Pd1d2 = self._get_Pd1d2(P, P_window=P_window, C_window=C_window)
@@ -870,7 +851,7 @@ class FASTPT:
         Pb1L_b2L : First-order and second-order Lagrangian bias cross-correlation
         Pb2L : Second-order Lagrangian bias correlation
         Pb2L_2 : Second-order Lagrangian bias squared correlation 
-        sig4 : σ^4 integral for stochastic bias
+        sig4 : σ^4 integral for nonlinear bias
         """
         self._validate_params(P=P, P_window=P_window, C_window=C_window)
         _, Ps = self.one_loop_dd(P, P_window=P_window, C_window=C_window)

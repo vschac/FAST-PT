@@ -151,10 +151,9 @@
 <a class="viewcode-back" href="../../../api.html#fastpt.FASTPT">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FASTPT</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    FASTPT is a numerical algorithm to calculate</span>
-<span class="sd">	1-loop contributions to the matter power spectrum</span>
-<span class="sd">	and other integrals of a similar type.</span>
-<span class="sd">	The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978</span>
+
+<span class="sd">    FASTPT is a numerical algorithm to calculate 1-loop contributions to the matter power spectrum</span>
+<span class="sd">	and other integrals of a similar type. The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978</span>
 <span class="sd">	Please cite these papers if you are using FASTPT in your research.</span>
 
 <span class="sd">    Parameters</span>
@@ -201,25 +200,7 @@
 <span class="sd">        </span>
 <span class="sd">        Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is </span>
 <span class="sd">        recommended to reduce numerical artifacts from the FFT-based algorithm.</span>
-<span class="sd">        </span>
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        Basic initialization for 1-loop calculations:</span>
-<span class="sd">        </span>
-<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-<span class="sd">        &gt;&gt;&gt; from fastpt import FASTPT</span>
-<span class="sd">        &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
-<span class="sd">        &gt;&gt;&gt; P_linear = k**(-1.5) * 1000  # Example power spectrum</span>
-<span class="sd">        &gt;&gt;&gt; fpt = FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=100)</span>
-<span class="sd">        &gt;&gt;&gt; P_1loop = fpt.one_loop_dd(P_linear)[0]</span>
-<span class="sd">        </span>
-<span class="sd">        With multiple components:</span>
-<span class="sd">        </span>
-<span class="sd">        &gt;&gt;&gt; fpt = FASTPT(k, to_do=[&#39;one_loop_dd&#39;, &#39;IA_tt&#39;, &#39;RSD&#39;], </span>
-<span class="sd">        ...              low_extrap=-5, high_extrap=3, n_pad=100)</span>
-<span class="sd">        &gt;&gt;&gt; P_1loop = fpt.one_loop_dd(P_linear)[0]</span>
-<span class="sd">        &gt;&gt;&gt; P_IA_E, P_IA_B = fpt.IA_tt(P_linear)</span>
-<span class="sd">        &gt;&gt;&gt; A1, A3, A5, B0, B2, B4, B6, P_Ap1, P_Ap3, P_Ap5 = fpt.RSD_components(P_linear, f=0.55)</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="FASTPT.__init__">
@@ -832,7 +813,7 @@
 <span class="sd">        Pd1s2 : First order density-second order tidal correlation</span>
 <span class="sd">        Pd2s2 : Second order density-second order tidal correlation</span>
 <span class="sd">        Ps2s2 : Second order tidal auto-correlation</span>
-<span class="sd">        sig4 : σ^4 integral for stochastic bias</span>
+<span class="sd">        sig4 : σ^4 integral for nonlinear bias</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">P_1loop</span><span class="p">,</span> <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">Pd1d2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Pd1d2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -965,7 +946,7 @@
 <span class="sd">        Pb1L_b2L : First-order and second-order Lagrangian bias cross-correlation</span>
 <span class="sd">        Pb2L : Second-order Lagrangian bias correlation</span>
 <span class="sd">        Pb2L_2 : Second-order Lagrangian bias squared correlation </span>
-<span class="sd">        sig4 : σ^4 integral for stochastic bias</span>
+<span class="sd">        sig4 : σ^4 integral for nonlinear bias</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">Ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
@@ -1301,10 +1282,11 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        tuple</span>
-<span class="sd">            (P_d2E, P_d20E, P_d2E2) where:</span>
+<span class="sd">            (P_d2E, P_d20E, P_s2E, P_s20E) where:</span>
 <span class="sd">        P_d2E : 2nd-order density-E-mode correlation</span>
 <span class="sd">        P_d20E : 2nd-order density-density-E-mode correlation</span>
-<span class="sd">        P_d2E2 : 2nd-order density-E-mode squared correlation</span>
+<span class="sd">	P_s2E : 2nd-order tidal-E-mode correlation</span>
+<span class="sd">        P_s20E : 2nd-order tidal-density-E-mode correlation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_d2E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_d2E&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_F2</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
@@ -1327,10 +1309,9 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        tuple</span>
-<span class="sd">            (P_s2E, P_s20E, P_s2E2) where:</span>
-<span class="sd">        P_s2E : 2nd-order tidal-E-mode correlation</span>
-<span class="sd">        P_s20E : 2nd-order tidal-density-E-mode correlation</span>
+<span class="sd">            (P_s2E2, P_d2E2) where:</span>
 <span class="sd">        P_s2E2 : 2nd-order tidal-E-mode squared correlation</span>
+<span class="sd">	P_d2E2 : 2nd-order density-E-mode squared correlation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="n">C_window</span><span class="p">)</span>
         <span class="n">P_s2E2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_term</span><span class="p">(</span><span class="s2">&quot;P_s2E2&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_IA_gb2_S2he</span><span class="p">,</span> <span class="n">operation</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>

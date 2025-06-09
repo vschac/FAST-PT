@@ -6,7 +6,7 @@ import os
 
 class FPTHandler:
     """
-    Handler class for FAST-PT that simplifies function calls and result management.
+    Handler class for FAST-PT that simplifies function calls and provides various convenience features relevant to FAST-PT calculations.
     
     This class provides a simplified interface for working with FAST-PT functions,
     with features including power spectra generation, saving/loading outputs, 
@@ -230,7 +230,7 @@ class FPTHandler:
             self.save_output(result, function_name, type=self.save_all, output_dir=output_directory)
         return result
     
-    def bulk_run(self, func_names, power_spectra, flip=False, verbose=False, **override_kwargs):
+    def bulk_run(self, func_names, power_spectra, verbose=False, **override_kwargs):
         """
         Run multiple functions with multiple power spectra.
         
@@ -243,9 +243,6 @@ class FPTHandler:
             List of FAST-PT function names to call
         power_spectra : list of array_like
             List of power spectra to use for each function call
-        flip : bool, optional
-            Whether to run each function at every power spectrum or every power spectrum at each function
-            (Default is False, which runs each function at every power spectrum)
         verbose : bool, optional
             Whether to print progress messages
         **override_kwargs : dict
@@ -259,25 +256,18 @@ class FPTHandler:
         Examples
         --------
         >>> k = np.logspace(-3, 1, 200)
-        >>> P1 = k**(-1.5)  # Example power spectrum 1
-        >>> P2 = k**(-1.0)  # Example power spectrum 2
         >>> handler = FPTHandler(fpt, C_window=0.75)
+        >>> P1 = handler.generate_power_spectra(method='class')  # Example power spectrum 1
+        >>> P2 = handler.generate_power_spectra(method='camb')  # Example power spectrum 2
         >>> results = handler.bulk_run(['one_loop_dd', 'IA_tt'], [P1, P2])
         >>> one_loop_P1 = results[('one_loop_dd', 0)]
         """
         results = {}
-        if flip:
+        for func_name in func_names:
             for i, P in enumerate(power_spectra):
-                for func_name in func_names:
-                    params = {**self.default_params, **override_kwargs, 'P': P}
-                    if verbose: print(f"Running {func_name} with power spectrum {i}")
-                    results[(func_name, i)] = self.run(func_name, **params)
-        else:
-            for func_name in func_names:
-                for i, P in enumerate(power_spectra):
-                    params = {**self.default_params, **override_kwargs, 'P': P}
-                    if verbose: print(f"Running {func_name} with power spectrum {i}")
-                    results[(func_name, i)] = self.run(func_name, **params)
+                params = {**self.default_params, **override_kwargs, 'P': P}
+                if verbose: print(f"Running {func_name} with power spectrum {i}")
+                results[(func_name, i)] = self.run(func_name, **params)
         return results
        
     def get(self, *terms, **override_kwargs):
@@ -524,7 +514,7 @@ class FPTHandler:
         --------
         >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
         >>> handler.clear_default_params()
-        >>> # Now P must be provided in each function call
+        >>> # Now P must be provided in each subsequent function call
         """
         self.default_params = {}
         print("Default parameters cleared.")

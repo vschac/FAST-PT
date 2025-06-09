@@ -138,9 +138,7 @@
 <dt class="sig sig-object py" id="fastpt.FASTPT">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastpt.</span></span><span class="sig-name descname"><span class="pre">FASTPT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_do</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_mat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_extrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_extrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simple</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FASTPT.html#FASTPT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FASTPT" title="Link to this definition"></a></dt>
 <dd><dl class="simple">
-<dt>FASTPT is a numerical algorithm to calculate</dt><dd><p>1-loop contributions to the matter power spectrum
-and other integrals of a similar type.
-The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978
+<dt>FASTPT is a numerical algorithm to calculate 1-loop contributions to the matter power spectrum</dt><dd><p>and other integrals of a similar type. The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978
 Please cite these papers if you are using FASTPT in your research.</p>
 </dd>
 </dl>
@@ -181,24 +179,6 @@ half the length of the input k array.</p>
 contain an even number of elements</p>
 <p>Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is
 recommended to reduce numerical artifacts from the FFT-based algorithm.</p>
-<p class="rubric">Examples</p>
-<p>Basic initialization for 1-loop calculations:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">FASTPT</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P_linear</span> <span class="o">=</span> <span class="n">k</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>  <span class="c1"># Example power spectrum</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">fpt</span> <span class="o">=</span> <span class="n">FASTPT</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">low_extrap</span><span class="o">=-</span><span class="mi">5</span><span class="p">,</span> <span class="n">high_extrap</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_pad</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop</span> <span class="o">=</span> <span class="n">fpt</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P_linear</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</pre></div>
-</div>
-<p>With multiple components:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fpt</span> <span class="o">=</span> <span class="n">FASTPT</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">to_do</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="s1">&#39;IA_tt&#39;</span><span class="p">,</span> <span class="s1">&#39;RSD&#39;</span><span class="p">],</span>
-<span class="gp">... </span>             <span class="n">low_extrap</span><span class="o">=-</span><span class="mi">5</span><span class="p">,</span> <span class="n">high_extrap</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_pad</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P_1loop</span> <span class="o">=</span> <span class="n">fpt</span><span class="o">.</span><span class="n">one_loop_dd</span><span class="p">(</span><span class="n">P_linear</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P_IA_E</span><span class="p">,</span> <span class="n">P_IA_B</span> <span class="o">=</span> <span class="n">fpt</span><span class="o">.</span><span class="n">IA_tt</span><span class="p">(</span><span class="n">P_linear</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">A1</span><span class="p">,</span> <span class="n">A3</span><span class="p">,</span> <span class="n">A5</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">B2</span><span class="p">,</span> <span class="n">B4</span><span class="p">,</span> <span class="n">B6</span><span class="p">,</span> <span class="n">P_Ap1</span><span class="p">,</span> <span class="n">P_Ap3</span><span class="p">,</span> <span class="n">P_Ap5</span> <span class="o">=</span> <span class="n">fpt</span><span class="o">.</span><span class="n">RSD_components</span><span class="p">(</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="mf">0.55</span><span class="p">)</span>
-</pre></div>
-</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FASTPT.IA_ct">
 <span class="sig-name descname"><span class="pre">IA_ct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FASTPT.html#FASTPT.IA_ct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FASTPT.IA_ct" title="Link to this definition"></a></dt>
@@ -437,10 +417,11 @@ alignment and tidal torque.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><ul class="simple">
-<li><p><em>tuple</em> – (P_d2E, P_d20E, P_d2E2) where:</p></li>
+<li><p><em>tuple</em> – (P_d2E, P_d20E, P_s2E, P_s20E) where:</p></li>
 <li><p><strong>P_d2E</strong> (<em>2nd-order density-E-mode correlation</em>)</p></li>
 <li><p><strong>P_d20E</strong> (<em>2nd-order density-density-E-mode correlation</em>)</p></li>
-<li><p><strong>P_d2E2</strong> (<em>2nd-order density-E-mode squared correlation</em>)</p></li>
+<li><p><strong>P_s2E</strong> (<em>2nd-order tidal-E-mode correlation</em>)</p></li>
+<li><p><strong>P_s20E</strong> (<em>2nd-order tidal-density-E-mode correlation</em>)</p></li>
 </ul>
 </p>
 </dd>
@@ -454,10 +435,9 @@ alignment and tidal torque.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><ul class="simple">
-<li><p><em>tuple</em> – (P_s2E, P_s20E, P_s2E2) where:</p></li>
-<li><p><strong>P_s2E</strong> (<em>2nd-order tidal-E-mode correlation</em>)</p></li>
-<li><p><strong>P_s20E</strong> (<em>2nd-order tidal-density-E-mode correlation</em>)</p></li>
+<li><p><em>tuple</em> – (P_s2E2, P_d2E2) where:</p></li>
 <li><p><strong>P_s2E2</strong> (<em>2nd-order tidal-E-mode squared correlation</em>)</p></li>
+<li><p><strong>P_d2E2</strong> (<em>2nd-order density-E-mode squared correlation</em>)</p></li>
 </ul>
 </p>
 </dd>
@@ -517,7 +497,7 @@ alignment and tidal torque.</p>
 <li><p><strong>Pd1s2</strong> (<em>First order density-second order tidal correlation</em>)</p></li>
 <li><p><strong>Pd2s2</strong> (<em>Second order density-second order tidal correlation</em>)</p></li>
 <li><p><strong>Ps2s2</strong> (<em>Second order tidal auto-correlation</em>)</p></li>
-<li><p><strong>sig4</strong> (<em>σ^4 integral for stochastic bias</em>)</p></li>
+<li><p><strong>sig4</strong> (<em>σ^4 integral for nonlinear bias</em>)</p></li>
 </ul>
 </p>
 </dd>
@@ -554,7 +534,7 @@ alignment and tidal torque.</p>
 <li><p><strong>Pb1L_b2L</strong> (<em>First-order and second-order Lagrangian bias cross-correlation</em>)</p></li>
 <li><p><strong>Pb2L</strong> (<em>Second-order Lagrangian bias correlation</em>)</p></li>
 <li><p><strong>Pb2L_2</strong> (<em>Second-order Lagrangian bias squared correlation</em>)</p></li>
-<li><p><strong>sig4</strong> (<em>σ^4 integral for stochastic bias</em>)</p></li>
+<li><p><strong>sig4</strong> (<em>σ^4 integral for nonlinear bias</em>)</p></li>
 </ul>
 </p>
 </dd>
@@ -569,7 +549,7 @@ alignment and tidal torque.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="fastpt.FPTHandler">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastpt.</span></span><span class="sig-name descname"><span class="pre">FPTHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fastpt_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#fastpt.FASTPT" title="fastpt.core.FASTPT.FASTPT"><span class="pre">FASTPT</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FPTHandler.html#FPTHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler" title="Link to this definition"></a></dt>
-<dd><p>Handler class for FAST-PT that simplifies function calls and result management.</p>
+<dd><p>Handler class for FAST-PT that simplifies function calls and provides various convenience features relevant to FAST-PT calculations.</p>
 <p>This class provides a simplified interface for working with FAST-PT functions,
 with features including power spectra generation, saving/loading outputs,
 direct access to specific power spectrum terms, and more.</p>
@@ -601,7 +581,7 @@ direct access to specific power spectrum terms, and more.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="fastpt.FPTHandler.bulk_run">
-<span class="sig-name descname"><span class="pre">bulk_run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_spectra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FPTHandler.html#FPTHandler.bulk_run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.bulk_run" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">bulk_run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_spectra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">override_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastpt/core/FPTHandler.html#FPTHandler.bulk_run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastpt.FPTHandler.bulk_run" title="Link to this definition"></a></dt>
 <dd><p>Run multiple functions with multiple power spectra.</p>
 <p>This method provides a convenient way to run multiple FAST-PT functions
 with different power spectra and collect all the results.</p>
@@ -610,8 +590,6 @@ with different power spectra and collect all the results.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>func_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – List of FAST-PT function names to call</p></li>
 <li><p><strong>power_spectra</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><em>array_like</em>) – List of power spectra to use for each function call</p></li>
-<li><p><strong>flip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to run each function at every power spectrum or every power spectrum at each function
-(Default is False, which runs each function at every power spectrum)</p></li>
 <li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to print progress messages</p></li>
 <li><p><strong>**override_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional parameters to pass to all function calls</p></li>
 </ul>
@@ -625,9 +603,9 @@ with different power spectra and collect all the results.</p>
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P1</span> <span class="o">=</span> <span class="n">k</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">)</span>  <span class="c1"># Example power spectrum 1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">P2</span> <span class="o">=</span> <span class="n">k</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># Example power spectrum 2</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P1</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">generate_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;class&#39;</span><span class="p">)</span>  <span class="c1"># Example power spectrum 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P2</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">generate_power_spectra</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;camb&#39;</span><span class="p">)</span>  <span class="c1"># Example power spectrum 2</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">bulk_run</span><span class="p">([</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="s1">&#39;IA_tt&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">P1</span><span class="p">,</span> <span class="n">P2</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">one_loop_P1</span> <span class="o">=</span> <span class="n">results</span><span class="p">[(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
 </pre></div>
@@ -643,7 +621,7 @@ in subsequent function calls.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fpt</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_linear</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span><span class="o">.</span><span class="n">clear_default_params</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now P must be provided in each function call</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now P must be provided in each subsequent function call</span>
 </pre></div>
 </div>
 </dd></dl>

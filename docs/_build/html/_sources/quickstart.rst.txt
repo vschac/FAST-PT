@@ -35,3 +35,5 @@ Using FAST-PT is straightforward. Here's a simple example to get started:
 
    # Plot the results
    handler.plot(data=tt_result)
+
+NOTE: This code uses the `FPTHandler` class to simplify the process of generating power spectra and calculating specific terms. However, the handler is not needed for any `FAST-PT` calculations. It simply provides a convenient interface for common tasks and integration with relevant libraries like `matplotlib`, `CAMB`, and `CLASS`.
