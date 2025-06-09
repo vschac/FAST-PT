@@ -73,10 +73,8 @@ def cached_property(method):
 
 class FASTPT:
     """
-
-    FASTPT is a numerical algorithm to calculate 1-loop contributions to the matter power spectrum
-	and other integrals of a similar type. The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978
-	Please cite these papers if you are using FASTPT in your research.
+    FASTPT is a numerical algorithm to calculate 1-loop contributions to the matter power spectrum and other integrals of a similar type. 
+    The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978. Please cite these papers if you are using FASTPT in your research.
 
     Parameters
         ----------
