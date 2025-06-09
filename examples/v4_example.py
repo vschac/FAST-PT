@@ -160,7 +160,7 @@ try:
     print(f'✓ Generated {len(cosmo_spectra)} different cosmological power spectra')
     
     # Use one for calculations
-    P_alt = cosmo_spectra[(0.0, 0.65, 0.048, None, 0.30)]  # Example key, any default values used are printed by the method
+    P_alt = cosmo_spectra[(0.0, 0.650, 0.048, None, 0.30)]  # Example key, any default values used are printed by the method
     # Or alternatively, access by index:
     # sample_key = list(cosmo_spectra.keys())[0]
     # P_alt = cosmo_spectra[sample_key]
