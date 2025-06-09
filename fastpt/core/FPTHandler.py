@@ -1354,71 +1354,32 @@ class FPTHandler:
 
     def _diff_power_spectra(self, method, **kwargs):
 
-        camb_params, class_params = {}, {}
-        if method == 'class':
-            diff_params = {
-                'omega_cdm': kwargs.get('omega_cdm', [0.12]),
-                'h': kwargs.get('h', [0.69]),
-                'omega_b': kwargs.get('omega_b', [0.022]),
-                'z': kwargs.get('z', [0.0]),
-            }
-            class_params = self._get_function_params(self._class_power_spectra)
+        class_params = self._get_function_params(self._class_power_spectra)
+        camb_params = self._get_function_params(self._camb_power_spectra)
+        
+        key_order = list(kwargs.keys())
+        for key in key_order: 
+            if method=='camb' and key not in camb_params['all']:
+                raise ValueError(f"Parameter '{key}' is not valid for CAMB method. Valid parameters are: {camb_params['all']}")
+            if method=='class' and key not in class_params['all']:
+                raise ValueError(f"Parameter '{key}' is not valid for CLASS method. Valid parameters are: {class_params['all']}")
+    
+        diff_params = {}
 
-            # Check for default values and issue warnings for CLASS
-            defaults_used = []
-            if 'omega_cdm' not in kwargs:
-                defaults_used.append('omega_cdm=0.12')
-            if 'h' not in kwargs:
-                defaults_used.append('h=0.69')
-            if 'omega_b' not in kwargs:
-                defaults_used.append('omega_b=0.022')
-            if 'z' not in kwargs:
-                defaults_used.append('z=0.0')
-                
-            if defaults_used:
-                print(f"Default values were used for CLASS: {', '.join(defaults_used)}")
-                print("Please include them in your key for the output. Param order is z, h, omega_b, omega_cdm")
+        for key in key_order:
+            diff_params[key] = kwargs.get(key)
 
-        elif method == 'camb':
+        if method == 'camb':
             if kwargs.get('omega_m') is not None and kwargs.get('omega_cdm') is not None:
                 raise ValueError("omega_m and omega_cdm cannot be used together. Please pick one.")
-            diff_params = {
-                'omega_b': kwargs.get('omega_b', [0.048]),
-                'omega_cdm': kwargs.get('omega_cdm', [None]),
-                'omega_m': kwargs.get('omega_m', [0.3]),
-                'h': kwargs.get('h', [0.69]),
-                'z': kwargs.get('z', [0.0]),
-            }
-            camb_params = self._get_function_params(self._camb_power_spectra)
 
-            # Check for default values and issue warnings for CAMB
-            defaults_used = []
-            if 'omega_b' not in kwargs:
-                defaults_used.append('omega_b=0.048')
-            if 'omega_cdm' not in kwargs and 'omega_m' not in kwargs:
-                defaults_used.append('omega_m=0.3')
-            elif 'omega_cdm' not in kwargs and 'omega_m' in kwargs:
-                defaults_used.append('omega_cdm=None (using omega_m)')
-            elif 'omega_m' not in kwargs and 'omega_cdm' in kwargs:
-                defaults_used.append('omega_m=0.3 (using omega_cdm)')
-            if 'h' not in kwargs:
-                defaults_used.append('h=0.69')
-            if 'z' not in kwargs:
-                defaults_used.append('z=0.0')
-                
-            if defaults_used:
-                print(f"Warning: Using default values for CAMB method: {', '.join(defaults_used)}")
-                print("Please include them in your key for the output. Param order is z, h, omega_b, omega_cdm, omega_m")
-        else:
-            raise ValueError("Invalid method. Choose either 'class' or 'camb'.")
-        
+        # Do padding for single parameters
         has_param_with_length_3 = any(
             isinstance(value, (list, np.ndarray)) and len(value) == 3
             for value in diff_params.values()
         )
         if not has_param_with_length_3:
             raise ValueError("At least one parameter must have length 3 to use diff mode.")
-        
         
         for key, value in diff_params.items():
             if key == 'z':
@@ -1427,86 +1388,52 @@ class FPTHandler:
                 
             if isinstance(value, (int, float)):
                 diff_params[key] = [value]            
-            if not isinstance(diff_params[key], (list, np.ndarray)):
-                raise ValueError(f"Parameter '{key}' must be a list or numpy array.")                
-            if len(diff_params[key]) not in (1, 3):
-                raise ValueError(f"Parameter '{key}' must have length 1 or 3.")                
-            if len(diff_params[key]) == 1:
-                diff_params[key] = [diff_params[key][0]] * 3
+            if isinstance(diff_params[key], (list, np.ndarray)):
+                if len(diff_params[key]) not in (1, 3):
+                    raise ValueError(f"Parameter '{key}' must have length 1 or 3.")                
+                if len(diff_params[key]) == 1:
+                    diff_params[key] = [diff_params[key][0]] * 3
+            elif diff_params[key] is not None:
+                raise ValueError(f"Parameter '{key}' must be a list or numpy array with length 1 or 3.")
         
+
+
         compute_func = self._class_power_spectra if method == 'class' else self._camb_power_spectra
         result = {}
         
+        # Setup all parameter combinations
         for z in diff_params['z']:
             param_combinations = []
-            params_to_use = ['h', 'omega_b', 'omega_cdm'] if method == 'class' else ['h', 'omega_b', 'omega_cdm', 'omega_m']
-            center_values = [diff_params[p][1] for p in params_to_use]
+            params_to_use = diff_params.copy()
+            del params_to_use['z']  # z is handled separately
+            center_values = {}
+            for k, p in params_to_use.items():
+                center_values[k] = p[1]
             param_combinations.append(center_values)
-            
-            for param_idx, param in enumerate(params_to_use):
-                param_values = diff_params[param]
-                
+
+            for param_name, param_values in params_to_use.items():                
                 if param_values[0] == param_values[1] == param_values[2]:
                     continue
                     
                 for val_idx in [0, 2]:
                     values = center_values.copy()
-                    values[param_idx] = param_values[val_idx]
+                    values[param_name] = param_values[val_idx]
                     param_combinations.append(values)
-
-            for combo in param_combinations:
+            
+            # Generate all power spectra with the parameter combination
+            for i, combo in enumerate(param_combinations):
+                if i == 0:
+                    num = 0
+                elif i % 2 == 1:  # odd index
+                    num = -(i + 1) // 2
+                else:  # even index
+                    num = i // 2
+                
+                key = (z, num)
                 if method == 'class':
-                    h, omega_b, omega_cdm = combo
-                    key = (z, h, omega_b, omega_cdm)
-                    
-                    # Start with param values from the current combination
-                    iteration_params = {
-                        'omega_cdm': omega_cdm,
-                        'h': h,
-                        'omega_b': omega_b,
-                        'z': z
-                    }
-                    
-                    # Add any other parameters provided in kwargs that are valid for this function
-                    for param_name, value in kwargs.items():
-                        if param_name not in iteration_params and param_name in class_params['all']:
-                            if not isinstance(value, (list, np.ndarray)):
-                                iteration_params[param_name] = value
-                            elif len(value) == 1:
-                                iteration_params[param_name] = value[0]
-                            elif len(value) >= 3:
-                                # Use middle value for parameters with ranges
-                                iteration_params[param_name] = value[1]
-                    
-                    result[key] = compute_func(**iteration_params)
+                    result[key] = compute_func(**combo)
                 else:  # method == 'camb'
-                    h, omega_b, omega_cdm, omega_m = combo
-                    key = (z, h, omega_b, omega_cdm, omega_m)
-                        
-                    # Start with param values from the current combination
-                    iteration_params = {
-                        'omega_b': omega_b,
-                        'h': h,
-                        'z': z
-                    }
-                    
-                    if omega_cdm is not None:
-                        iteration_params['omega_cdm'] = omega_cdm
-                    else:
-                        iteration_params['omega_m'] = omega_m
-                        
-                    # Add any other parameters provided in kwargs that are valid for this function
-                    for param_name, value in kwargs.items():
-                        if param_name not in iteration_params and param_name in camb_params['all']:
-                            if not isinstance(value, (list, np.ndarray)):
-                                iteration_params[param_name] = value
-                            elif len(value) == 1:
-                                iteration_params[param_name] = value[0]
-                            elif len(value) >= 3:
-                                # Use middle value for parameters with ranges
-                                iteration_params[param_name] = value[1]
-
-                    result[key] = compute_func(**iteration_params)
+                    result[key] = compute_func(**combo)
         
         return result
 

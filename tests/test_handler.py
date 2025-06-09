@@ -12,7 +12,18 @@ C_window = 0.75
 P_window = np.array([0.2, 0.2])
 
 
-    
+if __name__ == "__main__":
+    k = np.logspace(-3, 1, 500)
+    fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
+    handler = FPTHandler(fpt, P_window=np.array([0.2, 0.2]), C_window=0.75)
+    order = handler.generate_power_spectra(method='camb', mode='diff',
+                                      h=[0.6, 0.7, 0.8],
+                                      omega_b=[0.02, 0.04, 0.06],
+                                      omega_cdm=[0.1, 0.2, 0.3],
+                                      z=[0.0, 0.5, 1.0],
+                                      transfer_num_redshifts=[1, 2, 3])
+    from pprint import pprint
+    pprint(order)
     
 
 @pytest.fixture
@@ -57,63 +68,6 @@ def test_invalid_p_window(fpt):
     with pytest.raises(ValueError, match='P_window must be a tuple of two values'):
         FPTHandler(fpt, P=P, P_window=np.array([1.0]))
 
-def test_cache_functionality(fpt):
-    handler = FPTHandler(fpt, do_cache=True, P=P)
-    handler.run('one_loop_dd')  # First run
-    cache_size_before = len(handler.cache)
-    handler.run('one_loop_dd')  # Should use cache
-    assert len(handler.cache) == cache_size_before
-    handler.clear_cache()
-    assert len(handler.cache) == 0
-
-def test_cache_with_other_params(fpt):
-    """Test caching behavior with various parameter combinations"""
-    handler = FPTHandler(fpt, do_cache=True)
-    
-    # Test parameters that should result in different cache entries
-    param_combinations = [
-        {'P': P, 'X': 0.5, 'nu': -2},  
-        {'P': P, 'f': 0.5},
-        {'P': P, 'f': 0.5, 'mu_n': 0.5},
-        {'P': P, 'L': 0.2, 'h': 0.67, 'rsdrag': 135} 
-    ]
-    
-    for params in param_combinations:
-        func_name = 'one_loop_dd'
-        
-        # First run should compute and cache
-        result1 = handler.run(func_name, **params)
-        cache_size = len(handler.cache)
-        
-        # Second run should use cache
-        result2 = handler.run(func_name, **params)
-        assert len(handler.cache) == cache_size
-        
-        if isinstance(result1, (tuple, list)):
-            assert len(result1) == len(result2)
-            for r1, r2 in zip(result1, result2):
-                if isinstance(r1, np.ndarray):
-                    assert np.array_equal(r1, r2)
-                else:
-                    assert r1 == r2
-        elif isinstance(result1, np.ndarray):
-            assert np.array_equal(result1, result2)
-        else:
-            assert result1 == result2
-    
-    # Verify different parameter values create different cache entries
-    handler.clear_cache()
-    base_params = {'P': P}
-    
-    # Run with different parameter values
-    handler.run('one_loop_dd', **base_params)
-    cache_size = len(handler.cache)
-    
-    # Modify P slightly and verify new cache entry is created
-    modified_P = P * 1.01
-    handler.run('one_loop_dd', P=modified_P)
-    assert len(handler.cache) > cache_size, "Different P values should create new cache entry"
-
 def test_invalid_function_call(handler):
     with pytest.raises(ValueError, match="Function 'nonexistent_function' not found"):
         handler.run('nonexistent_function')
@@ -122,14 +76,6 @@ def test_missing_required_params(fpt):
     handler = FPTHandler(fpt, P=P)
     with pytest.raises(ValueError, match="Missing required parameters"):
         handler.run('RSD_components')
-
-def test_clear_specific_cache(fpt):
-    handler = FPTHandler(fpt, do_cache=True, P=P)
-    handler.run('one_loop_dd')
-    handler.run('one_loop_dd_bias')
-    handler.clear_cache('one_loop_dd')
-    assert any('one_loop_dd_bias' in key[0] for key in handler.cache.keys())
-    assert all(key[0] != 'one_loop_dd' for key in handler.cache.keys())
 
 def test_all_fastpt_functions_with_handler_params(fpt):
     """Test FASTPT functions with parameters set during handler initialization"""
@@ -227,13 +173,6 @@ def test_update_fpt_instance(fpt, handler):
     new_fpt = FASTPT(fpt.k_original)
     handler.update_fastpt_instance(new_fpt)
     assert handler.fastpt == new_fpt
-    assert len(handler.cache) == 0
-
-def test_max_cache_entries(fpt):
-    handler = FPTHandler(fpt, max_cache_entries=5, P=P, P_window=P_window, C_window=C_window)
-    for i in range(10):
-        handler.run('one_loop_dd')
-    assert len(handler.cache) <= 5
 
 ################# result_direct TESTS #################
 def test_handler_function_equality(fpt):
@@ -408,7 +347,7 @@ def test_get_all_terms(fpt, handler, term_name):
 
 def test_get_with_caching(fpt):
     """Test get method with caching enabled"""
-    handler = FPTHandler(fpt, do_cache=True, P=P, P_window=P_window, C_window=C_window)
+    handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
         
     # First call - should compute
     result1 = handler.get("P_deltaE1")
@@ -586,24 +525,6 @@ def test_bulk_run_empty_inputs(handler):
     # Empty power spectra list
     empty_results = handler.bulk_run(['one_loop_dd'], [])
     assert len(empty_results) == 0
-
-def test_bulk_run_with_caching(fpt):
-    """Test that bulk_run properly uses caching"""
-    handler = FPTHandler(fpt, do_cache=True)
-    funcs = ['one_loop_dd']
-    power_spectra = [P]
-    
-    # First run should compute
-    handler.bulk_run(funcs, power_spectra, P_window=P_window, C_window=C_window)
-    cache_size = len(handler.cache)
-    
-    # Second run should use cache
-    handler.bulk_run(funcs, power_spectra, P_window=P_window, C_window=C_window)
-    assert len(handler.cache) == cache_size
-    
-    # Different power spectrum should create new cache entry
-    handler.bulk_run(funcs, [P * 1.1], P_window=P_window, C_window=C_window)
-    assert len(handler.cache) > cache_size
 
 def test_bulk_run_with_invalid_function(handler):
     """Test bulk_run with invalid function name"""    
@@ -1269,7 +1190,7 @@ def test_diff_power_spectra_basic(handler):
     # Check format of keys and values
     for key, value in diff_results.items():
         assert isinstance(key, tuple)
-        assert len(key) == 4  # (omega_cdm, h, omega_b, z)
+        assert len(key) == 2  # (z and int)
         assert isinstance(value, np.ndarray)
         assert len(value) == len(handler.fastpt.k_original)
 
@@ -1287,25 +1208,9 @@ def test_diff_power_spectra_multi_param(handler):
     assert isinstance(diff_results, dict)
     assert len(diff_results) == 5  # 1 central + 2*2 variations
     
-    # Check that results include variations for both parameters
-    central_key = None
-    omega_cdm_low_key = None
-    h_high_key = None
-
-    print(diff_results.keys())
-    
-    for key in diff_results.keys():
-        _, h, _, omega_cdm = key
-        if omega_cdm == 0.12 and h == 0.67:
-            central_key = key
-        elif omega_cdm == 0.11 and h == 0.67:
-            omega_cdm_low_key = key
-        elif omega_cdm == 0.12 and h == 0.68:
-            h_high_key = key
-    
-    assert central_key is not None, "Central parameter combination not found"
-    assert omega_cdm_low_key is not None, "omega_cdm low variation not found"
-    assert h_high_key is not None, "h high variation not found"
+    assert (0.0, 0) in diff_results.keys(), "Central parameter combination not found"
+    assert (0.0, -1) in diff_results.keys(), "omega_cdm low variation not found"
+    assert (0.0, 2) in diff_results.keys(), "h high variation not found"
 
 def test_diff_power_spectra_requires_length_3(handler):
     """Test that diff mode requires at least one parameter with length 3"""
