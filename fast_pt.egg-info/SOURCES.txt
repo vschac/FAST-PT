@@ -25,11 +25,6 @@ fastpt/misc/HT.py
 fastpt/misc/__init__.py
 fastpt/misc/bias_choice_plot.py
 fastpt/misc/fastpttest.py
-fastpt/rg/RG_RK4.py
-fastpt/rg/RG_RK4_filt.py
-fastpt/rg/RG_STS.py
-fastpt/rg/RG_ani.py
-fastpt/rg/__init__.py
 fastpt/rsd/RSD.py
 fastpt/rsd/RSD_ItypeII.py
 fastpt/rsd/__init__.py

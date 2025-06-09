@@ -16,14 +16,10 @@ class FPTHandler:
     ----------
     fastpt_instance : FASTPT
         An initialized FASTPT instance.
-    do_cache : bool, optional
-        Whether to cache function results for repeated calls. Default is False.
     save_all : str, optional
         File format to save all results ('txt', 'csv', or 'json'). If one is provided, all outputs of the run function will be saved. Default is None.
     save_dir : str, optional
         Directory to save results. Default is 'outputs' directory in package location.
-    max_cache_entries : int, optional
-        Maximum number of results to keep in cache. Default is 500.
     **params : dict
         Default parameters to use for all function calls.
         
@@ -38,13 +34,10 @@ class FPTHandler:
     >>> handler.update_default_params(P=P)
     >>> P_1loop = handler.get('P_E')  # Direct access to the P_E term of fpt.IA_tt
     """
-    def __init__(self, fastpt_instance: FASTPT, do_cache=False, save_all=None, save_dir=None, max_cache_entries=500, **params):
+    def __init__(self, fastpt_instance: FASTPT, save_all=None, save_dir=None, **params):
         if fastpt_instance is None:
             raise ValueError("You must provide a valid FASTPT instance.")
         self.__fastpt = fastpt_instance
-        self.cache = {}
-        self.do_cache = do_cache
-        self.max_cache_entries = max_cache_entries
         self.save_all = save_all
         
         # Set default output directory if none specified
@@ -160,26 +153,6 @@ class FPTHandler:
             'optional': optional_params,
             'all': required_params + optional_params
         }
-
-
-    def _cache_result(self, function_name, params, result):
-        """ Stores results uniquely by function name and its specific parameters. """
-        if len(self.cache) >= self.max_cache_entries:
-            print("Max cache size reached. Removing oldest entry.")
-            self.cache.pop(next(iter(self.cache)))
-        hashable_params = self._convert_to_hashable(params)
-        self.cache[(function_name, hashable_params)] = result
-    
-
-    def _convert_to_hashable(self, params):
-        """Convert parameters to hashable format, handling numpy arrays specially"""
-        hashable_params = []
-        for k, v in params.items():
-            if isinstance(v, np.ndarray):
-                hashable_params.append((k, hash(v.tobytes())))
-            else:
-                hashable_params.append((k, v))
-        return tuple(sorted(hashable_params))
     
     def _prepare_function_params(self, func, override_kwargs):
         """Prepares and validates parameters for a FASTPT function."""
@@ -205,7 +178,7 @@ class FPTHandler:
         Run a FAST-PT function with validated parameters.
         
         This method calls the specified FAST-PT function, handles parameter validation,
-        caches results if enabled, and optionally saves the output to a file.
+        and optionally saves the output to a file.
         
         Parameters
         ----------
@@ -249,16 +222,8 @@ class FPTHandler:
 
         func = getattr(self.fastpt, function_name)
         passing_params, _ = self._prepare_function_params(func, override_kwargs)
-        
-        if self.do_cache:
-            cache_key = (function_name, self._convert_to_hashable(passing_params))
-            if cache_key in self.cache:
-                print(f"Using cached result for {function_name}")
-                return self.cache[cache_key]
 
         result = func(**passing_params)
-        if self.do_cache: 
-            self._cache_result(function_name, passing_params, result)
         if save_type is not None: 
             self.save_output(result, function_name, type=save_type, output_dir=output_directory)
         elif self.save_all is not None: 
@@ -494,52 +459,6 @@ class FPTHandler:
                     
         return result
 
-
-    def clear_cache(self, function_name=None):
-        """
-        Clear cached function results.
-        
-        Parameters
-        ----------
-        function_name : str, optional
-            If provided, only clears cache for the specified function.
-            If None, clears the entire cache.
-            
-        Examples
-        --------
-        >>> handler = FPTHandler(fpt, do_cache=True)
-        >>> handler.run('one_loop_dd', P=P_linear)
-        >>> handler.clear_cache('one_loop_dd')  # Clear just one_loop_dd results
-        >>> handler.clear_cache()  # Clear all cached results
-        """
-        if function_name:
-            self.cache = {key: value for key, value in self.cache.items() if key[0] != function_name}
-            print(f"Cache cleared for '{function_name}'.")
-        else:
-            self.cache.clear()
-            print("Cache cleared for all functions.")
-
-    def show_cache_info(self):
-        """
-        Display information about the current cache state.
-        
-        Shows the number of entries in the cache, the maximum allowed entries,
-        and the current usage percentage.
-        
-        Examples
-        --------
-        >>> handler = FPTHandler(fpt, do_cache=True, max_cache_entries=100)
-        >>> handler.run('one_loop_dd', P=P_linear)
-        >>> handler.show_cache_info()
-        """
-        num_entries = len(self.cache)
-        print({
-            "num_entries": num_entries,
-            "max_entries": self.max_cache_entries,
-            "usage_percent": (num_entries / self.max_cache_entries) * 100 if self.max_cache_entries > 0 else 0
-        })
-
-
     def list_available_functions(self):
         """
         List all callable FAST-PT functions.
@@ -637,7 +556,7 @@ class FPTHandler:
         """
         Update the FAST-PT instance used by this handler.
         
-        This method replaces the current FASTPT instance and clears the cache.
+        This method replaces the current FASTPT instance.
         
         Parameters
         ----------
@@ -651,8 +570,6 @@ class FPTHandler:
         >>> handler.update_fastpt_instance(fpt_new)
         """
         self.__fastpt = fastpt_instance
-        self.clear_cache()
-        print("FASTPT instance updated. Cache cleared.")
 
     def save_output(self, result, func_name, type="txt", output_dir=None):
         """
@@ -1015,7 +932,7 @@ class FPTHandler:
              log_scale=True, legend_loc='best', grid=True, style=None,
              colors=None, linewidth=1.5, label_map=None, fig_size=(10, 7), 
              save_path=None, dpi=300, xlim=None, ylim=None, scale_factors=None,
-             return_fig=False, show=True, **override_kwargs):
+             return_fig=False, show=True, plot_negatives=True, **override_kwargs):
         """
         Create a plot of power spectrum terms.
         
@@ -1066,6 +983,8 @@ class FPTHandler:
             Whether to return the figure object
         show : bool, optional
             Whether to show the plot immediately
+        plot_negatives : bool, optional
+            Whether to plot negative values with dashed lines for visibility
         **override_kwargs : dict
             Additional parameters for FAST-PT function calls
             
@@ -1186,20 +1105,31 @@ class FPTHandler:
             
             # Check if data contains negative values
             if isinstance(data_array, np.ndarray) and np.any(data_array < 0):
+                has_negatives = True
                 # Plot positive values
                 mask_pos = data_array >= 0
                 if np.any(mask_pos):
                     ax.plot(k[mask_pos], scale * data_array[mask_pos], label=label, **curr_style)
                 
                 # Plot negative values with dashed lines for visibility
-                mask_neg = data_array < 0
-                if np.any(mask_neg):
-                    neg_style = curr_style.copy()
-                    neg_style['linestyle'] = neg_style.get('linestyle', '--')  # Default to dashed
-                    ax.plot(k[mask_neg], scale * np.abs(data_array[mask_neg]), **neg_style)
+                if plot_negatives:
+                    mask_neg = data_array < 0
+                    if np.any(mask_neg):
+                        neg_style = curr_style.copy()
+                        neg_style['linestyle'] = neg_style.get('linestyle', '--')  # Default to dashed
+                        # Don't add label to avoid duplicate legend entries
+                        ax.plot(k[mask_neg], scale * np.abs(data_array[mask_neg]), **neg_style)
             else:
                 # Regular plotting for non-negative data
                 ax.plot(k, scale * data_array, label=label, **curr_style)
+        
+        # Check if any data had negative values that were plotted
+        has_negative_data = False
+        if plot_negatives:
+            for data_array in to_plot.values():
+                if isinstance(data_array, np.ndarray) and np.any(data_array < 0):
+                    has_negative_data = True
+                    break
                 
         # Set scales
         if log_scale:
@@ -1229,7 +1159,16 @@ class FPTHandler:
             
         # Add legend if there are labeled lines
         if to_plot:
-            ax.legend(loc=legend_loc)
+            legend = ax.legend(loc=legend_loc)
+            # Add note about dashed lines for negative values if applicable
+            if has_negative_data:
+                # Get the legend text and add explanation
+                legend_title = legend.get_title()
+                if legend_title.get_text():
+                    new_title = f"{legend_title.get_text()}\n(dashed lines = negative values)"
+                else:
+                    new_title = "(dashed lines = negative values)"
+                legend.set_title(new_title, prop={'size': 10})
             
         # Apply tight layout
         fig.tight_layout()

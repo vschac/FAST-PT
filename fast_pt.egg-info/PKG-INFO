@@ -71,14 +71,15 @@ Full installation with examples:
 * Make sure you have current version of numpy, scipy, and matplotlib
 * download the latest FAST-PT release (or clone the repo)
 * install the repo: `python -m pip install .`
-* run the most recent example: `cd examples && python3 v4_example.py`
-* for old examples run: `cd examples && python3 fastpt_example.py`
+* run the most recent example: `cd examples && python3 hello_fastpt.py`
 * hopefully you get a plot!
+* for a more in-depth example of new features:  `cd examples && python3 v4_example.py`
+* for older examples see the 'examples' folder
 
 Our papers (JCAP 2016, 9, 15; arXiv:1603.04826) and (JCAP 2017, 2, 30; arXiv:1609.05978)
 describe the FAST-PT algorithm and implementation. Please cite these papers
 when using FAST-PT in your research. For the intrinsic alignment
-implementation, cite arXiv:1708.09247.
+implementation, cite PRD 100, 103506 (arXiv:1708.09247).
 
 FAST-PT is under continued development and should be considered research in
 progress. FAST-PT is open source and distributed with the

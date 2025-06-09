@@ -94,14 +94,10 @@
 <span class="sd">    ----------</span>
 <span class="sd">    fastpt_instance : FASTPT</span>
 <span class="sd">        An initialized FASTPT instance.</span>
-<span class="sd">    do_cache : bool, optional</span>
-<span class="sd">        Whether to cache function results for repeated calls. Default is False.</span>
 <span class="sd">    save_all : str, optional</span>
 <span class="sd">        File format to save all results (&#39;txt&#39;, &#39;csv&#39;, or &#39;json&#39;). If one is provided, all outputs of the run function will be saved. Default is None.</span>
 <span class="sd">    save_dir : str, optional</span>
 <span class="sd">        Directory to save results. Default is &#39;outputs&#39; directory in package location.</span>
-<span class="sd">    max_cache_entries : int, optional</span>
-<span class="sd">        Maximum number of results to keep in cache. Default is 500.</span>
 <span class="sd">    **params : dict</span>
 <span class="sd">        Default parameters to use for all function calls.</span>
 <span class="sd">        </span>
@@ -118,13 +114,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="FPTHandler.__init__">
 <a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.__init__">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fastpt_instance</span><span class="p">:</span> <span class="n">FASTPT</span><span class="p">,</span> <span class="n">do_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_all</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_cache_entries</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fastpt_instance</span><span class="p">:</span> <span class="n">FASTPT</span><span class="p">,</span> <span class="n">save_all</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">fastpt_instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You must provide a valid FASTPT instance.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span> <span class="o">=</span> <span class="n">fastpt_instance</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">do_cache</span> <span class="o">=</span> <span class="n">do_cache</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_entries</span> <span class="o">=</span> <span class="n">max_cache_entries</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">save_all</span> <span class="o">=</span> <span class="n">save_all</span>
         
         <span class="c1"># Set default output directory if none specified</span>
@@ -241,26 +234,6 @@
             <span class="s1">&#39;optional&#39;</span><span class="p">:</span> <span class="n">optional_params</span><span class="p">,</span>
             <span class="s1">&#39;all&#39;</span><span class="p">:</span> <span class="n">required_params</span> <span class="o">+</span> <span class="n">optional_params</span>
         <span class="p">}</span>
-
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function_name</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Stores results uniquely by function name and its specific parameters. &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_entries</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Max cache size reached. Removing oldest entry.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)))</span>
-        <span class="n">hashable_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_hashable</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[(</span><span class="n">function_name</span><span class="p">,</span> <span class="n">hashable_params</span><span class="p">)]</span> <span class="o">=</span> <span class="n">result</span>
-    
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_hashable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert parameters to hashable format, handling numpy arrays specially&quot;&quot;&quot;</span>
-        <span class="n">hashable_params</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-                <span class="n">hashable_params</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="nb">hash</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">hashable_params</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">hashable_params</span><span class="p">))</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_function_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepares and validates parameters for a FASTPT function.&quot;&quot;&quot;</span>
@@ -288,7 +261,7 @@
 <span class="sd">        Run a FAST-PT function with validated parameters.</span>
 <span class="sd">        </span>
 <span class="sd">        This method calls the specified FAST-PT function, handles parameter validation,</span>
-<span class="sd">        caches results if enabled, and optionally saves the output to a file.</span>
+<span class="sd">        and optionally saves the output to a file.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -332,16 +305,8 @@
 
         <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="p">,</span> <span class="n">function_name</span><span class="p">)</span>
         <span class="n">passing_params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_function_params</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">override_kwargs</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_cache</span><span class="p">:</span>
-            <span class="n">cache_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">function_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_hashable</span><span class="p">(</span><span class="n">passing_params</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">cache_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using cached result for </span><span class="si">{</span><span class="n">function_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="n">passing_params</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_cache</span><span class="p">:</span> 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_result</span><span class="p">(</span><span class="n">function_name</span><span class="p">,</span> <span class="n">passing_params</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">save_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
             <span class="bp">self</span><span class="o">.</span><span class="n">save_output</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">function_name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">save_type</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">output_directory</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_all</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
@@ -587,58 +552,6 @@
         <span class="k">return</span> <span class="n">result</span></div>
 
 
-
-<div class="viewcode-block" id="FPTHandler.clear_cache">
-<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.clear_cache">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">clear_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Clear cached function results.</span>
-<span class="sd">        </span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        function_name : str, optional</span>
-<span class="sd">            If provided, only clears cache for the specified function.</span>
-<span class="sd">            If None, clears the entire cache.</span>
-<span class="sd">            </span>
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, do_cache=True)</span>
-<span class="sd">        &gt;&gt;&gt; handler.run(&#39;one_loop_dd&#39;, P=P_linear)</span>
-<span class="sd">        &gt;&gt;&gt; handler.clear_cache(&#39;one_loop_dd&#39;)  # Clear just one_loop_dd results</span>
-<span class="sd">        &gt;&gt;&gt; handler.clear_cache()  # Clear all cached results</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">function_name</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">function_name</span><span class="p">}</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cache cleared for &#39;</span><span class="si">{</span><span class="n">function_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cache cleared for all functions.&quot;</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="FPTHandler.show_cache_info">
-<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.show_cache_info">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">show_cache_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Display information about the current cache state.</span>
-<span class="sd">        </span>
-<span class="sd">        Shows the number of entries in the cache, the maximum allowed entries,</span>
-<span class="sd">        and the current usage percentage.</span>
-<span class="sd">        </span>
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, do_cache=True, max_cache_entries=100)</span>
-<span class="sd">        &gt;&gt;&gt; handler.run(&#39;one_loop_dd&#39;, P=P_linear)</span>
-<span class="sd">        &gt;&gt;&gt; handler.show_cache_info()</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">num_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">({</span>
-            <span class="s2">&quot;num_entries&quot;</span><span class="p">:</span> <span class="n">num_entries</span><span class="p">,</span>
-            <span class="s2">&quot;max_entries&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_entries</span><span class="p">,</span>
-            <span class="s2">&quot;usage_percent&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_entries</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_entries</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_entries</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
-        <span class="p">})</span></div>
-
-
-
 <div class="viewcode-block" id="FPTHandler.list_available_functions">
 <a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.list_available_functions">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">list_available_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -750,7 +663,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update the FAST-PT instance used by this handler.</span>
 <span class="sd">        </span>
-<span class="sd">        This method replaces the current FASTPT instance and clears the cache.</span>
+<span class="sd">        This method replaces the current FASTPT instance.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -763,9 +676,7 @@
 <span class="sd">        &gt;&gt;&gt; fpt_new = FASTPT(k_new)</span>
 <span class="sd">        &gt;&gt;&gt; handler.update_fastpt_instance(fpt_new)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span> <span class="o">=</span> <span class="n">fastpt_instance</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FASTPT instance updated. Cache cleared.&quot;</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span> <span class="o">=</span> <span class="n">fastpt_instance</span></div>
 
 
 <div class="viewcode-block" id="FPTHandler.save_output">
@@ -1143,7 +1054,7 @@
              <span class="n">log_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">legend_loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fig_size</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> 
              <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale_factors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">return_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
+             <span class="n">return_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_negatives</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a plot of power spectrum terms.</span>
 <span class="sd">        </span>
@@ -1194,6 +1105,8 @@
 <span class="sd">            Whether to return the figure object</span>
 <span class="sd">        show : bool, optional</span>
 <span class="sd">            Whether to show the plot immediately</span>
+<span class="sd">        plot_negatives : bool, optional</span>
+<span class="sd">            Whether to plot negative values with dashed lines for visibility</span>
 <span class="sd">        **override_kwargs : dict</span>
 <span class="sd">            Additional parameters for FAST-PT function calls</span>
 <span class="sd">            </span>
@@ -1314,20 +1227,31 @@
             
             <span class="c1"># Check if data contains negative values</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">has_negatives</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="c1"># Plot positive values</span>
                 <span class="n">mask_pos</span> <span class="o">=</span> <span class="n">data_array</span> <span class="o">&gt;=</span> <span class="mi">0</span>
                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_pos</span><span class="p">):</span>
                     <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="n">mask_pos</span><span class="p">],</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">data_array</span><span class="p">[</span><span class="n">mask_pos</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">curr_style</span><span class="p">)</span>
                 
                 <span class="c1"># Plot negative values with dashed lines for visibility</span>
-                <span class="n">mask_neg</span> <span class="o">=</span> <span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span>
-                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_neg</span><span class="p">):</span>
-                    <span class="n">neg_style</span> <span class="o">=</span> <span class="n">curr_style</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                    <span class="n">neg_style</span><span class="p">[</span><span class="s1">&#39;linestyle&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neg_style</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;--&#39;</span><span class="p">)</span>  <span class="c1"># Default to dashed</span>
-                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">],</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data_array</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">]),</span> <span class="o">**</span><span class="n">neg_style</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">plot_negatives</span><span class="p">:</span>
+                    <span class="n">mask_neg</span> <span class="o">=</span> <span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span>
+                    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_neg</span><span class="p">):</span>
+                        <span class="n">neg_style</span> <span class="o">=</span> <span class="n">curr_style</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                        <span class="n">neg_style</span><span class="p">[</span><span class="s1">&#39;linestyle&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neg_style</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;--&#39;</span><span class="p">)</span>  <span class="c1"># Default to dashed</span>
+                        <span class="c1"># Don&#39;t add label to avoid duplicate legend entries</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">],</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data_array</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">]),</span> <span class="o">**</span><span class="n">neg_style</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Regular plotting for non-negative data</span>
                 <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">data_array</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">curr_style</span><span class="p">)</span>
+        
+        <span class="c1"># Check if any data had negative values that were plotted</span>
+        <span class="n">has_negative_data</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">plot_negatives</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">data_array</span> <span class="ow">in</span> <span class="n">to_plot</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data_array</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="n">has_negative_data</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">break</span>
                 
         <span class="c1"># Set scales</span>
         <span class="k">if</span> <span class="n">log_scale</span><span class="p">:</span>
@@ -1357,7 +1281,16 @@
             
         <span class="c1"># Add legend if there are labeled lines</span>
         <span class="k">if</span> <span class="n">to_plot</span><span class="p">:</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">legend_loc</span><span class="p">)</span>
+            <span class="n">legend</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">legend_loc</span><span class="p">)</span>
+            <span class="c1"># Add note about dashed lines for negative values if applicable</span>
+            <span class="k">if</span> <span class="n">has_negative_data</span><span class="p">:</span>
+                <span class="c1"># Get the legend text and add explanation</span>
+                <span class="n">legend_title</span> <span class="o">=</span> <span class="n">legend</span><span class="o">.</span><span class="n">get_title</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">legend_title</span><span class="o">.</span><span class="n">get_text</span><span class="p">():</span>
+                    <span class="n">new_title</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">legend_title</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">(dashed lines = negative values)&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_title</span> <span class="o">=</span> <span class="s2">&quot;(dashed lines = negative values)&quot;</span>
+                <span class="n">legend</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">new_title</span><span class="p">,</span> <span class="n">prop</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
             
         <span class="c1"># Apply tight layout</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
