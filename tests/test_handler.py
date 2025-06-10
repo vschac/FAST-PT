@@ -10,20 +10,6 @@ P = np.loadtxt(data_path)[:, 1]
 k = np.loadtxt(data_path)[:, 0]
 C_window = 0.75
 P_window = np.array([0.2, 0.2])
-
-
-if __name__ == "__main__":
-    k = np.logspace(-3, 1, 500)
-    fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
-    handler = FPTHandler(fpt, P_window=np.array([0.2, 0.2]), C_window=0.75)
-    order = handler.generate_power_spectra(method='camb', mode='diff',
-                                      h=[0.6, 0.7, 0.8],
-                                      omega_b=[0.02, 0.04, 0.06],
-                                      omega_cdm=[0.1, 0.2, 0.3],
-                                      z=[0.0, 0.5, 1.0],
-                                      transfer_num_redshifts=[1, 2, 3])
-    from pprint import pprint
-    pprint(order)
     
 
 @pytest.fixture

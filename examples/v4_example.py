@@ -143,7 +143,7 @@ bias_terms = handler.get('Pd1d2', 'Pd2d2', 'Ps2s2')
 print('✓ Retrieved bias terms: Pd1d2, Pd2d2, Ps2s2')
 
 # ===============================================================================
-# 5. MULTIPLE POWER SPECTRA GENERATION
+# 5. DIFF MODE MULTIPLE POWER SPECTRA GENERATION
 # ===============================================================================
 print('\n5. === MULTIPLE POWER SPECTRA GENERATION ===')
 
@@ -160,10 +160,11 @@ try:
     print(f'✓ Generated {len(cosmo_spectra)} different cosmological power spectra')
     
     # Use one for calculations
-    P_alt = cosmo_spectra[(0.0, 0.650, 0.048, None, 0.30)]  # Example key, any default values used are printed by the method
-    # Or alternatively, access by index:
-    # sample_key = list(cosmo_spectra.keys())[0]
-    # P_alt = cosmo_spectra[sample_key]
+    # Keys are comprised of z and the parameter index based on the order they were passed in (starting at 1). 
+    # Then use a positive or negative sign to indicate high or low values.
+    # Example: Key (0.0, 1) will give the power spectrum generated with h=0.70, omega_m=0.30, z=0.0
+    P_h_low = cosmo_spectra[(0.0, -1)] # Example key: Diff mode uses the low h parameter (1st parameter passed)
+    P_omegam_high = cosmo_spectra[(0.0, 2)] # Example key: Diff mode uses the high omega_m parameter (2nd parameter passed)
     
 except ImportError:
     # Fallback: create different power spectra manually

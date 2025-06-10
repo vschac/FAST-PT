@@ -256,6 +256,7 @@ class FPTHandler:
         Examples
         --------
         >>> k = np.logspace(-3, 1, 200)
+        >>> fpt = FASTPT(k, low_extrap=-5, high_extrap=3)
         >>> handler = FPTHandler(fpt, C_window=0.75)
         >>> P1 = handler.generate_power_spectra(method='class')  # Example power spectrum 1
         >>> P2 = handler.generate_power_spectra(method='camb')  # Example power spectrum 2
@@ -477,7 +478,8 @@ class FPTHandler:
         """
         # Organize by function
         organized = {}
-        for term, (func, _) in self.term_sources.items():
+        for term, term_info in self.term_sources.items():
+            func = term_info[0]
             if func not in organized:
                 organized[func] = []
             organized[func].append(term)
@@ -487,6 +489,8 @@ class FPTHandler:
         for func, terms in organized.items():
             print(f"\n{func}:")
             terms_str = ", ".join(sorted(terms))
+            if func == "one_loop_dd_bias_b3nl":
+                terms_str += " (and other one_loop_dd_bias terms)"
             print(f"  {terms_str}")
         
         # Special parameter requirements
@@ -669,7 +673,7 @@ class FPTHandler:
         Examples
         --------
         >>> handler = FPTHandler(fpt)
-        >>> result = handler.run('one_loop_dd', save_type='txt')
+        >>> result = handler.run('one_loop_dd', P=P_linear, save_type='txt')
         >>> loaded_data = handler.load('one_loop_dd_output.txt')
         """
         import os
@@ -1272,6 +1276,11 @@ class FPTHandler:
         ------
         ValueError
             If invalid method or mode is specified, or if parameters are incompatible with the selected method
+
+        Notes
+        -----
+        - For an example on how to use 'diff' mode, see the `v4_example.py <https://github.com/jablazek/FAST-PT/tree/master/examples/v4_example.py>`_ file on GitHub.
+        - Any non specified parameters will use the defualt values provided by CAMB or CLASS.
         """
         method = method.lower()
         if method not in ('class', 'camb'):
