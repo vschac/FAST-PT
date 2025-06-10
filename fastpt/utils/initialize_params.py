@@ -19,47 +19,44 @@ def create_grid_aware_cache_key(args, N, eta_m, tau_l):
     """Create cache key that includes grid parameters"""
     base_key = tuple(array_cache_key(arg) if isinstance(arg, np.ndarray) else arg for arg in args)
     grid_key = (N, array_cache_key(eta_m), array_cache_key(tau_l))
-    return base_key + grid_key
+    full_key = base_key + grid_key
+    return full_key
 
 def memoize_gamma(func):
-    """Decorator to cache gamma function results with grid awareness"""
-    cache = {}
-    
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # Extract grid parameters from kwargs or use defaults
-        N = kwargs.pop('_cache_N', None)
-        eta_m = kwargs.pop('_cache_eta_m', None) 
-        tau_l = kwargs.pop('_cache_tau_l', None)
-        
-        if N is not None and eta_m is not None and tau_l is not None:
-            # Use grid-aware caching
-            key = create_grid_aware_cache_key(args, N, eta_m, tau_l)
-        else:
-            # Fallback to simple argument-based caching
-            key = tuple(array_cache_key(arg) if isinstance(arg, np.ndarray) else arg for arg in args)
-        
-        if key not in cache:
-            cache[key] = func(*args, **kwargs)
-        return cache[key]
-    
-    return wrapper
+	"""Decorator to cache gamma function results with grid awareness"""
+	cache = {}
+
+	@functools.wraps(func)
+	def wrapper(*args, **kwargs):
+		# Extract grid parameters from kwargs or use defaults
+		N = kwargs['_cache_N']
+		eta_m = kwargs.pop('_cache_eta_m', None) 
+		tau_l = kwargs.pop('_cache_tau_l', None)
+		
+		# Use grid-aware caching
+		key = create_grid_aware_cache_key(args, N, eta_m, tau_l)
+		if key not in cache:
+			cache[key] = func(*args, **kwargs)
+		return cache[key]
+
+	return wrapper
 
 
 
 log2=log(2.)
 
-@memoize_gamma
-def log_gamma(z):
+# Log gamma function is never used anywhere
+# @memoize_gamma
+# def log_gamma(z):
 
-	z=gamma(z)
-	w=log(z)
-	x=np.real(w)
-	y=np.imag(w)
-	return x,y
+# 	z=gamma(z)
+# 	w=log(z)
+# 	x=np.real(w)
+# 	y=np.imag(w)
+# 	return x,y
 
 @memoize_gamma
-def g_m_vals(mu,q):
+def g_m_vals(mu, q, _cache_N=None, _cache_eta_m=None, _cache_tau_l=None):
 
 	imag_q= np.imag(q)
 
@@ -87,9 +84,9 @@ def g_m_vals(mu,q):
 	return g_m
 
 @memoize_gamma
-def gamsn(z):
+def gamsn(z, _cache_N=None, _cache_eta_m=None, _cache_tau_l=None):
 	z=np.asarray(z, dtype=complex)
-	result=sqrt(pi) /2. * 2.**z *g_m_vals(0.5, z-0.5)
+	result=sqrt(pi) /2. * 2.**z *g_m_vals(0.5, z-0.5, _cache_N=_cache_N, _cache_eta_m=_cache_eta_m, _cache_tau_l=_cache_tau_l)
 	return result
 
 def scalar_stuff(p_mat,nu,N,m,eta_m,l, tau_l):
@@ -117,8 +114,9 @@ def scalar_stuff(p_mat,nu,N,m,eta_m,l, tau_l):
 		p[i]=-5-2*nu-alpha[i]-beta[i]
 
 
-		g_m[i,:]=g_m_vals(sigma,Q_m)
-
+		# Pass grid parameters to cached functions
+		g_m[i,:] = g_m_vals(sigma, Q_m, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
+		
 		if (type[i]==1):
 
 			# this is the special case, Corresponding to the regularized version of
@@ -128,7 +126,7 @@ def scalar_stuff(p_mat,nu,N,m,eta_m,l, tau_l):
 			s=2+nu + beta[i]
 			Q_n=s+ 1j*eta_m
 
-			g_n[i,:]=gamsn(Q_n)
+			g_n[i,:]=gamsn(Q_n, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
 
 			#two_part_m=2**Q_m
 			g_m[i,:]=g_m[i,:]*2.**Q_m
@@ -138,7 +136,7 @@ def scalar_stuff(p_mat,nu,N,m,eta_m,l, tau_l):
 			two_part_l[i,:]=np.ones(l.size)
 
 		else:
-			g_n[i,:]=g_m_vals(sigma,Q_n)
+			g_n[i,:]=g_m_vals(sigma, Q_n, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
 
 			# prefactor
 
@@ -146,7 +144,7 @@ def scalar_stuff(p_mat,nu,N,m,eta_m,l, tau_l):
 			two_part_l[i,:]=exp(1j*tau_l*log2)
 
 		# calculate h_l
-		h_l[i,:]=gamsn(p[i]+1-1j*tau_l)
+		h_l[i,:]=gamsn(p[i]+1-1j*tau_l, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
 
 	return pf,p, g_m, g_n, two_part_l, h_l
 
@@ -192,14 +190,14 @@ def tensor_stuff(p_mat,N,m,eta_m,l, tau_l):
 
 		#p=3. + nu1+nu2 + alpha[i] + beta[i]
 
-		g_m[i,:]=g_m_vals(sigma_1,Q_m)
-		g_n[i,:]=g_m_vals(sigma_2,Q_n)
+		g_m[i,:]=g_m_vals(sigma_1,Q_m, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
+		g_n[i,:]=g_m_vals(sigma_2,Q_n, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
 
 		pf[i] = A[i] * B[i] * pi**(1.5) /8.
 
 
 		# calculate h_l
 		#arg=(p+1-1j*tau_l)
-		h_l[i,:]=g_m_vals(sigma_3, -1.5 - p[i] - 1j*tau_l)
+		h_l[i,:]=g_m_vals(sigma_3, -1.5 - p[i] - 1j*tau_l, _cache_N=N, _cache_eta_m=eta_m, _cache_tau_l=tau_l)
 
 	return pf, p, nu1, nu2, g_m, g_n, h_l
