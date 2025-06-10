@@ -342,6 +342,7 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; k = np.logspace(-3, 1, 200)</span>
+<span class="sd">        &gt;&gt;&gt; fpt = FASTPT(k, low_extrap=-5, high_extrap=3)</span>
 <span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, C_window=0.75)</span>
 <span class="sd">        &gt;&gt;&gt; P1 = handler.generate_power_spectra(method=&#39;class&#39;)  # Example power spectrum 1</span>
 <span class="sd">        &gt;&gt;&gt; P2 = handler.generate_power_spectra(method=&#39;camb&#39;)  # Example power spectrum 2</span>
@@ -575,7 +576,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Organize by function</span>
         <span class="n">organized</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">term_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">term_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">func</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">organized</span><span class="p">:</span>
                 <span class="n">organized</span><span class="p">[</span><span class="n">func</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">organized</span><span class="p">[</span><span class="n">func</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
@@ -585,6 +587,8 @@
         <span class="k">for</span> <span class="n">func</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="n">organized</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">func</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
             <span class="n">terms_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">terms</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">func</span> <span class="o">==</span> <span class="s2">&quot;one_loop_dd_bias_b3nl&quot;</span><span class="p">:</span>
+                <span class="n">terms_str</span> <span class="o">+=</span> <span class="s2">&quot; (and other one_loop_dd_bias terms)&quot;</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">terms_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
         <span class="c1"># Special parameter requirements</span>
@@ -782,7 +786,7 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
-<span class="sd">        &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;, save_type=&#39;txt&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;, P=P_linear, save_type=&#39;txt&#39;)</span>
 <span class="sd">        &gt;&gt;&gt; loaded_data = handler.load(&#39;one_loop_dd_output.txt&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>

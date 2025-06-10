@@ -38,6 +38,23 @@ FAST-PT also now calculates terms in a modular format. This means that the user 
 This is done by using the FPTHandler class and the get method, or by calling compute_term with the necessary parameters for each term. 
 This will greatly improve the performance of each FAST-PT function if your use case only requires a select few terms.
 
+
+Description of Caching System
+-----------------------------
+
+Caching in Fast-PT is done via a CacheManager_ object that is initialized with the FAST-PT class. This cache tracks various different "layers" of the calculation of Fast-PT terms. These layers include:
+
+* Individual Power Spectra: Fast-PT functions return a tuple of multiple power spectra, each of which is cached individually.
+* Jk Scalar and Tensor Calculations: Most Fast-PT terms require the calculation of the Jk scalar or tensor functions. Some terms have identical parameters that are passed to these functions, so they are cached individually as well.
+* Fourier Coefficients: Within the JK functions, fourier coefficients are calculated. These coefficients are dependant on the user's inputted power spectrum therefore caching will be beneficial when multiple terms are requested with the same power spectrum.
+* Convolutions: This is the "lowest level" of Fast-PT calculations where the actual FFT is performed. The convolution function is called with fourier coefficients as parameters, therefore they are also dependant on the user inputted power spectrum and cached individually.
+
+This multi-tiered caching system allows Fast-PT to avoid redundant calculations both on individual power spectra terms and the intermediate calculations that are needed to compute them. 
+To avoid the cache from growing too large, a "dump_cache" flag is provided in initialization that, when True, will clear the cache when a new power spectra is inputted by the user. The user is also able to specify (during Fast-PT initialization) a maximum cache size in mb. This will evict cached items randomly (in linear time) to avoid slowing down the total computation time. However, the cache size limit is meant as a safeguard and should not be treated as a form of memory management for the program. 
+
+.. _CacheManager: https://github.com/jablazek/FAST-PT/tree/master/fastpt/core/CacheManager.py
+
+
 Additional Notes
 ------------------
 

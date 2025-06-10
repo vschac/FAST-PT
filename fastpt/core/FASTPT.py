@@ -112,6 +112,12 @@ class FASTPT:
         
         simple : bool, optional
             If True, uses the older, simplified FASTPT interface. Will be deprecated.
+
+        max_cache_size_mb : int, optional
+            Maximum size of the internal cache in megabytes. Default is 500 MB.
+
+        dump_cache : bool, optional
+            If True, the cache is cleared when a new power spectrum is provided to a Fast-PT function to avoid building an unnecessarily large cache.
         
         Notes
         -----
@@ -124,7 +130,7 @@ class FASTPT:
     """
 
     def __init__(self, k, nu=None, to_do=None, param_mat=None, low_extrap=None, high_extrap=None, n_pad=None,
-                verbose=False, simple=False):
+                verbose=False, simple=False, max_cache_size_mb=500, dump_cache=True):
         
         if (k is None or len(k) == 0):
             raise ValueError('You must provide an input k array.')
@@ -145,7 +151,7 @@ class FASTPT:
                                                   high_extrap=high_extrap, n_pad=n_pad, verbose=verbose)
             return None
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
-        self.cache = CacheManager()
+        self.cache = CacheManager(max_size_mb=max_cache_size_mb, dump_cache=dump_cache)
         self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
         self.extrap = False

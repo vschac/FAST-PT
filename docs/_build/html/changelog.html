@@ -52,6 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#major-changes">Major Changes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#minor-changes">Minor Changes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-improvements">Performance Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#description-of-caching-system">Description of Caching System</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#additional-notes">Additional Notes</a></li>
 </ul>
 </li>
@@ -113,6 +114,18 @@
 FAST-PT also now calculates terms in a modular format. This means that the user can now choose to calculate only the terms they need, rather than all of the terms grouped into one FAST-PT function.
 This is done by using the FPTHandler class and the get method, or by calling compute_term with the necessary parameters for each term.
 This will greatly improve the performance of each FAST-PT function if your use case only requires a select few terms.</p>
+</section>
+<section id="description-of-caching-system">
+<h2>Description of Caching System<a class="headerlink" href="#description-of-caching-system" title="Link to this heading"></a></h2>
+<p>Caching in Fast-PT is done via a <a class="reference external" href="https://github.com/jablazek/FAST-PT/tree/master/fastpt/core/CacheManager.py">CacheManager</a> object that is initialized with the FAST-PT class. This cache tracks various different “layers” of the calculation of Fast-PT terms. These layers include:</p>
+<ul class="simple">
+<li><p>Individual Power Spectra: Fast-PT functions return a tuple of multiple power spectra, each of which is cached individually.</p></li>
+<li><p>Jk Scalar and Tensor Calculations: Most Fast-PT terms require the calculation of the Jk scalar or tensor functions. Some terms have identical parameters that are passed to these functions, so they are cached individually as well.</p></li>
+<li><p>Fourier Coefficients: Within the JK functions, fourier coefficients are calculated. These coefficients are dependant on the user’s inputted power spectrum therefore caching will be beneficial when multiple terms are requested with the same power spectrum.</p></li>
+<li><p>Convolutions: This is the “lowest level” of Fast-PT calculations where the actual FFT is performed. The convolution function is called with fourier coefficients as parameters, therefore they are also dependant on the user inputted power spectrum and cached individually.</p></li>
+</ul>
+<p>This multi-tiered caching system allows Fast-PT to avoid redundant calculations both on individual power spectra terms and the intermediate calculations that are needed to compute them.
+To avoid the cache from growing too large, a “dump_cache” flag is provided in initialization that, when True, will clear the cache when a new power spectra is inputted by the user. The user is also able to specify (during Fast-PT initialization) a maximum cache size in mb. This will evict cached items randomly (in linear time) to avoid slowing down the total computation time. However, the cache size limit is meant as a safeguard and should not be treated as a form of memory management for the program.</p>
 </section>
 <section id="additional-notes">
 <h2>Additional Notes<a class="headerlink" href="#additional-notes" title="Link to this heading"></a></h2>

@@ -15,7 +15,7 @@ FAST-PT requires the following Python packages:
 Optional dependencies for generating power spectra:
 
 * CAMB
-* classy (pyhton wrapper for CLASS)
+* classy (python wrapper for CLASS)
 
 These optional dependencies are required to use the power spectrum generation features but are not needed for the core FAST-PT functionality. Required dependencies will be installed automatically when you install FAST-PT.
 

@@ -190,6 +190,12 @@
 <span class="sd">        </span>
 <span class="sd">        simple : bool, optional</span>
 <span class="sd">            If True, uses the older, simplified FASTPT interface. Will be deprecated.</span>
+
+<span class="sd">        max_cache_size_mb : int, optional</span>
+<span class="sd">            Maximum size of the internal cache in megabytes. Default is 500 MB.</span>
+
+<span class="sd">        dump_cache : bool, optional</span>
+<span class="sd">            If True, the cache is cleared when a new power spectrum is provided to a Fast-PT function to avoid building an unnecessarily large cache.</span>
 <span class="sd">        </span>
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
@@ -204,7 +210,7 @@
 <div class="viewcode-block" id="FASTPT.__init__">
 <a class="viewcode-back" href="../../../api.html#fastpt.FASTPT.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">nu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_do</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">param_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">low_extrap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">high_extrap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_pad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">simple</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">simple</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_cache_size_mb</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">dump_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         
         <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must provide an input k array.&#39;</span><span class="p">)</span>
@@ -225,7 +231,7 @@
                                                   <span class="n">high_extrap</span><span class="o">=</span><span class="n">high_extrap</span><span class="p">,</span> <span class="n">n_pad</span><span class="o">=</span><span class="n">n_pad</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
         <span class="c1"># Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">CacheManager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">CacheManager</span><span class="p">(</span><span class="n">max_size_mb</span><span class="o">=</span><span class="n">max_cache_size_mb</span><span class="p">,</span> <span class="n">dump_cache</span><span class="o">=</span><span class="n">dump_cache</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">X_registry</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1">#Stores the names of X terms to be used as an efficient unique identifier in hash keys</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__k_original</span> <span class="o">=</span> <span class="n">k</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">extrap</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1558,73 +1564,6 @@
     <span class="c1">######################################################################################</span>
     <span class="c1">### Core functions used by top-level functions ###</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_fourier_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cache and return Fourier coefficients for a given biased power spectrum&quot;&quot;&quot;</span>
-    
-        <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
-        <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="n">scalar</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x9e3779b9</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="p">))</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
-            <span class="k">return</span> <span class="n">result</span>
-    
-        <span class="n">c_m_positive</span> <span class="o">=</span> <span class="n">rfft</span><span class="p">(</span><span class="n">P_b</span><span class="p">)</span>
-        <span class="c1"># We always filter the Fourier coefficients, so the last element is zero.</span>
-        <span class="c1"># But in case someone does not filter and this is a scalar calculation, divide the end point by two</span>
-        <span class="k">if</span> <span class="n">scalar</span><span class="p">:</span> <span class="n">c_m_positive</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_m_positive</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span> 
-        <span class="n">c_m_negative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">c_m_positive</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-        <span class="n">c_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">c_m_negative</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">c_m_positive</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
-    
-        <span class="k">if</span> <span class="n">C_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Window the Fourier coefficients.</span>
-            <span class="c1"># This will damp the highest frequencies</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;windowing the Fourier coefficients&#39;</span><span class="p">)</span>
-            <span class="n">c_m</span> <span class="o">=</span> <span class="n">c_m</span> <span class="o">*</span> <span class="n">c_window</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">C_window</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">c_m</span><span class="p">,</span> <span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">c_m</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_convolution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span><span class="p">,</span> <span class="n">two_part_l</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cache and return convolution results&quot;&quot;&quot;</span>
-
-        <span class="c1"># Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">fast_hash</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="mi">0</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
-                    <span class="n">sample</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="mi">1000</span><span class="p">]</span>
-                    <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-                <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-            <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
-        
-        <span class="c1"># Combine hashes with different prime multipliers to reduce collisions</span>
-        <span class="n">hash_key</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">primes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">17</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">127</span><span class="p">,</span> <span class="mi">257</span><span class="p">,</span> <span class="mi">509</span><span class="p">]</span>
-        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span><span class="p">,</span> <span class="n">two_part_l</span><span class="p">]</span>
-        
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arrays</span><span class="p">):</span>
-            <span class="n">h</span> <span class="o">=</span> <span class="n">fast_hash</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
-            <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">primes</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">primes</span><span class="p">)])</span>
-
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;convolution&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
-            <span class="k">return</span> <span class="n">result</span>
-
-        <span class="c1"># Calculate convolution</span>
-        <span class="n">C_l</span> <span class="o">=</span> <span class="n">fftconvolve</span><span class="p">(</span><span class="n">c1</span> <span class="o">*</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">g_n</span><span class="p">)</span>
-        <span class="c1"># C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])</span>
-        <span class="c1"># multiply all l terms together</span>
-        <span class="c1"># C_l=C_l*self.h_l[i,:]*self.two_part_l[i]</span>
-    
-        <span class="c1"># Apply additional terms</span>
-        <span class="k">if</span> <span class="n">two_part_l</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">C_l</span> <span class="o">=</span> <span class="n">C_l</span> <span class="o">*</span> <span class="n">h_l</span> <span class="o">*</span> <span class="n">two_part_l</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">C_l</span> <span class="o">=</span> <span class="n">C_l</span> <span class="o">*</span> <span class="n">h_l</span>
-        <span class="c1"># Cache and return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">C_l</span><span class="p">,</span> <span class="s2">&quot;convolution&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">C_l</span>
-
     <span class="k">def</span><span class="w"> </span><span class="nf">J_k_scalar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">P_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         
         <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;J_k_scalar&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">P_window</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
@@ -1735,7 +1674,74 @@
             <span class="n">P_fin</span> <span class="o">=</span> <span class="n">P_fin</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id_pad</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">((</span><span class="n">P_fin</span><span class="p">,</span> <span class="n">A_out</span><span class="p">),</span> <span class="s2">&quot;J_k_tensor&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">P_fin</span><span class="p">,</span> <span class="n">A_out</span></div>
+        <span class="k">return</span> <span class="n">P_fin</span><span class="p">,</span> <span class="n">A_out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_fourier_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="n">C_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cache and return Fourier coefficients for a given biased power spectrum&quot;&quot;&quot;</span>
+    
+        <span class="n">hash_key</span><span class="p">,</span> <span class="n">P_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hash_key</span><span class="p">(</span><span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">P_b</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">C_window</span><span class="p">)</span>
+        <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="n">scalar</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x9e3779b9</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">hash_key</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">result</span>
+    
+        <span class="n">c_m_positive</span> <span class="o">=</span> <span class="n">rfft</span><span class="p">(</span><span class="n">P_b</span><span class="p">)</span>
+        <span class="c1"># We always filter the Fourier coefficients, so the last element is zero.</span>
+        <span class="c1"># But in case someone does not filter and this is a scalar calculation, divide the end point by two</span>
+        <span class="k">if</span> <span class="n">scalar</span><span class="p">:</span> <span class="n">c_m_positive</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_m_positive</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span> 
+        <span class="n">c_m_negative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">c_m_positive</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">c_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">c_m_negative</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">c_m_positive</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+    
+        <span class="k">if</span> <span class="n">C_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Window the Fourier coefficients.</span>
+            <span class="c1"># This will damp the highest frequencies</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;windowing the Fourier coefficients&#39;</span><span class="p">)</span>
+            <span class="n">c_m</span> <span class="o">=</span> <span class="n">c_m</span> <span class="o">*</span> <span class="n">c_window</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">C_window</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">c_m</span><span class="p">,</span> <span class="s2">&quot;fourier_coefficients&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">c_m</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_convolution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span><span class="p">,</span> <span class="n">two_part_l</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cache and return convolution results&quot;&quot;&quot;</span>
+
+        <span class="c1"># Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">fast_hash</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
+                    <span class="n">sample</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="mi">1000</span><span class="p">]</span>
+                    <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        
+        <span class="c1"># Combine hashes with different prime multipliers to reduce collisions</span>
+        <span class="n">hash_key</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">primes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">17</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">127</span><span class="p">,</span> <span class="mi">257</span><span class="p">,</span> <span class="mi">509</span><span class="p">]</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">g_n</span><span class="p">,</span> <span class="n">h_l</span><span class="p">,</span> <span class="n">two_part_l</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arrays</span><span class="p">):</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">fast_hash</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+            <span class="n">hash_key</span> <span class="o">=</span> <span class="n">hash_key</span> <span class="o">^</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">primes</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">primes</span><span class="p">)])</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;convolution&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># Calculate convolution</span>
+        <span class="n">C_l</span> <span class="o">=</span> <span class="n">fftconvolve</span><span class="p">(</span><span class="n">c1</span> <span class="o">*</span> <span class="n">g_m</span><span class="p">,</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">g_n</span><span class="p">)</span>
+        <span class="c1"># C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])</span>
+        <span class="c1"># multiply all l terms together</span>
+        <span class="c1"># C_l=C_l*self.h_l[i,:]*self.two_part_l[i]</span>
+    
+        <span class="c1"># Apply additional terms</span>
+        <span class="k">if</span> <span class="n">two_part_l</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">C_l</span> <span class="o">=</span> <span class="n">C_l</span> <span class="o">*</span> <span class="n">h_l</span> <span class="o">*</span> <span class="n">two_part_l</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">C_l</span> <span class="o">=</span> <span class="n">C_l</span> <span class="o">*</span> <span class="n">h_l</span>
+        <span class="c1"># Cache and return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">C_l</span><span class="p">,</span> <span class="s2">&quot;convolution&quot;</span><span class="p">,</span> <span class="n">hash_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">C_l</span></div>
 
 </pre></div>
 
