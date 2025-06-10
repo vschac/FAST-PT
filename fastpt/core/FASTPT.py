@@ -1414,73 +1414,6 @@ class FASTPT:
     ######################################################################################
     ### Core functions used by top-level functions ###
 
-    def _cache_fourier_coefficients(self, P_b, C_window=None, scalar=False):
-        """Cache and return Fourier coefficients for a given biased power spectrum"""
-    
-        hash_key, P_hash = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
-        hash_key = hash_key ^ (hash(scalar) + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
-        result = self.cache.get("fourier_coefficients", hash_key)
-        if result is not None: 
-            return result
-    
-        c_m_positive = rfft(P_b)
-        # We always filter the Fourier coefficients, so the last element is zero.
-        # But in case someone does not filter and this is a scalar calculation, divide the end point by two
-        if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
-        c_m_negative = np.conjugate(c_m_positive[1:])
-        c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
-    
-        if C_window is not None:
-            # Window the Fourier coefficients.
-            # This will damp the highest frequencies
-            if self.verbose:
-                print('windowing the Fourier coefficients')
-            c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
-        self.cache.set(c_m, "fourier_coefficients", hash_key, None)
-        return c_m
-
-    def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
-        """Cache and return convolution results"""
-
-        # Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case
-        def fast_hash(arr):
-            if arr is None:
-                return 0
-            if isinstance(arr, np.ndarray):
-                if arr.size > 1000:
-                    sample = arr.ravel()[:1000]
-                    return hash(sample.tobytes()) ^ hash(arr.shape) ^ hash(arr.size)
-                return hash(arr.tobytes()) ^ hash(arr.shape)
-            return hash(arr)
-        
-        # Combine hashes with different prime multipliers to reduce collisions
-        hash_key = 0
-        primes = [17, 31, 61, 127, 257, 509]
-        arrays = [c1, c2, g_m, g_n, h_l, two_part_l]
-        
-        for i, arr in enumerate(arrays):
-            h = fast_hash(arr)
-            hash_key = hash_key ^ (h * primes[i % len(primes)])
-
-        result = self.cache.get("convolution", hash_key)
-        if result is not None: 
-            return result
-
-        # Calculate convolution
-        C_l = fftconvolve(c1 * g_m, c2 * g_n)
-        # C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
-        # multiply all l terms together
-        # C_l=C_l*self.h_l[i,:]*self.two_part_l[i]
-    
-        # Apply additional terms
-        if two_part_l is not None:
-            C_l = C_l * h_l * two_part_l
-        else:
-            C_l = C_l * h_l
-        # Cache and return
-        self.cache.set(C_l, "convolution", hash_key, None)
-        return C_l
-
     def J_k_scalar(self, P, X, nu, P_window=None, C_window=None):
         
         hash_key, P_hash = self._create_hash_key("J_k_scalar", X, P, P_window, C_window)
@@ -1592,3 +1525,70 @@ class FASTPT:
 
         self.cache.set((P_fin, A_out), "J_k_tensor", hash_key, P_hash)
         return P_fin, A_out
+
+    def _cache_fourier_coefficients(self, P_b, C_window=None, scalar=False):
+        """Cache and return Fourier coefficients for a given biased power spectrum"""
+    
+        hash_key, P_hash = self._create_hash_key("fourier_coefficients", None, P_b, None, C_window)
+        hash_key = hash_key ^ (hash(scalar) + 0x9e3779b9 + (hash_key << 6) + (hash_key >> 2))
+        result = self.cache.get("fourier_coefficients", hash_key)
+        if result is not None: 
+            return result
+    
+        c_m_positive = rfft(P_b)
+        # We always filter the Fourier coefficients, so the last element is zero.
+        # But in case someone does not filter and this is a scalar calculation, divide the end point by two
+        if scalar: c_m_positive[-1] = c_m_positive[-1] / 2. 
+        c_m_negative = np.conjugate(c_m_positive[1:])
+        c_m = np.hstack((c_m_negative[::-1], c_m_positive)) / float(self.N)
+    
+        if C_window is not None:
+            # Window the Fourier coefficients.
+            # This will damp the highest frequencies
+            if self.verbose:
+                print('windowing the Fourier coefficients')
+            c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
+        self.cache.set(c_m, "fourier_coefficients", hash_key, None)
+        return c_m
+
+    def _cache_convolution(self, c1, c2, g_m, g_n, h_l, two_part_l=None):
+        """Cache and return convolution results"""
+
+        # Use MurmurHash for faster hashing with low collision rate, original hashing method is much slower for this case
+        def fast_hash(arr):
+            if arr is None:
+                return 0
+            if isinstance(arr, np.ndarray):
+                if arr.size > 1000:
+                    sample = arr.ravel()[:1000]
+                    return hash(sample.tobytes()) ^ hash(arr.shape) ^ hash(arr.size)
+                return hash(arr.tobytes()) ^ hash(arr.shape)
+            return hash(arr)
+        
+        # Combine hashes with different prime multipliers to reduce collisions
+        hash_key = 0
+        primes = [17, 31, 61, 127, 257, 509]
+        arrays = [c1, c2, g_m, g_n, h_l, two_part_l]
+        
+        for i, arr in enumerate(arrays):
+            h = fast_hash(arr)
+            hash_key = hash_key ^ (h * primes[i % len(primes)])
+
+        result = self.cache.get("convolution", hash_key)
+        if result is not None: 
+            return result
+
+        # Calculate convolution
+        C_l = fftconvolve(c1 * g_m, c2 * g_n)
+        # C_l=convolve(c_m*self.g_m[i,:],c_m*self.g_n[i,:])
+        # multiply all l terms together
+        # C_l=C_l*self.h_l[i,:]*self.two_part_l[i]
+    
+        # Apply additional terms
+        if two_part_l is not None:
+            C_l = C_l * h_l * two_part_l
+        else:
+            C_l = C_l * h_l
+        # Cache and return
+        self.cache.set(C_l, "convolution", hash_key, None)
+        return C_l
