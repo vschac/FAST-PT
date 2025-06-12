@@ -146,7 +146,7 @@ with equal spacing in log(k) and contain an even number of elements.</p>
 </dd>
 <dt><strong>nu</strong><span class="classifier">float, optional</span></dt><dd><p>Deprecated. Previously used for scaling relations, no longer required.</p>
 </dd>
-<dt><strong>to_do</strong><span class="classifier">list of str, optional</span></dt><dd><p>List of calculations to prepare matrices for. Terms will be calculated as needed
+<dt><strong>to_do</strong><span class="classifier">list of str, optional</span></dt><dd><p>List of calculations for precalculation of matrices. Terms will be calculated as needed
 even without specifying them here, but pre-computing matrices can save time on the
 initial run of any function. ‘All’ or ‘everything’ will initialize all terms.</p>
 </dd>
@@ -654,7 +654,7 @@ in subsequent function calls.</p>
 <ul>
 <li><p>single: generate one power spectra with the given params, which should be passed as floats or bools</p></li>
 <li><p>bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.</p></li>
-<li><p>diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.</p></li>
+<li><p>diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters individually while holding the central column of values constant.</p></li>
 </ul>
 </p></li>
 <li><p><strong>**kwargs</strong> – Cosmological parameters to pass to the appropriate method</p></li>
@@ -821,9 +821,11 @@ If filename already contains a directory path, load_dir is ignored.</p></li>
 <p>This is a static method and is meant to be used to create an instance of the Handler and Fast-PT.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># This method is static and is meant to be called without an instance</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="o">.</span><span class="n">load_instance</span><span class="p">(</span><span class="s1">&#39;stored_params.npz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">newHandler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="o">.</span><span class="n">load_instance</span><span class="p">(</span><span class="s1">&#39;stored_params.npz&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load from specific directory</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">load_params</span><span class="p">(</span><span class="s1">&#39;custom_params&#39;</span><span class="p">,</span> <span class="n">load_dir</span><span class="o">=</span><span class="s1">&#39;/path/to/load&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">newHandler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="o">.</span><span class="n">load_instance</span><span class="p">(</span><span class="s1">&#39;custom_params&#39;</span><span class="p">,</span> <span class="n">load_dir</span><span class="o">=</span><span class="s1">&#39;/path/to/load&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now you can use newHandler as equivalent to the original handler that stored the parameters</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">newHandler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;one_loop_dd&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>

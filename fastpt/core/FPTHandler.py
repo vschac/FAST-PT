@@ -907,9 +907,11 @@ class FPTHandler:
         Examples
         --------
         >>> # This method is static and is meant to be called without an instance
-        >>> handler = FPTHandler.load_instance('stored_params.npz')
+        >>> newHandler = FPTHandler.load_instance('stored_params.npz')
         >>> # Load from specific directory
-        >>> params = handler.load_params('custom_params', load_dir='/path/to/load')
+        >>> newHandler = FPTHandler.load_instance('custom_params', load_dir='/path/to/load')
+        >>> # Now you can use newHandler as equivalent to the original handler that stored the parameters
+        >>> newHandler.run('one_loop_dd')
         """
         if os.path.isabs(filename) or os.path.dirname(filename):
             full_path = filename
@@ -1215,7 +1217,7 @@ class FPTHandler:
 
             - single: generate one power spectra with the given params, which should be passed as floats or bools
             - bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.
-            - diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters while holding the central column of values constant.
+            - diff: generate multiple power spectra with the given params, which should be passed as lists or np arrays. The length of the params lists must be 1 or 3, and a power spectrum will be generated varrying each of the parameters individually while holding the central column of values constant.
         **kwargs
             Cosmological parameters to pass to the appropriate method
         

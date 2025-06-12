@@ -49,7 +49,7 @@ Caching in Fast-PT is done via a CacheManager_ object that is initialized with t
 * Fourier Coefficients: Fourier coefficients of the user provided power spectra are cached and then used in the Jk functions.
 * Convolutions: This is the convolution of the power spectrum fourier coefficients and the relevant k grid quantities (X terms). The convolution function is called with fourier coefficients and k grid quantities, which are dependent on the user provided k and P and cached individually.
 
-There is also a separate form of caching used for the k grid quantities (X terms) and the gamma funcstions used to calculate them. The gamma functions are cached outside the Fast-PT object as they will not be frequently used, while the k grid quantities are cached as properties of the Fast-PT object and can be accessed via `fastpt_instance.X_IA_A` for example.
+There is also a separate form of caching used for the k grid quantities (X terms) and the gamma functions used to calculate them. The gamma functions are cached outside the Fast-PT object as they will not be frequently changed, while the k grid quantities are cached as properties of the Fast-PT object and can be accessed via `fastpt_instance.X_IA_A` for example.
 In total, there are three forms of caching used in Fast-PT 4.0, two of which are stored within the object. The gamma functions cache will persist as long as the program runs.
 
 This multi-tiered caching system allows Fast-PT to avoid redundant calculations both on individual power spectra terms and the intermediate calculations that are needed to compute them. 
@@ -61,4 +61,4 @@ To avoid the cache from growing too large, a "dump_cache" flag is provided in in
 Additional Notes
 ------------------
 
-* The 1loop term (one_loop_dd[0]) currently does not pass np.allclose when compared with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the order of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This issue is currently being investigated and will be fixed in a future release.
+* The 1loop term (one_loop_dd[0]) currently does not pass np.allclose due to numerical noise when compared with FAST-PT 3 when a C_window of 0.63 or less is provided. This only occurs at the very low k end and is negligible. This issue is currently being investigated and will be fixed in a future release.

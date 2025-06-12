@@ -86,7 +86,7 @@ class FASTPT:
             Deprecated. Previously used for scaling relations, no longer required.
         
         to_do : list of str, optional
-            List of calculations to prepare matrices for. Terms will be calculated as needed
+            List of calculations for precalculation of matrices. Terms will be calculated as needed
             even without specifying them here, but pre-computing matrices can save time on the 
             initial run of any function. 'All' or 'everything' will initialize all terms.
         
