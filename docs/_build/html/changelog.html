@@ -100,9 +100,9 @@
 <ul class="simple">
 <li><p>Simple flag: A new “simple” kwarg has been added to FAST-PT which will instead initialize an instance of FAST-PT simple.</p></li>
 <li><p>Private k: The input k is now “private” after initialization via Python’s name mangling. This means that the user cannot change the value of k after initialization but can still access the value of k.</p></li>
-<li><p>Gamma functions cache: A seperate (and simpler) caching system has been implemented to cache gamma functions and save time on the calculation of the X terms, previously stored in the to_do list.</p></li>
-<li><p>Parameter validtion: The parameters P, P_window, and C_window are now validated at every function call to ensure that they have the proper traits needed for the calculation. This is done to prevent errors from propagating through the code and causing issues later on.</p></li>
-<li><p>N_pad default: If no n_pad is provided during initialization, the default value is now set to 0.5 * len(k). This is done to prevent errors from propagating through the code and causing issues later on.</p></li>
+<li><p>Gamma functions cache: A separate (and simpler) caching system has been implemented to cache gamma functions and save time on the calculation of the X terms.</p></li>
+<li><p>Parameter validation: The parameters P, P_window, and C_window are now validated at every function call to ensure that they have the proper traits needed for the calculation. This is done to prevent errors from propagating through the code and causing issues later on.</p></li>
+<li><p>N_pad default: If no n_pad is provided during initialization, the default value is now set to 0.5 * len(k).</p></li>
 <li><p>Nu deprecation: The nu parameter is now deprecated as it is no longer needed for initialization. It will default to -2 unless a different nu value is needed in which case it will be calculated internally.</p></li>
 <li><p>One_loop_dd return: One_loop_dd will only return P_1loop, Ps. Previously returned the dd_bias terms as well however this was contingent on the to_do list which is being deprecated.</p></li>
 <li><p>Cleft_QR: The Cleft_QR function has been removed due to missing internal functions.</p></li>
@@ -121,16 +121,18 @@ This will greatly improve the performance of each FAST-PT function if your use c
 <ul class="simple">
 <li><p>Individual Power Spectra: Fast-PT functions return a tuple of multiple power spectra, each of which is cached individually.</p></li>
 <li><p>Jk Scalar and Tensor Calculations: Most Fast-PT terms require the calculation of the Jk scalar or tensor functions. Some terms have identical parameters that are passed to these functions, so they are cached individually as well.</p></li>
-<li><p>Fourier Coefficients: Within the JK functions, fourier coefficients are calculated. These coefficients are dependant on the user’s inputted power spectrum therefore caching will be beneficial when multiple terms are requested with the same power spectrum.</p></li>
-<li><p>Convolutions: This is the “lowest level” of Fast-PT calculations where the actual FFT is performed. The convolution function is called with fourier coefficients as parameters, therefore they are also dependant on the user inputted power spectrum and cached individually.</p></li>
+<li><p>Fourier Coefficients: Fourier coefficients of the user provided power spectra are cached and then used in the Jk functions.</p></li>
+<li><p>Convolutions: This is the convolution of the power spectrum fourier coefficients and the relevant k grid quantities (X terms). The convolution function is called with fourier coefficients and k grid quantities, which are dependent on the user provided k and P and cached individually.</p></li>
 </ul>
+<p>There is also a separate form of caching used for the k grid quantities (X terms) and the gamma funcstions used to calculate them. The gamma functions are cached outside the Fast-PT object as they will not be frequently used, while the k grid quantities are cached as properties of the Fast-PT object and can be accessed via <cite>fastpt_instance.X_IA_A</cite> for example.
+In total, there are three forms of caching used in Fast-PT 4.0, two of which are stored within the object. The gamma functions cache will persist as long as the program runs.</p>
 <p>This multi-tiered caching system allows Fast-PT to avoid redundant calculations both on individual power spectra terms and the intermediate calculations that are needed to compute them.
 To avoid the cache from growing too large, a “dump_cache” flag is provided in initialization that, when True, will clear the cache when a new power spectra is inputted by the user. The user is also able to specify (during Fast-PT initialization) a maximum cache size in mb. This will evict cached items randomly (in linear time) to avoid slowing down the total computation time. However, the cache size limit is meant as a safeguard and should not be treated as a form of memory management for the program.</p>
 </section>
 <section id="additional-notes">
 <h2>Additional Notes<a class="headerlink" href="#additional-notes" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>The 1loop term (one_loop_dd[0]) currently does not pass np.allclose with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the order of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This bug is currently being investigated and will be fixed in a future release.</p></li>
+<li><p>The 1loop term (one_loop_dd[0]) currently does not pass np.allclose when compared with FAST-PT 3 when a C_window of 0.63 or less is provided. The maximum absolute difference is on the order of 1e-8 and the maximum relative difference is on the magnitude of 1e-4. This issue is currently being investigated and will be fixed in a future release.</p></li>
 </ul>
 </section>
 </section>

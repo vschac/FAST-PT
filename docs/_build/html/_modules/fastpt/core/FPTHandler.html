@@ -122,7 +122,7 @@
         
         <span class="c1"># Set default output directory if none specified</span>
         <span class="k">if</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s2">&quot;outputs&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;outputs&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span> <span class="o">=</span> <span class="n">save_dir</span>
             
@@ -376,7 +376,7 @@
 <span class="sd">            </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        term or dict</span>
+<span class="sd">        np.array or dict</span>
 <span class="sd">            If a single term is requested, returns that term directly.</span>
 <span class="sd">            If multiple terms are requested, returns a dictionary mapping</span>
 <span class="sd">            term names to their values.</span>
@@ -456,7 +456,7 @@
 <a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.get_tracer">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_tracer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracer_name</span><span class="p">,</span> <span class="o">**</span><span class="n">override_kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get Fast-PT terms relevant to a specific tracer.</span>
+<span class="sd">        Get Fast-PT terms relevant to a specific tracer in CCL.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -483,7 +483,7 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P, C_window=0.75)</span>
-<span class="sd">        &gt;&gt;&gt; P_1loop = handler.get(&#39;pgm&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; P_1loop = handler.get_tracer(&#39;pgm&#39;)</span>
 <span class="sd">        &gt;&gt;&gt; #returns Pd1d2, Pd1s2, Pd1p3 (sig3nl)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -647,6 +647,10 @@
 <span class="sd">        &gt;&gt;&gt; handler.update_default_params(P=P_linear, C_window=0.75)</span>
 <span class="sd">        &gt;&gt;&gt; # Now these parameters will be used by default</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">P</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Provided P must match the length of the FASTPT k grid.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)}</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default parameters updated.&quot;</span><span class="p">)</span></div>
 
@@ -663,6 +667,11 @@
 <span class="sd">        ----------</span>
 <span class="sd">        fastpt_instance : FASTPT</span>
 <span class="sd">            New FASTPT instance to use</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the provided instance is not a valid FASTPT instance or if the k range does not match the current P parameter.</span>
 <span class="sd">            </span>
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -670,6 +679,11 @@
 <span class="sd">        &gt;&gt;&gt; fpt_new = FASTPT(k_new)</span>
 <span class="sd">        &gt;&gt;&gt; handler.update_fastpt_instance(fpt_new)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fastpt_instance</span><span class="p">,</span> <span class="n">FASTPT</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fastpt_instance must be an instance of FASTPT.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;P&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fastpt_instance</span><span class="o">.</span><span class="n">k_original</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">[</span><span class="s2">&quot;P&quot;</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;New FASTPT instance must have the same k range as the current stored P parameter. (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__fastpt</span> <span class="o">=</span> <span class="n">fastpt_instance</span></div>
 
 
@@ -906,11 +920,11 @@
 
         
 
-<div class="viewcode-block" id="FPTHandler.save_params">
-<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.save_params">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+<div class="viewcode-block" id="FPTHandler.save_instance">
+<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.save_instance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save parameters to a compressed numpy .npz file.</span>
+<span class="sd">        Save parameters of this handler and Fast-PT instance to a compressed numpy .npz file.</span>
 <span class="sd">        </span>
 <span class="sd">        This method saves both numpy arrays and other Python objects (strings, floats, ints, etc.)</span>
 <span class="sd">        in a single file. Arrays are stored directly, while non-array values are collected</span>
@@ -924,9 +938,6 @@
 <span class="sd">        output_dir : str, optional</span>
 <span class="sd">            Directory to save parameters. If None, uses default output directory.</span>
 <span class="sd">            If filename already contains a directory path, output_dir is ignored.</span>
-<span class="sd">        **params : dict</span>
-<span class="sd">            Parameters to save. If no parameters are provided, the handler&#39;s default</span>
-<span class="sd">            parameters will be saved instead.</span>
 <span class="sd">            </span>
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
@@ -936,31 +947,34 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt, P=P_linear, C_window=0.75)</span>
-<span class="sd">        &gt;&gt;&gt; # Save specific parameters</span>
-<span class="sd">        &gt;&gt;&gt; handler.save_params(&#39;my_params&#39;, P=P_linear, C_window=0.75, bias=1.5)</span>
 <span class="sd">        &gt;&gt;&gt; # Save default parameters</span>
-<span class="sd">        &gt;&gt;&gt; handler.save_params(&#39;default_params&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; handler.save_instance(&#39;stored_params&#39;)</span>
 <span class="sd">        &gt;&gt;&gt; # Save to specific directory</span>
-<span class="sd">        &gt;&gt;&gt; handler.save_params(&#39;custom_params&#39;, output_dir=&#39;/path/to/save&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; handler.save_instance(&#39;stored_params&#39;, output_dir=&#39;/path/to/save&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">arrays</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No parameters stored or provided to save.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saving default params...&quot;</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-                    <span class="n">arrays</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">metadata</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-                    <span class="n">arrays</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No default parameters set. Nothing to save.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">arrays</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">metadata</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="c1"># Include Fast-PT parameters</span>
+        <span class="n">arrays</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;low_extrap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">low_extrap</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;high_extrap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">high_extrap</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;n_pad&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">n_pad</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;max_cache_size_mb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">max_cache_size_mb</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;dump_cache&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">dump_cache</span>
+
+        <span class="c1"># Include Handler init params</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;save_all&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_all</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;save_dir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span>
         
         <span class="k">if</span> <span class="n">metadata</span><span class="p">:</span>
             <span class="n">arrays</span><span class="p">[</span><span class="s1">&#39;__metadata__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">metadata</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
@@ -977,14 +991,16 @@
         
         <span class="k">if</span> <span class="ow">not</span> <span class="n">full_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">):</span>
             <span class="n">full_path</span> <span class="o">+=</span> <span class="s1">&#39;.npz&#39;</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="o">**</span><span class="n">arrays</span><span class="p">)</span></div>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="o">**</span><span class="n">arrays</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default parameters saved to&quot;</span><span class="p">,</span> <span class="n">full_path</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="FPTHandler.load_params">
-<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.load_params">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">load_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">load_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FPTHandler.load_instance">
+<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.load_instance">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_instance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">load_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load parameters from a saved .npz file.</span>
+<span class="sd">        Load parameters and recreate Handler and Fast-PT instances from a saved .npz file.</span>
 <span class="sd">        </span>
 <span class="sd">        Loads both array and non-array parameters from a file created with save_params().</span>
 <span class="sd">        Arrays are loaded directly, while scalar values are extracted from the metadata.</span>
@@ -1005,23 +1021,19 @@
 <span class="sd">            </span>
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
-<span class="sd">        This method automatically handles the separation between array parameters and</span>
-<span class="sd">        scalar metadata that was created during saving.</span>
+<span class="sd">        This is a static method and is meant to be used to create an instance of the Handler and Fast-PT.</span>
 <span class="sd">        </span>
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
-<span class="sd">        &gt;&gt;&gt; handler = FPTHandler(fpt)</span>
-<span class="sd">        &gt;&gt;&gt; params = handler.load_params(&#39;my_params.npz&#39;)</span>
-<span class="sd">        &gt;&gt;&gt; print(params.keys())</span>
-<span class="sd">        &gt;&gt;&gt; # Use loaded parameters in a calculation</span>
-<span class="sd">        &gt;&gt;&gt; result = handler.run(&#39;one_loop_dd&#39;, **params)</span>
+<span class="sd">        &gt;&gt;&gt; # This method is static and is meant to be called without an instance</span>
+<span class="sd">        &gt;&gt;&gt; handler = FPTHandler.load_instance(&#39;stored_params.npz&#39;)</span>
 <span class="sd">        &gt;&gt;&gt; # Load from specific directory</span>
 <span class="sd">        &gt;&gt;&gt; params = handler.load_params(&#39;custom_params&#39;, load_dir=&#39;/path/to/load&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
             <span class="n">full_path</span> <span class="o">=</span> <span class="n">filename</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">directory</span> <span class="o">=</span> <span class="n">load_dir</span> <span class="k">if</span> <span class="n">load_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span>
+            <span class="n">directory</span> <span class="o">=</span> <span class="n">load_dir</span> <span class="k">if</span> <span class="n">load_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>  <span class="c1"># Default to current working directory</span>
             <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         
         <span class="k">if</span> <span class="ow">not</span> <span class="n">full_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">):</span>
@@ -1038,8 +1050,16 @@
         <span class="k">if</span> <span class="s1">&#39;__metadata__&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;__metadata__&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
-        
-        <span class="k">return</span> <span class="n">params</span></div>
+    
+        <span class="n">fastpt_instance</span> <span class="o">=</span> <span class="n">FASTPT</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;k&#39;</span><span class="p">],</span> <span class="n">low_extrap</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;low_extrap&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                                 <span class="n">high_extrap</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;high_extrap&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                                 <span class="n">n_pad</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_pad&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                                 <span class="n">max_cache_size_mb</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max_cache_size_mb&#39;</span><span class="p">,</span> <span class="mi">500</span><span class="p">),</span>
+                                 <span class="n">dump_cache</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dump_cache&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+        <span class="n">handler</span> <span class="o">=</span> <span class="n">FPTHandler</span><span class="p">(</span><span class="n">fastpt_instance</span><span class="p">,</span> <span class="n">save_all</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;save_all&#39;</span><span class="p">),</span> <span class="n">save_dir</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;save_dir&#39;</span><span class="p">),</span> 
+                             <span class="n">P</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P&#39;</span><span class="p">),</span> <span class="n">C_window</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;C_window&#39;</span><span class="p">),</span> <span class="n">P_window</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;P_window&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">handler</span></div>
 
 
 <div class="viewcode-block" id="FPTHandler.plot">
@@ -1302,83 +1322,10 @@
         <span class="k">if</span> <span class="n">return_fig</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">fig</span></div>
 
-            
-<div class="viewcode-block" id="FPTHandler.plot_comparison">
-<a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.plot_comparison">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">plot_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results_dict</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ratio_baseline</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">fig_size</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="o">**</span><span class="n">plot_kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create comparison plots with optional ratio panel.</span>
-<span class="sd">        </span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        results_dict : dict</span>
-<span class="sd">            Dictionary mapping labels to data arrays</span>
-<span class="sd">        k : array_like, optional</span>
-<span class="sd">            k values for x-axis. If None, uses FASTPT k values</span>
-<span class="sd">        ratio : bool, optional</span>
-<span class="sd">            Whether to include a ratio panel</span>
-<span class="sd">        ratio_baseline : str, optional</span>
-<span class="sd">            Which dataset to use as baseline for ratios</span>
-<span class="sd">        fig_size : tuple, optional</span>
-<span class="sd">            Figure size</span>
-<span class="sd">        **plot_kwargs : dict</span>
-<span class="sd">            Additional arguments passed to plot method</span>
-<span class="sd">            </span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        matplotlib.figure.Figure</span>
-<span class="sd">            The created figure</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-        
-        <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fastpt</span><span class="o">.</span><span class="n">k_original</span>
-        
-        <span class="k">if</span> <span class="n">ratio</span><span class="p">:</span>
-            <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">fig_size</span><span class="p">,</span> 
-                                        <span class="n">gridspec_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;height_ratios&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;hspace&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">fig</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">fig_size</span><span class="p">)</span>
-            <span class="n">ax2</span> <span class="o">=</span> <span class="kc">None</span>
-        
-        <span class="c1"># Filter out conflicting parameters before passing to plot</span>
-        <span class="n">plot_kwargs_filtered</span> <span class="o">=</span> <span class="n">plot_kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">plot_kwargs_filtered</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;return_fig&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># Remove return_fig to avoid conflict</span>
-        <span class="n">plot_kwargs_filtered</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;show&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>        <span class="c1"># Remove show to avoid conflict</span>
-        
-        <span class="c1"># Main plot</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">results_dict</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">plot_kwargs_filtered</span><span class="p">)</span>
-        
-        <span class="c1"># Ratio plot</span>
-        <span class="k">if</span> <span class="n">ratio</span> <span class="ow">and</span> <span class="n">ax2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">ratio_baseline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">ratio_baseline</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-            
-            <span class="n">baseline_data</span> <span class="o">=</span> <span class="n">results_dict</span><span class="p">[</span><span class="n">ratio_baseline</span><span class="p">]</span>
-            
-            <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">results_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">label</span> <span class="o">!=</span> <span class="n">ratio_baseline</span><span class="p">:</span>
-                    <span class="n">ratio_values</span> <span class="o">=</span> <span class="n">data</span> <span class="o">/</span> <span class="n">baseline_data</span>
-                    <span class="n">ax2</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">ratio_values</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">ratio_baseline</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-            
-            <span class="n">ax2</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-            <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;k [h/Mpc]&#39;</span><span class="p">)</span>
-            <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Ratio&#39;</span><span class="p">)</span>
-            <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-            <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
-            
-            <span class="c1"># Remove x-axis labels from top plot</span>
-            <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-            <span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelbottom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        
-        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">fig</span></div>
-
     
 <div class="viewcode-block" id="FPTHandler.generate_power_spectra">
 <a class="viewcode-back" href="../../../api.html#fastpt.FPTHandler.generate_power_spectra">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">generate_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Generate power spectra using the specified mode and method.</span>
 <span class="sd">        </span>
@@ -1388,6 +1335,8 @@
 <span class="sd">            Either &#39;class&#39; or &#39;camb&#39;</span>
 <span class="sd">        mode : str</span>
 <span class="sd">            &#39;single&#39;, &#39;bulk&#39;, or &#39;diff&#39;</span>
+<span class="sd">        store : bool, optional</span>
+<span class="sd">            If True, the generated power spectra will be stored in the handler&#39;s default_params. Note: this can only be done for single power spectrum generation.</span>
 
 <span class="sd">            - single: generate one power spectra with the given params, which should be passed as floats or bools</span>
 <span class="sd">            - bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.</span>
@@ -1408,7 +1357,7 @@
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
 <span class="sd">        - For an example on how to use &#39;diff&#39; mode, see the `v4_example.py &lt;https://github.com/jablazek/FAST-PT/tree/master/examples/v4_example.py&gt;`_ file on GitHub.</span>
-<span class="sd">        - Any non specified parameters will use the defualt values provided by CAMB or CLASS.</span>
+<span class="sd">        - Any non specified parameters will use the default values provided by CAMB or CLASS.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">method</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="s1">&#39;camb&#39;</span><span class="p">):</span>
@@ -1447,9 +1396,9 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameter &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; must be a single value for single mode.&quot;</span><span class="p">)</span>
                     
             <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;class&#39;</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_class_power_spectra</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_class_power_spectra</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span> 
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_camb_power_spectra</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_camb_power_spectra</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
     
     <span class="k">def</span><span class="w"> </span><span class="nf">_bulk_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
@@ -1486,7 +1435,7 @@
                 <span class="k">if</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="n">function_params</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">]:</span>
                     <span class="n">iteration_params</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param_arrays</span><span class="p">[</span><span class="n">param_name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
             
-            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compute_func</span><span class="p">(</span><span class="o">**</span><span class="n">iteration_params</span><span class="p">))</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compute_func</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">iteration_params</span><span class="p">))</span>
         
         <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">output</span>
 
@@ -1569,14 +1518,14 @@
                 
                 <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">num</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;class&#39;</span><span class="p">:</span>
-                    <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="o">**</span><span class="n">combo</span><span class="p">)</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">combo</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>  <span class="c1"># method == &#39;camb&#39;</span>
-                    <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="o">**</span><span class="n">combo</span><span class="p">)</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_func</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">combo</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="n">result</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_class_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.69</span><span class="p">,</span> <span class="n">omega_b</span><span class="o">=</span><span class="mf">0.022</span><span class="p">,</span> <span class="n">omega_cdm</span><span class="o">=</span><span class="mf">0.122</span><span class="p">,</span> 
-                            <span class="n">As</span><span class="o">=</span><span class="mf">2.1e-9</span><span class="p">,</span> <span class="n">ns</span><span class="o">=</span><span class="mf">0.97</span><span class="p">):</span>
+                            <span class="n">As</span><span class="o">=</span><span class="mf">2.1e-9</span><span class="p">,</span> <span class="n">ns</span><span class="o">=</span><span class="mf">0.97</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">classy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Class</span>
         <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -1624,6 +1573,8 @@
         <span class="n">cosmo</span><span class="o">.</span><span class="n">struct_cleanup</span><span class="p">()</span>
         <span class="n">cosmo</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
         
+        <span class="k">if</span> <span class="n">store</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_default_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">power</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">power</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_camb_power_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1651,6 +1602,7 @@
                                 <span class="n">transfer_num_redshifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
                                 <span class="n">share_delta_neff</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                                 <span class="n">nu_mass_fractions</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+                                <span class="n">store</span> <span class="o">=</span> <span class="kc">True</span>
                                <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">camb</span>
@@ -1731,9 +1683,10 @@
                                         <span class="n">nonlinear</span><span class="o">=</span><span class="n">nonlinear</span><span class="p">,</span>
                                         <span class="n">var1</span><span class="o">=</span><span class="n">transfer_power_var</span><span class="p">,</span> <span class="n">var2</span><span class="o">=</span><span class="n">transfer_power_var</span><span class="p">)</span>
 
-
-        <span class="c1"># Evaluate at stored k</span>
-        <span class="k">return</span> <span class="n">PK</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span></div>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">PK</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">store</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_default_params</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">P</span></div>
 
 </pre></div>
 

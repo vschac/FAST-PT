@@ -3,6 +3,8 @@
 Examples
 =======
 
+More examples can be found `here <https://github.com/jablazek/FAST-PT/tree/master/examples>`_.
+
 One-loop Matter Power Spectrum
 ----------------------------
 

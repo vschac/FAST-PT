@@ -42,7 +42,7 @@ class FPTHandler:
         
         # Set default output directory if none specified
         if save_dir is None:
-            self.output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+            self.output_dir = os.path.join(os.getcwd(), "outputs")
         else:
             self.output_dir = save_dir
             
@@ -287,7 +287,7 @@ class FPTHandler:
             
         Returns
         -------
-        term or dict
+        np.array or dict
             If a single term is requested, returns that term directly.
             If multiple terms are requested, returns a dictionary mapping
             term names to their values.
@@ -364,7 +364,7 @@ class FPTHandler:
     
     def get_tracer(self, tracer_name, **override_kwargs):
         """
-        Get Fast-PT terms relevant to a specific tracer.
+        Get Fast-PT terms relevant to a specific tracer in CCL.
         
         Parameters
         ----------
@@ -391,7 +391,7 @@ class FPTHandler:
         Examples
         --------
         >>> handler = FPTHandler(fpt, P=P, C_window=0.75)
-        >>> P_1loop = handler.get('pgm')
+        >>> P_1loop = handler.get_tracer('pgm')
         >>> #returns Pd1d2, Pd1s2, Pd1p3 (sig3nl)
 
         """
@@ -543,6 +543,10 @@ class FPTHandler:
         >>> handler.update_default_params(P=P_linear, C_window=0.75)
         >>> # Now these parameters will be used by default
         """
+        P = params.get('P', None)
+        if P is not None:
+            if len(self.fastpt.k_original) != len(P):
+                raise ValueError("Provided P must match the length of the FASTPT k grid.")
         self.default_params = {**self.default_params, **self.fastpt._validate_params(**params)}
         print("Default parameters updated.")
 
@@ -556,6 +560,11 @@ class FPTHandler:
         ----------
         fastpt_instance : FASTPT
             New FASTPT instance to use
+
+        Raises
+        ------
+        ValueError
+            If the provided instance is not a valid FASTPT instance or if the k range does not match the current P parameter.
             
         Examples
         --------
@@ -563,6 +572,11 @@ class FPTHandler:
         >>> fpt_new = FASTPT(k_new)
         >>> handler.update_fastpt_instance(fpt_new)
         """
+        if not isinstance(fastpt_instance, FASTPT):
+            raise ValueError("fastpt_instance must be an instance of FASTPT.")
+        if "P" in self.default_params:
+            if len(fastpt_instance.k_original) != len(self.default_params["P"]):
+                raise ValueError(f"New FASTPT instance must have the same k range as the current stored P parameter. ({len(self.default_params['P'])})")
         self.__fastpt = fastpt_instance
 
     def save_output(self, result, func_name, type="txt", output_dir=None):
@@ -792,9 +806,9 @@ class FPTHandler:
             return None
         
 
-    def save_params(self, filename, output_dir=None, **params):
+    def save_instance(self, filename, output_dir=None):
         """
-        Save parameters to a compressed numpy .npz file.
+        Save parameters of this handler and Fast-PT instance to a compressed numpy .npz file.
         
         This method saves both numpy arrays and other Python objects (strings, floats, ints, etc.)
         in a single file. Arrays are stored directly, while non-array values are collected
@@ -808,9 +822,6 @@ class FPTHandler:
         output_dir : str, optional
             Directory to save parameters. If None, uses default output directory.
             If filename already contains a directory path, output_dir is ignored.
-        **params : dict
-            Parameters to save. If no parameters are provided, the handler's default
-            parameters will be saved instead.
             
         Notes
         -----
@@ -820,31 +831,34 @@ class FPTHandler:
         Examples
         --------
         >>> handler = FPTHandler(fpt, P=P_linear, C_window=0.75)
-        >>> # Save specific parameters
-        >>> handler.save_params('my_params', P=P_linear, C_window=0.75, bias=1.5)
         >>> # Save default parameters
-        >>> handler.save_params('default_params')
+        >>> handler.save_instance('stored_params')
         >>> # Save to specific directory
-        >>> handler.save_params('custom_params', output_dir='/path/to/save')
+        >>> handler.save_instance('stored_params', output_dir='/path/to/save')
         """
         metadata = {}
         arrays = {}
-        if not params and not self.default_params:
-            raise ValueError("No parameters stored or provided to save.")
-        if not params:
-            print("Saving default params...")
-            for param in self.default_params.keys():
-                value = self.default_params[param]
-                if isinstance(value, np.ndarray):
-                    arrays[param] = value
-                else:
-                    metadata[param] = value
-        else:
-            for key, value in params.items():
-                if isinstance(value, np.ndarray):
-                    arrays[key] = value
-                else:
-                    metadata[key] = value
+        if not self.default_params:
+            print("No default parameters set. Nothing to save.")
+            return
+        for param in self.default_params.keys():
+            value = self.default_params[param]
+            if isinstance(value, np.ndarray):
+                arrays[param] = value
+            else:
+                metadata[param] = value
+
+        # Include Fast-PT parameters
+        arrays["k"] = self.fastpt.k_original
+        metadata["low_extrap"] = self.fastpt.low_extrap
+        metadata["high_extrap"] = self.fastpt.high_extrap
+        metadata["n_pad"] = self.fastpt.n_pad
+        metadata["max_cache_size_mb"] = self.fastpt.max_cache_size_mb
+        metadata["dump_cache"] = self.fastpt.dump_cache
+
+        # Include Handler init params
+        metadata["save_all"] = self.save_all
+        metadata["save_dir"] = self.output_dir
         
         if metadata:
             arrays['__metadata__'] = np.array([metadata], dtype=object)
@@ -862,10 +876,12 @@ class FPTHandler:
         if not full_path.endswith('.npz'):
             full_path += '.npz'
         np.savez_compressed(full_path, **arrays)
+        print("Default parameters saved to", full_path)
 
-    def load_params(self, filename, load_dir=None):
+    @staticmethod
+    def load_instance(filename, load_dir=None):
         """
-        Load parameters from a saved .npz file.
+        Load parameters and recreate Handler and Fast-PT instances from a saved .npz file.
         
         Loads both array and non-array parameters from a file created with save_params().
         Arrays are loaded directly, while scalar values are extracted from the metadata.
@@ -886,23 +902,19 @@ class FPTHandler:
             
         Notes
         -----
-        This method automatically handles the separation between array parameters and
-        scalar metadata that was created during saving.
+        This is a static method and is meant to be used to create an instance of the Handler and Fast-PT.
         
         Examples
         --------
-        >>> handler = FPTHandler(fpt)
-        >>> params = handler.load_params('my_params.npz')
-        >>> print(params.keys())
-        >>> # Use loaded parameters in a calculation
-        >>> result = handler.run('one_loop_dd', **params)
+        >>> # This method is static and is meant to be called without an instance
+        >>> handler = FPTHandler.load_instance('stored_params.npz')
         >>> # Load from specific directory
         >>> params = handler.load_params('custom_params', load_dir='/path/to/load')
         """
         if os.path.isabs(filename) or os.path.dirname(filename):
             full_path = filename
         else:
-            directory = load_dir if load_dir is not None else self.output_dir
+            directory = load_dir if load_dir is not None else os.getcwd()  # Default to current working directory
             full_path = os.path.join(directory, filename)
         
         if not full_path.endswith('.npz'):
@@ -919,8 +931,16 @@ class FPTHandler:
         if '__metadata__' in data.files:
             metadata = data['__metadata__'][0]
             params.update(metadata)
-        
-        return params
+    
+        fastpt_instance = FASTPT(params['k'], low_extrap=params.get('low_extrap', None),
+                                 high_extrap=params.get('high_extrap', None),
+                                 n_pad=params.get('n_pad', None),
+                                 max_cache_size_mb=params.get('max_cache_size_mb', 500),
+                                 dump_cache=params.get('dump_cache', True))
+        handler = FPTHandler(fastpt_instance, save_all=params.get('save_all'), save_dir=params.get('save_dir'), 
+                             P=params.get('P'), C_window=params.get('C_window'), P_window=params.get('P_window'))
+
+        return handler
 
     def plot(self, data=None, terms=None, k=None, ax=None, title=None, 
              log_scale=True, legend_loc='best', grid=True, style=None,
@@ -1179,78 +1199,8 @@ class FPTHandler:
         # Return figure if requested
         if return_fig:
             return fig
-            
-    def plot_comparison(self, results_dict, k=None, ratio=False, ratio_baseline=None,
-                    fig_size=(12, 8), **plot_kwargs):
-        """
-        Create comparison plots with optional ratio panel.
-        
-        Parameters
-        ----------
-        results_dict : dict
-            Dictionary mapping labels to data arrays
-        k : array_like, optional
-            k values for x-axis. If None, uses FASTPT k values
-        ratio : bool, optional
-            Whether to include a ratio panel
-        ratio_baseline : str, optional
-            Which dataset to use as baseline for ratios
-        fig_size : tuple, optional
-            Figure size
-        **plot_kwargs : dict
-            Additional arguments passed to plot method
-            
-        Returns
-        -------
-        matplotlib.figure.Figure
-            The created figure
-        """
-        import matplotlib.pyplot as plt
-        
-        if k is None:
-            k = self.fastpt.k_original
-        
-        if ratio:
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=fig_size, 
-                                        gridspec_kw={'height_ratios': [3, 1], 'hspace': 0})
-        else:
-            fig, ax1 = plt.subplots(1, 1, figsize=fig_size)
-            ax2 = None
-        
-        # Filter out conflicting parameters before passing to plot
-        plot_kwargs_filtered = plot_kwargs.copy()
-        plot_kwargs_filtered.pop('return_fig', None)  # Remove return_fig to avoid conflict
-        plot_kwargs_filtered.pop('show', None)        # Remove show to avoid conflict
-        
-        # Main plot
-        self.plot(data=results_dict, k=k, ax=ax1, show=False, return_fig=False, **plot_kwargs_filtered)
-        
-        # Ratio plot
-        if ratio and ax2 is not None:
-            if ratio_baseline is None:
-                ratio_baseline = list(results_dict.keys())[0]
-            
-            baseline_data = results_dict[ratio_baseline]
-            
-            for label, data in results_dict.items():
-                if label != ratio_baseline:
-                    ratio_values = data / baseline_data
-                    ax2.semilogx(k, ratio_values, label=f'{label}/{ratio_baseline}')
-            
-            ax2.axhline(y=1, color='black', linestyle='--', alpha=0.5)
-            ax2.set_xlabel('k [h/Mpc]')
-            ax2.set_ylabel('Ratio')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3)
-            
-            # Remove x-axis labels from top plot
-            ax1.set_xlabel('')
-            ax1.tick_params(labelbottom=False)
-        
-        plt.tight_layout()
-        return fig
     
-    def generate_power_spectra(self, method='class', mode='single', **kwargs):
+    def generate_power_spectra(self, method='class', mode='single', store=True, **kwargs):
         """
         Generate power spectra using the specified mode and method.
         
@@ -1260,6 +1210,8 @@ class FPTHandler:
             Either 'class' or 'camb'
         mode : str
             'single', 'bulk', or 'diff'
+        store : bool, optional
+            If True, the generated power spectra will be stored in the handler's default_params. Note: this can only be done for single power spectrum generation.
 
             - single: generate one power spectra with the given params, which should be passed as floats or bools
             - bulk: generate multiple power spectra with the given params, which should be passed as lists or np arrays. If any of the params lists are shorter than the longest, they will be padded with the last value.
@@ -1280,7 +1232,7 @@ class FPTHandler:
         Notes
         -----
         - For an example on how to use 'diff' mode, see the `v4_example.py <https://github.com/jablazek/FAST-PT/tree/master/examples/v4_example.py>`_ file on GitHub.
-        - Any non specified parameters will use the defualt values provided by CAMB or CLASS.
+        - Any non specified parameters will use the default values provided by CAMB or CLASS.
         """
         method = method.lower()
         if method not in ('class', 'camb'):
@@ -1319,9 +1271,9 @@ class FPTHandler:
                     raise ValueError(f"Parameter '{key}' must be a single value for single mode.")
                     
             if method == 'class':
-                return self._class_power_spectra(**kwargs)
+                return self._class_power_spectra(store=store, **kwargs)
             else: 
-                return self._camb_power_spectra(**kwargs)
+                return self._camb_power_spectra(store=store, **kwargs)
     
     def _bulk_power_spectra(self, method, **params):
         if method.lower() == 'class':
@@ -1357,7 +1309,7 @@ class FPTHandler:
                 if param_name in function_params['all']:
                     iteration_params[param_name] = param_arrays[param_name][i]
             
-            output.append(compute_func(**iteration_params))
+            output.append(compute_func(store=False, **iteration_params))
         
         return output[0] if len(output) == 1 else output
 
@@ -1440,14 +1392,14 @@ class FPTHandler:
                 
                 key = (z, num)
                 if method == 'class':
-                    result[key] = compute_func(**combo)
+                    result[key] = compute_func(store=False, **combo)
                 else:  # method == 'camb'
-                    result[key] = compute_func(**combo)
+                    result[key] = compute_func(store=False, **combo)
         
         return result
 
     def _class_power_spectra(self, z=0.0, h=0.69, omega_b=0.022, omega_cdm=0.122, 
-                            As=2.1e-9, ns=0.97):
+                            As=2.1e-9, ns=0.97, store=True):
         try:
             from classy import Class
         except ImportError as e:
@@ -1495,6 +1447,8 @@ class FPTHandler:
         cosmo.struct_cleanup()
         cosmo.empty()
         
+        if store:
+            self.update_default_params(P=power)
         return power
 
     def _camb_power_spectra(self,
@@ -1522,6 +1476,7 @@ class FPTHandler:
                                 transfer_num_redshifts: int = 1,
                                 share_delta_neff: bool = True,
                                 nu_mass_fractions: list = [1.0],
+                                store = True
                                ):
         try:
             import camb
@@ -1602,6 +1557,7 @@ class FPTHandler:
                                         nonlinear=nonlinear,
                                         var1=transfer_power_var, var2=transfer_power_var)
 
-
-        # Evaluate at stored k
-        return PK.P(z, k)
+        P = PK.P(z, k)
+        if store:
+            self.update_default_params(P=P)
+        return P

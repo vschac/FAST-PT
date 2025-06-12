@@ -88,6 +88,8 @@ class CacheManager:
                                 for k, v in self.cache.items())
         
         elif self.max_size_bytes > 0 and (self.cache_size - old_size + total_size) > self.max_size_bytes:
+            import warnings
+            warnings.warn(f"Cache size exceeds maximum limit of {self.max_size_bytes / (1024 * 1024):.2f} MB. Evicting items.")
             self._evict(total_size - old_size)
         
         self.cache[key] = value

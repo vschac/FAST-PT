@@ -16,4 +16,4 @@ The core of the FAST-PT algorithm is to compute integrals of the form:
 
 by using Fourier transforms to reduce computational complexity from :math:`O(N^2)` to :math:`O(N\\log N)`, where :math:`N` is the number of input points.
 
-For intrinsic alignment calculations, see `arXiv:1708.09247. <https://arxiv.org/abs/1708.09247>`_.
+For intrinsic alignment calculations, see `arXiv:1708.09247 <https://arxiv.org/abs/1708.09247>`_.

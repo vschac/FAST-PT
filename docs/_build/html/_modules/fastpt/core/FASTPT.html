@@ -232,6 +232,8 @@
             <span class="k">return</span> <span class="kc">None</span>
         <span class="c1"># Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">CacheManager</span><span class="p">(</span><span class="n">max_size_mb</span><span class="o">=</span><span class="n">max_cache_size_mb</span><span class="p">,</span> <span class="n">dump_cache</span><span class="o">=</span><span class="n">dump_cache</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_size_mb</span> <span class="o">=</span> <span class="n">max_cache_size_mb</span> <span class="c1">#Stored for save instance method in handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump_cache</span> <span class="o">=</span> <span class="n">dump_cache</span> <span class="c1">#Stored for save instance method in handler</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">X_registry</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1">#Stores the names of X terms to be used as an efficient unique identifier in hash keys</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__k_original</span> <span class="o">=</span> <span class="n">k</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">extrap</span> <span class="o">=</span> <span class="kc">False</span>

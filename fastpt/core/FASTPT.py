@@ -152,6 +152,8 @@ class FASTPT:
             return None
         # Exit initialization here, since fastpt_simple performs the various checks on the k grid and does extrapolation.
         self.cache = CacheManager(max_size_mb=max_cache_size_mb, dump_cache=dump_cache)
+        self.max_cache_size_mb = max_cache_size_mb #Stored for save instance method in handler
+        self.dump_cache = dump_cache #Stored for save instance method in handler
         self.X_registry = {} #Stores the names of X terms to be used as an efficient unique identifier in hash keys
         self.__k_original = k
         self.extrap = False

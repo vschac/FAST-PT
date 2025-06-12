@@ -12,6 +12,14 @@ C_window = 0.75
 P_window = np.array([0.2, 0.2])
     
 
+if __name__ == "__main__":
+    fast = FASTPT(k, low_extrap=-5, high_extrap=3, n_pad=int(0.5*len(k)))
+    handler = FPTHandler(fast, P=P, P_window=P_window, C_window=C_window)
+    # handler.save_instance("this_instance")
+
+
+
+
 @pytest.fixture
 def fpt():
     k = np.loadtxt(data_path)[:, 0]
@@ -838,84 +846,52 @@ def test_save_and_load_basic(handler, temp_output_dir):
     """Test basic save and load functionality"""
     # Save parameters
     param_file = os.path.join(temp_output_dir, "test_params")
-    handler.save_params(param_file)
+    handler.save_instance(param_file)
     
     # Load parameters
-    loaded_params = handler.load_params(param_file)
+    newHandler = FPTHandler.load_instance(param_file)
     
     # Check that loaded parameters match original parameters
-    for key, value in handler.default_params.items():
-        assert key in loaded_params
+    old_params = handler.default_params
+    for key, value in newHandler.default_params.items():
+        assert key in old_params
         if isinstance(value, np.ndarray):
-            assert np.array_equal(value, loaded_params[key])
+            assert np.array_equal(value, old_params[key])
         else:
-            assert value == loaded_params[key]
-
-def test_save_and_load_custom_params(handler, temp_output_dir):
-    """Test saving and loading with custom parameters"""
-    # Create custom parameters
-    custom_params = {
-        'P': P * 1.5,
-        'C_window': 0.5,
-        'f': 0.7,
-        'mu_n': 0.3
-    }
-    
-    # Save custom parameters
-    param_file = os.path.join(temp_output_dir, "custom_params")
-    handler.save_params(param_file, **custom_params)
-    
-    # Load parameters
-    loaded_params = handler.load_params(param_file)
-    
-    # Check that loaded parameters match custom parameters
-    for key, value in custom_params.items():
-        assert key in loaded_params
-        if isinstance(value, np.ndarray):
-            assert np.array_equal(value, loaded_params[key])
-        else:
-            assert value == loaded_params[key]
-
-def test_save_empty_params(fpt, temp_output_dir):
-    """Test saving when no parameters are available"""
-    # Create handler with no parameters
-    handler = FPTHandler(fpt)
-    handler.clear_default_params()
-    with pytest.raises(ValueError, match="No parameters stored or provided to save"):
-        handler.save_params(os.path.join(temp_output_dir, "empty_params"))
+            assert value == old_params[key]
 
 ################# FILE PATH TESTS #################
 def test_file_path_handling(handler, temp_output_dir):
     """Test different ways of specifying file paths"""
     # 1. Relative filename with output_dir
-    handler.save_params("params1", output_dir=temp_output_dir)
+    handler.save_instance("params1", output_dir=temp_output_dir)
     assert os.path.exists(os.path.join(temp_output_dir, "params1.npz"))
     
     # 2. Absolute path (output_dir should be ignored)
     abs_path = os.path.join(temp_output_dir, "params2")
-    handler.save_params(abs_path, output_dir="/should/be/ignored")
+    handler.save_instance(abs_path, output_dir="/should/be/ignored")
     assert os.path.exists(abs_path + ".npz")
     
     # 3. Relative path with directory component
     subdir = "subdir"
     os.makedirs(os.path.join(temp_output_dir, subdir), exist_ok=True)
     rel_path = os.path.join(subdir, "params3")
-    handler.save_params(rel_path, output_dir=temp_output_dir)
+    handler.save_instance(rel_path, output_dir=temp_output_dir)
     assert os.path.exists(os.path.join(temp_output_dir, rel_path + ".npz"))
 
 def test_file_extension_handling(handler, temp_output_dir):
     """Test handling of file extensions"""
     # Without extension (should add .npz)
-    handler.save_params("no_extension", output_dir=temp_output_dir)
+    handler.save_instance("no_extension", output_dir=temp_output_dir)
     assert os.path.exists(os.path.join(temp_output_dir, "no_extension.npz"))
     
     # With .npz extension (should not duplicate)
-    handler.save_params("with_extension.npz", output_dir=temp_output_dir)
+    handler.save_instance("with_extension.npz", output_dir=temp_output_dir)
     assert os.path.exists(os.path.join(temp_output_dir, "with_extension.npz"))
     assert not os.path.exists(os.path.join(temp_output_dir, "with_extension.npz.npz"))
     
     # With other extension (should still add .npz)
-    handler.save_params("other_extension.txt", output_dir=temp_output_dir)
+    handler.save_instance("other_extension.txt", output_dir=temp_output_dir)
     assert os.path.exists(os.path.join(temp_output_dir, "other_extension.txt.npz"))
 
 def test_directory_creation(handler):
@@ -927,7 +903,7 @@ def test_directory_creation(handler):
         param_file = os.path.join(nested_path, "params")
         
         # This should create the directory structure
-        handler.save_params(param_file)
+        handler.save_instance(param_file)
         
         # Check that the directories were created
         assert os.path.exists(nested_path)
@@ -942,50 +918,124 @@ def test_default_directory_fallback(fpt):
         handler = FPTHandler(fpt, P=P, save_dir=temp_dir)
         
         # Save without specifying output_dir (should use default)
-        handler.save_params("default_dir_params")
+        handler.save_instance("default_dir_params")
         assert os.path.exists(os.path.join(temp_dir, "default_dir_params.npz"))
         
-        # Load without specifying load_dir (should use default)
-        loaded_params = handler.load_params("default_dir_params")
-        assert loaded_params is not None
+        # Load without specifying load_dir - should work since we have a handler with save_dir
+        loaded_handler = FPTHandler.load_instance("default_dir_params", load_dir=temp_dir)
+        assert loaded_handler is not None
+        assert isinstance(loaded_handler, FPTHandler)
+
+def test_load_instance_requires_directory():
+    """Test that load_instance requires a directory when not using absolute paths"""
+    # This should raise an error because no load_dir is provided and filename is relative
+    with pytest.raises(FileNotFoundError, match="Parameter file.*not found"):
+        FPTHandler.load_instance("nonexistent_params")
+    
+    # Should also fail with relative path when file doesn't exist in current directory
+    with pytest.raises(FileNotFoundError):
+        FPTHandler.load_instance("relative_params.npz")
+
+def test_load_instance_with_absolute_path(fpt):
+    """Test that load_instance works with absolute paths without requiring load_dir"""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create and save a handler instance
+        handler = FPTHandler(fpt, P=P, save_dir=temp_dir)
+        abs_path = os.path.join(temp_dir, "abs_path_params")
+        handler.save_instance(abs_path)
+        
+        # Load using absolute path (no load_dir needed)
+        loaded_handler = FPTHandler.load_instance(abs_path + ".npz")
+        assert loaded_handler is not None
+        assert isinstance(loaded_handler, FPTHandler)
+        
+        # Should also work without the .npz extension
+        loaded_handler2 = FPTHandler.load_instance(abs_path)
+        assert loaded_handler2 is not None
+
+def test_current_working_directory_behavior(fpt):
+    """Test that the new current working directory behavior works correctly"""
+    # Get original working directory
+    orig_cwd = os.getcwd()
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Change to temp directory
+            os.chdir(temp_dir)
+            
+            # Create handler - should use current working directory + "outputs" (temp_dir/outputs)
+            handler = FPTHandler(fpt, P=P, P_window=P_window, C_window=C_window)
+            
+            # Save instance - should save to current directory + "outputs"
+            handler.save_instance("cwd_test_params")
+            
+            # File should exist in temp_dir/outputs (current working directory + "outputs")
+            expected_path = os.path.join(temp_dir, "outputs", "cwd_test_params.npz")
+            assert os.path.exists(expected_path)
+            
+            # Load instance - should load from the outputs subdirectory
+            outputs_dir = os.path.join(temp_dir, "outputs")
+            loaded_handler = FPTHandler.load_instance("cwd_test_params", load_dir=outputs_dir)
+            assert loaded_handler is not None
+            assert isinstance(loaded_handler, FPTHandler)
+            
+            # Verify the loaded parameters match
+            assert np.array_equal(loaded_handler.default_params['P'], P)
+            assert loaded_handler.default_params['C_window'] == C_window
+            
+        finally:
+            # Always restore original working directory
+            os.chdir(orig_cwd)
+
+def test_save_dir_parameter_override(fpt):
+    """Test that explicit save_dir parameter overrides current working directory default"""
+    orig_cwd = os.getcwd()
+    
+    with tempfile.TemporaryDirectory() as temp_dir1:
+        with tempfile.TemporaryDirectory() as temp_dir2:
+            try:
+                # Change to temp_dir1
+                os.chdir(temp_dir1)
+                
+                # Create handler with explicit save_dir (should override cwd)
+                handler = FPTHandler(fpt, P=P, save_dir=temp_dir2)
+                
+                # Save instance - should save to temp_dir2, not current directory (temp_dir1)
+                handler.save_instance("override_test_params")
+                
+                # File should be in temp_dir2, not temp_dir1
+                assert os.path.exists(os.path.join(temp_dir2, "override_test_params.npz"))
+                assert not os.path.exists(os.path.join(temp_dir1, "override_test_params.npz"))
+                
+                # Load should work from temp_dir2
+                loaded_handler = FPTHandler.load_instance("override_test_params", load_dir=temp_dir2)
+                assert loaded_handler is not None
+                
+            finally:
+                os.chdir(orig_cwd)
 
 ################# LOAD TESTS #################
 def test_load_nonexistent_file(handler):
     """Test loading a file that doesn't exist"""
     with pytest.raises(FileNotFoundError):
-        handler.load_params("nonexistent_file")
-
-def test_load_with_different_handler(fpt, temp_output_dir):
-    """Test loading parameters with a different handler than the one that saved them"""
-    # Save parameters with first handler
-    handler1 = FPTHandler(fpt, P=P, C_window=0.8)
-    param_file = os.path.join(temp_output_dir, "shared_params")
-    handler1.save_params(param_file)
-    
-    # Load parameters with second handler
-    handler2 = FPTHandler(fpt)  # Different handler
-    loaded_params = handler2.load_params(param_file)
-    
-    # Check that loaded parameters match what was saved
-    assert np.array_equal(loaded_params['P'], P)
-    assert loaded_params['C_window'] == 0.8
+        handler.load_instance("nonexistent_file")
 
 def test_load_with_absolute_path(handler, temp_output_dir):
     """Test loading using an absolute file path"""
     # Save parameters
     param_file = os.path.join(temp_output_dir, "abs_path_params")
-    handler.save_params(param_file)
+    handler.save_instance(param_file)
     
     # Load using absolute path
-    loaded_params = handler.load_params(param_file)
+    loaded_params = handler.load_instance(param_file)
     assert loaded_params is not None
     
     # Load using absolute path with .npz extension
-    loaded_params = handler.load_params(param_file + ".npz")
+    loaded_params = handler.load_instance(param_file + ".npz")
     assert loaded_params is not None
     
     # Load with absolute path but specifying load_dir (should ignore load_dir)
-    loaded_params = handler.load_params(param_file, load_dir="/should/be/ignored")
+    loaded_params = handler.load_instance(param_file, load_dir="/should/be/ignored")
     assert loaded_params is not None
 
 ################# INTEGRATION TESTS #################
@@ -997,75 +1047,22 @@ def test_save_and_use_in_run(fpt, temp_output_dir):
         'P_window': P_window,
         'C_window': C_window
     }
-    handler = FPTHandler(fpt)
+    handler = FPTHandler(fpt, **custom_params)
     param_file = os.path.join(temp_output_dir, "run_params")
-    handler.save_params(param_file, **custom_params)
+    handler.save_instance(param_file)
     
     # Load parameters
-    loaded_params = handler.load_params(param_file)
+    newHandler = FPTHandler.load_instance(param_file)
     
     # Use loaded parameters in a run
-    result = handler.run('one_loop_dd', **loaded_params)
+    result = newHandler.run('one_loop_dd')
     
     # Compare with direct run
-    direct_result = handler.run('one_loop_dd', **custom_params)
+    direct_result = handler.run('one_loop_dd')
     
     # Results should be identical
     assert np.array_equal(result, direct_result)
-
-def test_load_and_update_defaults(fpt, temp_output_dir):
-    """Test loading parameters and updating default parameters"""
-    # Create and save parameters
-    custom_params = {
-        'P': P,
-        'C_window': 0.6,
-        'f': 0.7
-    }
-    handler = FPTHandler(fpt)
-    param_file = os.path.join(temp_output_dir, "update_params")
-    handler.save_params(param_file, **custom_params)
-    
-    # Load parameters
-    loaded_params = handler.load_params(param_file)
-    
-    # Update default parameters
-    handler.update_default_params(**loaded_params)
-    
-    # Check that default parameters were updated
-    for key, value in custom_params.items():
-        assert key in handler.default_params
-        if isinstance(value, np.ndarray):
-            assert np.array_equal(handler.default_params[key], value)
-        else:
-            assert handler.default_params[key] == value
             
-def test_load_params_in_bulk_run(fpt, temp_output_dir):
-    """Test loading parameters for use in bulk_run"""
-    # Create and save parameters
-    base_params = {
-        'P_window': P_window,
-        'C_window': C_window,
-        'f': 0.5
-    }
-    handler = FPTHandler(fpt)
-    param_file = os.path.join(temp_output_dir, "bulk_params")
-    handler.save_params(param_file, **base_params)
-    
-    # Load parameters
-    loaded_params = handler.load_params(param_file)
-    
-    # Use loaded parameters in bulk_run
-    power_spectra = [P, P * 1.1]
-    funcs = ['one_loop_dd', 'IA_tt']
-    
-    # Run with loaded parameters
-    results = handler.bulk_run(funcs, power_spectra, **loaded_params)
-    
-    # Check that results were generated for all combinations
-    assert len(results) == len(funcs) * len(power_spectra)
-    for func in funcs:
-        for i in range(len(power_spectra)):
-            assert (func, i) in results
 
 ################# POWER SPECTRA GENERATOR TESTS #################
 
