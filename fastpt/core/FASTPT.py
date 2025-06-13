@@ -1555,7 +1555,7 @@ class FASTPT:
             # This will damp the highest frequencies
             if self.verbose:
                 print('windowing the Fourier coefficients')
-            c_m = c_m * c_window(self.m, int(C_window * self.N / 2.))
+            c_m = c_m * c_window(self.m, int(C_window * self.N // 2.))
         self.cache.set(c_m, "fourier_coefficients", hash_key, None)
         return c_m
 
