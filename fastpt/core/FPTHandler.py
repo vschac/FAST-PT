@@ -10,7 +10,7 @@ class FPTHandler:
     
     This class provides a simplified interface for working with FAST-PT functions,
     with features including power spectra generation, saving/loading outputs, 
-    direct access to specific power spectrum terms, and more.
+    direct access to specific power spectrum terms, plotting, and more.
     
     Parameters
     ----------
