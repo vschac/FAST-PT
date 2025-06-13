@@ -83,12 +83,12 @@ class FASTPT:
             with equal spacing in log(k) and contain an even number of elements.
         
         nu : float, optional
-            Deprecated. Previously used for scaling relations, no longer required.
+            Deprecated. Previously used to specify power-law biasing for FFT calculations. Now determined automatically.
         
         to_do : list of str, optional
-            List of calculations for precalculation of matrices. Terms will be calculated as needed
-            even without specifying them here, but pre-computing matrices can save time on the 
-            initial run of any function. 'All' or 'everything' will initialize all terms.
+            List of requirements for precalculation of matrices. Starting in v4, terms are calculated as needed
+            without specifying them here, but pre-computing matrices remains an option and can save time on the 
+            initial run of functions. 'All' or 'everything' will initialize all terms.
         
         param_mat : array_like, optional
             Custom parameter matrix for extensions (advanced usage).
@@ -121,8 +121,8 @@ class FASTPT:
         
         Notes
         -----
-        The input k array must be strictly increasing, logarithmically spaced with consistent spacing,
-        contain an even number of elements
+        The input k array must be strictly increasing, equally logarithmically spaced, and
+        contain an even number of elements.
         
         Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is 
         recommended to reduce numerical artifacts from the FFT-based algorithm.
