@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; FAST-PT 4.0.0b1 documentation</title>
+  <title>API Reference &mdash; FAST-PT 4.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=58814b0a"></script>
+      <script src="_static/documentation_options.js?v=3304f9e4"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -144,11 +144,11 @@ The method is presented in papers arXiv:1603.04826 and arXiv:1609.05978. Please 
 <dt><strong>k</strong><span class="classifier">array_like</span></dt><dd><p>The input k-grid (wavenumbers) in 1/Mpc. Must be logarithmically spaced
 with equal spacing in log(k) and contain an even number of elements.</p>
 </dd>
-<dt><strong>nu</strong><span class="classifier">float, optional</span></dt><dd><p>Deprecated. Previously used for scaling relations, no longer required.</p>
+<dt><strong>nu</strong><span class="classifier">float, optional</span></dt><dd><p>Deprecated. Previously used to specify power-law biasing for FFT calculations. Now determined automatically.</p>
 </dd>
-<dt><strong>to_do</strong><span class="classifier">list of str, optional</span></dt><dd><p>List of calculations for precalculation of matrices. Terms will be calculated as needed
-even without specifying them here, but pre-computing matrices can save time on the
-initial run of any function. ‘All’ or ‘everything’ will initialize all terms.</p>
+<dt><strong>to_do</strong><span class="classifier">list of str, optional</span></dt><dd><p>List of requirements for precalculation of matrices. Starting in v4, terms are calculated as needed
+without specifying them here, but pre-computing matrices remains an option and can save time on the
+initial run of functions. ‘All’ or ‘everything’ will initialize all terms.</p>
 </dd>
 <dt><strong>param_mat</strong><span class="classifier">array_like, optional</span></dt><dd><p>Custom parameter matrix for extensions (advanced usage).</p>
 </dd>
@@ -175,8 +175,8 @@ half the length of the input k array.</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>The input k array must be strictly increasing, logarithmically spaced with consistent spacing,
-contain an even number of elements</p>
+<p>The input k array must be strictly increasing, equally logarithmically spaced, and
+contain an even number of elements.</p>
 <p>Using extrapolation (low_extrap/high_extrap) and padding (n_pad) is
 recommended to reduce numerical artifacts from the FFT-based algorithm.</p>
 <dl class="py method">
@@ -552,7 +552,7 @@ alignment and tidal torque.</p>
 <dd><p>Handler class for FAST-PT that simplifies function calls and provides various convenience features relevant to FAST-PT calculations.</p>
 <p>This class provides a simplified interface for working with FAST-PT functions,
 with features including power spectra generation, saving/loading outputs,
-direct access to specific power spectrum terms, and more.</p>
+direct access to specific power spectrum terms, plotting, and more.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
