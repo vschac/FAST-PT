@@ -214,23 +214,26 @@ print('✓ Created multiple demonstration plots')
 # 7. SAVE/LOAD FUNCTIONALITY
 # ===============================================================================
 print('\n7. === SAVE/LOAD DEMONSTRATION ===')
-handler.output_dir = 'output'  # Set output directory
 
-# Save some results
-handler.save_output(P_1loop_result, 'one_loop_example', type='csv')
-handler.save_params('example_params', P=P_linear, C_window=0.75)
+# Update the default parameters before saving the handler instance
+handler.update_default_params(
+    P=P_linear,
+    C_window=0.75,
+    P_window=np.array([0.2, 0.2]),
+)
+handler.save_instance('example_handler') 
+# ^^ This will also save the parameters used to make the handler's fastpt instance
 
-# Load them back
-loaded_result = handler.load('one_loop_example_output.csv')
-loaded_params = handler.load_params('example_params')
+# Load them back in a new handler instance
+loaded_handler = FPTHandler.load_instance('outputs/example_handler')
 
-# And to use the loaded parameters:
-handler.run('one_loop_dd', **loaded_params)
-# or using Fast-PT directly:
-fpt.one_loop_dd(**loaded_params)
+# Now use the loaded handler with stored parameters to run calculations:
+handler.run('one_loop_dd')
+# or using the loaded Fast-PT instance directly:
+loaded_handler.fastpt.one_loop_dd(**loaded_handler.default_params)
 
 print('✓ Saved and loaded results and parameters')
-print(f'  → Loaded parameters: {list(loaded_params.keys())}')
+print(f'  → Loaded parameters: {list(loaded_handler.default_params.keys())}')
 
 # ===============================================================================
 # 8. CACHE INFORMATION
