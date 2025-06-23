@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - beta-fpt
+      - master
   pull_request:
     branches:
       - beta-fpt
+      - master
   workflow_dispatch:
 
 jobs:
@@ -15,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.13", "3.11"]
+        python-version: ["3.13", "3.11", "3.7"]
 
     steps:
       - name: Checkout repository
@@ -34,4 +36,4 @@ jobs:
           pip install pytest
 
       - name: Run unit/benchmark tests
-        run: pytest tests/ --disable-warnings
+        run: pytest tests/
