@@ -1067,6 +1067,8 @@ def test_save_and_use_in_run(fpt, temp_output_dir):
 ################# POWER SPECTRA GENERATOR TESTS #################
 
 def test_generate_power_spectra_basic(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test basic single-mode power spectra generation with default parameters"""
     # Test class with default parameters
     class_result = handler.generate_power_spectra(method='class')
@@ -1081,6 +1083,8 @@ def test_generate_power_spectra_basic(handler):
     assert np.all(camb_result > 0)
 
 def test_generate_power_spectra_methods(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test power spectra generation with different methods"""
     # Generate power spectra with different methods but same params
     class_result = handler.generate_power_spectra(method='class', omega_cdm=0.12, h=0.7, omega_b=0.022, z=0.5)
@@ -1107,6 +1111,8 @@ def test_generate_power_spectra_single_mode_array_error(handler):
         handler.generate_power_spectra(omega_cdm=[0.1, 0.2])
 
 def test_generate_power_spectra_params(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test power spectra generation with different parameter values"""
     # Generate with different parameter values
     base_result = handler.generate_power_spectra(method='class')
@@ -1118,6 +1124,8 @@ def test_generate_power_spectra_params(handler):
     assert not np.allclose(base_result, high_cdm_result)
 
 def test_bulk_power_spectra(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test bulk mode power spectra generation"""
     # Test with arrays of different lengths
     bulk_results = handler.generate_power_spectra(
@@ -1139,6 +1147,8 @@ def test_bulk_power_spectra(handler):
         assert np.all(result > 0)
 
 def test_bulk_power_spectra_single_entry(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test bulk mode with single entry arrays"""
     # When all parameters are length 1, should return a single result
     single_bulk_result = handler.generate_power_spectra(
@@ -1154,6 +1164,8 @@ def test_bulk_power_spectra_single_entry(handler):
     assert len(single_bulk_result) == len(handler.fastpt.k_original)
 
 def test_diff_power_spectra_basic(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test diff mode power spectra generation"""
     # Test with basic parameters
     diff_results = handler.generate_power_spectra(
@@ -1178,6 +1190,8 @@ def test_diff_power_spectra_basic(handler):
         assert len(value) == len(handler.fastpt.k_original)
 
 def test_diff_power_spectra_multi_param(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test diff mode with multiple variable parameters"""
     diff_results = handler.generate_power_spectra(
         mode='diff',
@@ -1196,6 +1210,8 @@ def test_diff_power_spectra_multi_param(handler):
     assert (0.0, 2) in diff_results.keys(), "h high variation not found"
 
 def test_diff_power_spectra_requires_length_3(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test that diff mode requires at least one parameter with length 3"""
     with pytest.raises(ValueError, match="must have length 3"):
         handler.generate_power_spectra(
@@ -1207,6 +1223,8 @@ def test_diff_power_spectra_requires_length_3(handler):
         )
 
 def test_diff_power_spectra_with_multiple_z(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test diff mode with multiple redshifts"""
     diff_results = handler.generate_power_spectra(
         mode='diff',
@@ -1227,6 +1245,8 @@ def test_diff_power_spectra_with_multiple_z(handler):
     assert len(z05_keys) == 3
 
 def test_camb_specific_params(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test CAMB-specific parameters"""
     # With nonlinear=True
     result_nl = handler.generate_power_spectra(
@@ -1253,6 +1273,8 @@ def test_camb_specific_params(handler):
     assert not np.allclose(result_nl, result_halofit)
 
 def test_class_camb_parameter_consistency(handler):
+    pytest.importorskip("classy", reason="classy is not installed")
+    pytest.importorskip("camb", reason="camb is not installed")
     """Test consistency in parameter handling between CLASS and CAMB"""
     # Generate spectra with same parameters
     params = {
