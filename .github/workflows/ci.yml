@@ -3,12 +3,11 @@ name: FAST-PT CI
 on:
   push:
     branches:
-      - main
-      - code-upgrades
-      - structural-changes
+      - beta-fpt
   pull_request:
     branches:
-      - main
+      - beta-fpt
+  workflow_dispatch:
 
 jobs:
   test:
