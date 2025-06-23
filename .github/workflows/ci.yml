@@ -32,5 +32,9 @@ jobs:
           pip install -e .
           pip install pytest
 
+      - name: Install optional dependencies
+        run: |
+          pip install classy camb
+
       - name: Run unit/benchmark tests
         run: pytest tests/ --disable-warnings
