@@ -13,4 +13,4 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (version_file,))
 print('FASTPT version is %s'%(fastpt_version))
 
-setup(version=fastpt_version)
+setup(version=fastpt_version, packages=find_packages())
