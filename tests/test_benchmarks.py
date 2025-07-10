@@ -42,10 +42,6 @@ def calc_and_show(bmark, stored, func):
         reason="Strict benchmark comparison is not reliable on Python 3.13+ or ARM64 runners"
     )
 def test_one_loop_dd(fpt):
-    pytestmark = pytest.mark.skipif(
-        sys.version_info >= (3, 13) or platform.machine() == "arm64",
-        reason="Strict benchmark comparison is not reliable on Python 3.13+ or ARM64 runners"
-    )
     bmark = fpt.one_loop_dd(P, C_window=C_window)[0]
     stored = np.loadtxt('tests/benchmarking/P_dd_benchmark.txt')
     # calc_and_show(bmark, stored, "one_loop_dd")
